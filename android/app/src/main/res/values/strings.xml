@@ -1,0 +1,7 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <string name="app_name">PMF Flix</string>
+    <string name="title_activity_main">PMF Flix</string>
+    <string name="package_name">com.pmf.flix</string>
+    <string name="custom_url_scheme">com.pmf.flix</string>
+</resources>
