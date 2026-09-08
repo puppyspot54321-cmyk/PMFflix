@@ -1,9 +1,9 @@
-import type { Session } from '@supabase/supabase-js'
-import AuthScreen from './Auth'
 import heroImage from './assets/hero.png'
 import { useEffect, useMemo, useRef, useState } from 'react'
 import type { Movie } from './movieData/movies'
 import { supabase } from './supabase'
+import type { Session } from '@supabase/supabase-js'
+import AuthScreen from './Auth'
 
 type Section = 'home' | 'movies' | 'series' | 'my-list'
 
