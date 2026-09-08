@@ -325,35 +325,12 @@ function App() {
   /*
    * DOWNLOAD MOVIE
    */
-  const downloadMovie = (movie: Movie) => {
-    const url = getVideoUrl(movie)
+  
+    
+    
+    
 
-    if (
-      !url ||
-      isYouTubeUrl(url) ||
-      !movie.downloadable
-    ) {
-      return
-    }
-
-    const link = document.createElement('a')
-
-    link.href = url
-
-    link.download = `${movie.title.replace(
-      /\s+/g,
-      '-',
-    )}.mp4`
-
-    link.target = '_blank'
-    link.rel = 'noopener noreferrer'
-
-    document.body.appendChild(link)
-
-    link.click()
-
-    document.body.removeChild(link)
-  }
+    
 
   /*
    * ESCAPE KEY
