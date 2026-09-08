@@ -15,6 +15,8 @@ export type Movie = {
   category: string
   videoUrl?: string
   videoType?: 'youtube' | 'mp4'
+  featured?: boolean
+  downloadable?: boolean
 }
 
 export const movies: Movie[] = [
