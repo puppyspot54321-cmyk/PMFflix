@@ -697,11 +697,16 @@ function AuthenticatedApp({
           </div>
 
           <button
-            onClick={() =>
-              setShowMobileSearch(
-                (value) => !value,
-              )
-            }
+  onClick={() => supabase.auth.signOut()}
+  className="rounded-full border border-white/10 bg-white/5 px-3 py-2 text-xs font-semibold text-white/70 transition hover:bg-white/10 hover:text-white sm:px-4"
+>
+  <span className="hidden max-w-[150px] truncate sm:inline">
+    {session.user.email}
+  </span>
+  <span className="sm:ml-2">
+    Sign out
+  </span>
+</button>
             className="rounded-full border border-white/10 bg-white/5 px-3 py-2 md:hidden"
           >
             🔎
@@ -1489,6 +1494,70 @@ function AuthenticatedApp({
       )}
 
     </div>
+  )
+}
+
+function App() {
+  const [session, setSession] =
+    useState<Session | null>(null)
+
+  const [authLoading, setAuthLoading] =
+    useState(true)
+
+  useEffect(() => {
+    let mounted = true
+
+    supabase.auth.getSession().then(
+      ({ data: { session } }) => {
+        if (!mounted) return
+
+        setSession(session)
+        setAuthLoading(false)
+      },
+    )
+
+    const {
+      data: { subscription },
+    } = supabase.auth.onAuthStateChange(
+      (_event, session) => {
+        setSession(session)
+        setAuthLoading(false)
+      },
+    )
+
+    return () => {
+      mounted = false
+      subscription.unsubscribe()
+    }
+  }, [])
+
+  if (authLoading) {
+    return (
+      <div className="flex min-h-screen items-center justify-center bg-[#050505] text-white">
+        <div className="text-center">
+          <div className="text-4xl font-black">
+            <span className="text-red-600">
+              PMF
+            </span>
+            LIX
+          </div>
+
+          <div className="mx-auto mt-6 h-10 w-10 animate-spin rounded-full border-4 border-white/10 border-t-red-600" />
+
+          <p className="mt-4 text-sm text-white/40">
+            Loading PMF Flix...
+          </p>
+        </div>
+      </div>
+    )
+  }
+
+  if (!session) {
+    return <AuthScreen />
+  }
+
+  return (
+    <AuthenticatedApp session={session} />
   )
 }
 
