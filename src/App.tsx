@@ -7,7 +7,11 @@ import AuthScreen from './Auth'
 
 type Section = 'home' | 'movies' | 'series' | 'my-list'
 
-function App() {
+function AuthenticatedApp({
+  session,
+}: {
+  session: Session
+}) {
   const [activeSection, setActiveSection] =
     useState<Section>('home')
 
