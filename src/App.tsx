@@ -500,14 +500,7 @@ function App() {
     )
     .filter(Boolean) as Movie[]
 
-  const recommendedMovies = movies
-    .filter(
-      (movie) =>
-        movie.id !== watchingMovie?.id &&
-        movie.id !== selectedMovie?.id,
-    )
-    .slice(0, 5)
-
+  
   /*
    * MOVIE CARD
    */
