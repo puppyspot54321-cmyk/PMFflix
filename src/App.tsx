@@ -1345,26 +1345,31 @@ useEffect(() => {
                         onClick={toggleMute}
                         className="rounded-lg border border-white/10 bg-white/5 px-4 py-2 text-sm"
                       >
-                        {isMuted
-                          ? '🔇 Muted'
-                          : '🔊 Sound'}
-                      </button>
+                                 {getVideoUrl(watchingMovie) ? (
+                <>
+                  <VideoPlayer
+                    videoUrl={getVideoUrl(watchingMovie)}
+                    posterUrl={watchingMovie.poster}
+                    title={watchingMovie.title}
+                    autoPlay={false}
+                    onTimeUpdate={(currentTime) => {
+                      console.log(
+                        'PMF playback position:',
+                        currentTime,
+                      )
+                    }}
+                    onEnded={() => {
+                      setIsPlaying(false)
+                    }}
+                  />
 
-                    </div>
-
-                    <button
-                      onClick={toggleFullscreen}
-                      className="rounded-lg border border-white/10 bg-white/5 px-4 py-2 text-sm"
-                    >
-                      ⛶ Fullscreen
-                    </button>
-
+                  <div className="mt-4 flex items-center justify-end">
+                    <p className="text-xs text-white/40">
+                      PMF Player Controls
+                    </p>
                   </div>
-
                 </>
-
               ) : (
-
                 <div
                   className="relative flex aspect-video w-full items-center justify-center overflow-hidden bg-black"
                   style={{
@@ -1372,17 +1377,13 @@ useEffect(() => {
                       watchingMovie.poster
                         ? `url(${watchingMovie.poster})`
                         : undefined,
-
                     backgroundSize: 'cover',
-
                     backgroundPosition: 'center',
                   }}
                 >
-
                   <div className="absolute inset-0 bg-black/85 backdrop-blur-md" />
 
                   <div className="relative z-10 max-w-xl px-6 text-center">
-
                     <div className="mx-auto flex h-20 w-20 items-center justify-center rounded-full border border-white/20 bg-white/10 text-3xl">
                       ▶
                     </div>
@@ -1396,23 +1397,16 @@ useEffect(() => {
                     </h1>
 
                     <p className="mt-4 text-sm leading-6 text-white/50">
-
                       {videoError
                         ? 'This video could not be played. Please check that the MP4 file is inside public/movies/the-journey.mp4 and that the video format is supported by your browser.'
                         : 'No video has been connected to this title yet.'}
-
                     </p>
-
                   </div>
-
                 </div>
-
               )}
-
             </div>
 
             <div className="mt-8">
-
               <p className="text-xs font-bold uppercase tracking-[0.3em] text-red-500">
                 Now Watching
               </p>
@@ -1422,7 +1416,6 @@ useEffect(() => {
               </h1>
 
               <div className="mt-3 flex flex-wrap gap-3 text-sm text-white/50">
-
                 <span>
                   {watchingMovie.year}
                 </span>
@@ -1438,20 +1431,17 @@ useEffect(() => {
                 <span>
                   {watchingMovie.category}
                 </span>
-
               </div>
 
               <p className="mt-5 max-w-3xl leading-7 text-white/60">
                 {watchingMovie.description}
               </p>
-
             </div>
-
           </section>
-
         </div>
+      )}     
+                    
 
-      )}
 
       {/* FOOTER */}
 
