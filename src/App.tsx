@@ -360,17 +360,7 @@ useEffect(() => {
   }
 }, [watchingMovie, selectedMovie])
 
-/*
- * RESET PLAYER STATE WHEN MOVIE CHANGES
- */
-useEffect(() => {
-  if (!watchingMovie) return
 
-  setIsPlaying(false)
-  setIsMuted(false)
-  setVideoError(false)
-  setVideoLoading(true)
-}, [watchingMovie?.id])
 
 /*
  * UPDATE SELECTED MOVIE
