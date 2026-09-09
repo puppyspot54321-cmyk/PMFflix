@@ -1245,83 +1245,22 @@ function AuthenticatedApp({
 
                   <div className="relative">
 
-                    <video
-                      ref={videoRef}
-                      key={getVideoUrl(watchingMovie)}
-                      src={getVideoUrl(watchingMovie)}
-                      poster={watchingMovie.poster}
-                      className="aspect-video w-full bg-black object-contain"
-                      controls
-                      playsInline
-                      preload="auto"
-                      onLoadStart={() => {
-                        console.log(
-                          'PMF VIDEO LOADING:',
-                          getVideoUrl(watchingMovie),
-                        )
-
-                        setVideoLoading(true)
-                        setVideoError(false)
-                      }}
-                      onLoadedMetadata={() => {
-                        console.log(
-                          'PMF VIDEO METADATA LOADED',
-                        )
-
-                        setVideoLoading(false)
-                      }}
-                      onCanPlay={() => {
-                        console.log(
-                          'PMF VIDEO READY TO PLAY',
-                        )
-
-                        setVideoLoading(false)
-                      }}
-                      onWaiting={() => {
-                        setVideoLoading(true)
-                      }}
-                      onPlaying={() => {
-                        setVideoLoading(false)
-                        setIsPlaying(true)
-                      }}
-                      onPlay={() => {
-                        setIsPlaying(true)
-                      }}
-                      onPause={() => {
-                        setIsPlaying(false)
-                      }}
-                      onEnded={() => {
-                        setIsPlaying(false)
-                      }}
-                      onVolumeChange={(event) => {
-                        setIsMuted(
-                          event.currentTarget.muted,
-                        )
-                      }}
-                      onError={(event) => {
-                        const video =
-                          event.currentTarget
-
-                        console.error(
-                          'PMF VIDEO ERROR:',
-                          {
-                            src:
-                              video.currentSrc ||
-                              getVideoUrl(
-                                watchingMovie,
-                              ),
-                            error: video.error,
-                          },
-                        )
-
-                        setVideoLoading(false)
-                        setVideoError(true)
-                        setIsPlaying(false)
-                      }}
-                    >
-                      Your browser does not support
-                      video playback.
-                    </video>
+                  
+                    <VideoPlayer
+  videoUrl={getVideoUrl(watchingMovie)}
+  posterUrl={watchingMovie.poster}
+  title={watchingMovie.title}
+  autoPlay={false}
+  onTimeUpdate={(currentTime) => {
+    console.log(
+      'PMF playback position:',
+      currentTime,
+    )
+  }}
+  onEnded={() => {
+    setIsPlaying(false)
+  }}
+/>
 
                     {videoLoading && (
 
