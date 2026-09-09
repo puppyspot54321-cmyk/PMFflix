@@ -30,7 +30,7 @@ function AuthenticatedApp({
   const [moviesLoading, setMoviesLoading] = useState(true)
   const [moviesError, setMoviesError] = useState('')
 
-  const [isPlaying, setIsPlaying] = useState(false)
+  
     const [myList, setMyList] = useState<number[]>(() => {
     try {
       const saved = localStorage.getItem('pmf-my-list')
@@ -216,13 +216,9 @@ function AuthenticatedApp({
    * START WATCHING
    */
   const startWatching = (movie: Movie) => {
-    setSelectedMovie(null)
-    setWatchingMovie(movie)
+  setSelectedMovie(null)
+  setWatchingMovie(movie)
 
-    setIsPlaying(false)
-    setIsMuted(false)
-    setVideoError(false)
-    setVideoLoading(true)
 
     addToContinueWatching(movie.id)
   }
@@ -231,16 +227,9 @@ function AuthenticatedApp({
    * CLOSE VIDEO PLAYER
    */
   const closeWatching = () => {
-    if (videoRef.current) {
-      videoRef.current.pause()
-      videoRef.current.currentTime = 0
-    }
-
-    setWatchingMovie(null)
-    setIsPlaying(false)
-    setVideoError(false)
-    setVideoLoading(true)
+  setWatchingMovie(null)
   }
+  
 
   /*
    * GO HOME
@@ -1306,8 +1295,8 @@ useEffect(() => {
     )
   }}
   onEnded={() => {
-    setIsPlaying(false)
-  }}
+  console.log('PMF playback ended')
+}}
 />
 
                     {videoLoading && (
@@ -1353,9 +1342,8 @@ useEffect(() => {
                       )
                     }}
                     onEnded={() => {
-                      setIsPlaying(false)
-                    }}
-                  />
+  console.log('PMF playback ended')
+}}
 
                   <div className="mt-4 flex items-center justify-end">
                     <p className="text-xs text-white/40">
