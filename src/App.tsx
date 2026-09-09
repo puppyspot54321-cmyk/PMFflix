@@ -349,33 +349,87 @@ function AuthenticatedApp({
       window.removeEventListener(
         'keydown',
         handleEscape,
-      )
+const closeWatching = () => {
+  setWatchingMovie(null)
+  setIsPlaying(false)
+  setVideoError(false)
+  setVideoLoading(true)
+}
+
+/*
+ * GO HOME
+ */
+const goHome = () => {
+  setActiveSection('home')
+  setSearchQuery('')
+  setSelectedMovie(null)
+  setWatchingMovie(null)
+
+  window.scrollTo({
+    top: 0,
+    behavior: 'smooth',
+  })
+}
+
+/*
+ * ESCAPE KEY
+ */
+useEffect(() => {
+  const handleEscape = (
+    event: KeyboardEvent,
+  ) => {
+    if (event.key !== 'Escape') return
+
+    if (watchingMovie) {
+      closeWatching()
+    } else if (selectedMovie) {
+      setSelectedMovie(null)
     }
-  }, [watchingMovie, selectedMovie])
+  }
 
-  /*
-   * RESET VIDEO WHEN MOVIE CHANGES
-   */
-  useEffect(() => {
-    if (!watchingMovie) return
+  window.addEventListener(
+    'keydown',
+    handleEscape,
+  )
 
-    setIsPlaying(false)
-    setIsMuted(false)
-    setVideoError(false)
-    setVideoLoading(true)
+  return () => {
+    window.removeEventListener(
+      'keydown',
+      handleEscape,
+    )
+  }
+}, [watchingMovie, selectedMovie])
 
-    setTimeout(() => {
-      if (videoRef.current) {
-        videoRef.current.pause()
-        videoRef.current.currentTime = 0
-        videoRef.current.load()
-      }
-    }, 100)
-  }, [watchingMovie?.id])
+/*
+ * RESET PLAYER STATE WHEN MOVIE CHANGES
+ */
+useEffect(() => {
+  if (!watchingMovie) return
 
-  /*
-   * UPDATE SELECTED MOVIE
-   */
+  setIsPlaying(false)
+  setIsMuted(false)
+  setVideoError(false)
+  setVideoLoading(true)
+}, [watchingMovie?.id])
+
+/*
+ * UPDATE SELECTED MOVIE
+ */
+useEffect(() => {
+  if (!selectedMovie) return
+
+  const updatedMovie = movies.find(
+    (movie) => movie.id === selectedMovie.id,
+  )
+
+  if (updatedMovie) {
+    setSelectedMovie(updatedMovie)
+  }
+}, [movies, selectedMovie?.id])
+
+/*
+ * UPDATE WATCHING MOVIE
+ */
   useEffect(() => {
     if (!selectedMovie) return
 
