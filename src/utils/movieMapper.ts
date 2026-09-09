@@ -161,3 +161,50 @@ export function mapSupabaseMoviesToCanonical(
 ): Movie[] {
   return rows.map(mapSupabaseMovieToCanonical)
   }
+export function mapCanonicalMovieToLegacy(
+  movie: Movie,
+): {
+  id: number
+  title: string
+  year: number
+  poster: string
+  type: 'Movie' | 'Series'
+  description: string
+  category: string
+  duration?: string
+  rating?: string
+  videoUrl?: string
+  trailerUrl?: string
+  featured: boolean
+  downloadable: boolean
+} {
+  return {
+    id: Number(movie.id),
+    title: movie.title,
+    year:
+      movie.releaseYear ??
+      new Date().getFullYear(),
+    poster: movie.posterUrl ?? '',
+    type:
+      movie.contentType === 'tv_show'
+        ? 'Series'
+        : 'Movie',
+    description: movie.synopsis,
+    category:
+      movie.genres[0] ?? 'Other',
+    duration:
+      movie.runtimeMinutes !== undefined
+        ? `${movie.runtimeMinutes} min`
+        : undefined,
+    rating:
+      movie.rating !== undefined
+        ? String(movie.rating)
+        : undefined,
+    videoUrl: movie.videoUrl,
+    trailerUrl: movie.trailerUrl,
+    featured: movie.isFeatured,
+    downloadable:
+      movie.downloadAvailability?.available ??
+      false,
+  }
+}
