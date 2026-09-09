@@ -35,7 +35,7 @@ function AuthenticatedApp({
   const [videoError, setVideoError] = useState(false)
   const [videoLoading, setVideoLoading] = useState(true)
 
-  const videoRef = useRef<HTMLVideoElement | null>(null)
+  
 
   const [myList, setMyList] = useState<number[]>(() => {
     try {
