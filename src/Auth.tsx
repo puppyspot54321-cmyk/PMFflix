@@ -58,7 +58,9 @@ function AuthScreen() {
         if (error) throw error
 
         if (data.session) {
-          setMessage('Your PMF Flix account has been created.')
+          setMessage(
+            'Your PMF Flix account has been created.',
+          )
         } else {
           setMessage(
             'Account created. Please check your email and verify your account before signing in.',
@@ -76,48 +78,6 @@ function AuthScreen() {
     }
   }
 
-  const handleGoogleLogin = async () => {
-    setLoading(true)
-    setError('')
-    setMessage('')
-
-    const { error } =
-      await supabase.auth.signInWithOAuth({
-        provider: 'google',
-        options: {
-          redirectTo: window.location.origin,
-          queryParams: {
-            prompt: 'select_account',
-          },
-        },
-      })
-
-    if (error) {
-      setError(error.message)
-      setLoading(false)
-    }
-  }
-
-  const handleMicrosoftLogin = async () => {
-    setLoading(true)
-    setError('')
-    setMessage('')
-
-    const { error } =
-      await supabase.auth.signInWithOAuth({
-        provider: 'azure',
-        options: {
-          redirectTo: window.location.origin,
-          scopes: 'email',
-        },
-      })
-
-    if (error) {
-      setError(error.message)
-      setLoading(false)
-    }
-  }
-
   return (
     <div className="flex min-h-screen items-center justify-center bg-[#050505] px-4 text-white">
       <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_right,rgba(220,38,38,0.18),transparent_35%)]" />
@@ -127,7 +87,7 @@ function AuthScreen() {
         <div className="mb-8 text-center">
           <div className="text-4xl font-black tracking-tight">
             <span className="text-red-600">PMF</span>
-            <span>LIX</span>
+            LIX
           </div>
 
           <p className="mt-2 text-sm text-white/40">
@@ -185,35 +145,13 @@ function AuthScreen() {
             </button>
           </div>
 
-          <div className="mt-6 space-y-3">
-
-            <button
-              type="button"
-              disabled={loading}
-              onClick={handleGoogleLogin}
-              className="flex w-full items-center justify-center gap-3 rounded-xl border border-white/10 bg-white py-3.5 text-sm font-bold text-black transition hover:bg-white/90 disabled:cursor-not-allowed disabled:opacity-50"
-            >
-              <span className="text-lg">G</span>
-              Continue with Google
-            </button>
-
-            <button
-              type="button"
-              disabled={loading}
-              onClick={handleMicrosoftLogin}
-              className="flex w-full items-center justify-center gap-3 rounded-xl border border-white/10 bg-white/5 py-3.5 text-sm font-bold text-white transition hover:bg-white/10 disabled:cursor-not-allowed disabled:opacity-50"
-            >
-              <span className="text-lg">⊞</span>
-              Continue with Microsoft
-            </button>
-
-          </div>
-
           <div className="my-6 flex items-center gap-3">
             <div className="h-px flex-1 bg-white/10" />
+
             <span className="text-xs uppercase tracking-widest text-white/30">
-              or
+              secure access
             </span>
+
             <div className="h-px flex-1 bg-white/10" />
           </div>
 
