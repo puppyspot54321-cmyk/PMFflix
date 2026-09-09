@@ -15,3 +15,8 @@ export type {
 } from './media'
 export type { Person, CastMember } from './person'
 export type { Movie } from './movie'
+export type {
+  Episode,
+  Season,
+  TVShow,
+} from './tv'
