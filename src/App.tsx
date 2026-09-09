@@ -31,13 +31,7 @@ function AuthenticatedApp({
   const [moviesError, setMoviesError] = useState('')
 
   const [isPlaying, setIsPlaying] = useState(false)
-  const [isMuted, setIsMuted] = useState(false)
-  const [videoError, setVideoError] = useState(false)
-  const [videoLoading, setVideoLoading] = useState(true)
-
-  
-
-  const [myList, setMyList] = useState<number[]>(() => {
+    const [myList, setMyList] = useState<number[]>(() => {
     try {
       const saved = localStorage.getItem('pmf-my-list')
       return saved ? JSON.parse(saved) : []
