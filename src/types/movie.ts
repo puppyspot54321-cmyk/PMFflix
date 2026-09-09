@@ -1,5 +1,14 @@
-import type { CastMember, Person } from './person'
-import type { SubtitleTrack, AudioTrack, VideoAsset } from './media'
+import type { ContentType } from './content'
+import type {
+  CastMember,
+  Person,
+} from './person'
+import type {
+  AudioTrack,
+  SubtitleTrack,
+  VideoAsset,
+  VideoQuality,
+} from './media'
 
 export interface Movie {
   id: string
@@ -10,14 +19,7 @@ export interface Movie {
   tagline?: string
   synopsis: string
 
-  contentType:
-    | 'movie'
-    | 'tv_show'
-    | 'season'
-    | 'episode'
-    | 'short_film'
-    | 'documentary'
-    | 'special'
+  contentType: ContentType
 
   releaseDate?: string
   releaseYear?: number
@@ -47,20 +49,21 @@ export interface Movie {
   videoUrl?: string
 
   videoAssets: VideoAsset[]
+
   subtitles: SubtitleTrack[]
   audioTracks: AudioTrack[]
 
   downloadAvailability?: {
     available: boolean
     url?: string
-    qualities?: string[]
+    qualities?: VideoQuality[]
   }
 
   rating?: number
   ratingCount?: number
 
   ageRating?: string
-  videoQualities: string[]
+  videoQualities: VideoQuality[]
 
   collectionIds: string[]
 
