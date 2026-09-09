@@ -248,34 +248,7 @@ function AuthenticatedApp({
 
 
 
-  /*
-   * MUTE
-   */
-  const toggleMute = () => {
-    if (!videoRef.current) return
 
-    videoRef.current.muted =
-      !videoRef.current.muted
-
-    setIsMuted(videoRef.current.muted)
-  }
-
-  /*
-   * FULLSCREEN
-   */
-  const toggleFullscreen = async () => {
-    if (!videoRef.current) return
-
-    try {
-      if (document.fullscreenElement) {
-        await document.exitFullscreen()
-      } else {
-        await videoRef.current.requestFullscreen()
-      }
-    } catch {
-      console.log('Fullscreen unavailable')
-    }
-  }
 
   /*
    * DOWNLOAD MOVIE
