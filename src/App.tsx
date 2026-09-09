@@ -73,49 +73,32 @@ function AuthenticatedApp({
       setMoviesLoading(true)
       setMoviesError('')
 
-      const { data, error } = await supabase
-        .from('movies')
-        .select('*')
-        .order('created_at', { ascending: false })
+      try {
+  const canonicalMovies = await getMovies()
 
-      if (!mounted) return
+  if (!mounted) return
 
-      if (error) {
-        console.error('PMF Supabase movie error:', error)
+  const mappedMovies: Movie[] =
+    canonicalMovies.map(
+      mapCanonicalMovieToLegacy,
+    )
 
-        setMoviesError(
-          'We could not load the PMF movie catalogue right now.',
-        )
+  setMovies(mappedMovies)
+  setMoviesLoading(false)
+} catch (error) {
+  if (!mounted) return
 
-        setMoviesLoading(false)
-        return
+  console.error(
+    'PMF Supabase movie error:',
+    error,
+  )
+
+  setMoviesError(
+    'We could not load the PMF movie catalogue right now.',
+  )
+
+  setMoviesLoading(false)
       }
-
-      const mappedMovies: Movie[] = (data ?? []).map(
-        (movie) => ({
-          id: Number(movie.id),
-          title: movie.title ?? '',
-          year: Number(
-            movie.year ?? new Date().getFullYear(),
-          ),
-          poster: movie.poster_url ?? '',
-          type:
-            movie.type === 'Series'
-              ? 'Series'
-              : 'Movie',
-          description: movie.description ?? '',
-          category: movie.category ?? 'Other',
-          duration: movie.duration ?? undefined,
-          rating: movie.rating ?? undefined,
-          videoUrl: movie.video_url ?? undefined,
-          trailerUrl: movie.trailer_url ?? undefined,
-          featured: Boolean(movie.featured),
-          downloadable: Boolean(movie.downloadable),
-        }),
-      )
-
-      setMovies(mappedMovies)
-      setMoviesLoading(false)
     }
 
     loadMovies()
