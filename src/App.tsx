@@ -6,6 +6,7 @@ import { mapCanonicalMovieToLegacy } from './utils/movieMapper'
 import { supabase } from './supabase'
 import type { Session } from '@supabase/supabase-js'
 import AuthScreen from './Auth'
+import { VideoPlayer } from './components'
 
 type Section = 'home' | 'movies' | 'series' | 'my-list'
 
