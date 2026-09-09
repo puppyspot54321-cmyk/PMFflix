@@ -1,0 +1,25 @@
+import type { Collection } from '../types/collection'
+
+export const collections: Collection[] = [
+  { id: 'pmf-originals', name: 'PMF Originals', slug: 'pmf-originals' },
+  { id: 'trending-now', name: 'Trending Now', slug: 'trending-now' },
+  { id: 'new-releases', name: 'New Releases', slug: 'new-releases' },
+  { id: 'coming-soon', name: 'Coming Soon', slug: 'coming-soon' },
+  { id: 'top-rated', name: 'Top Rated', slug: 'top-rated' },
+  { id: 'most-watched', name: 'Most Watched', slug: 'most-watched' },
+  { id: 'recently-added', name: 'Recently Added', slug: 'recently-added' },
+  { id: 'hidden-gems', name: 'Hidden Gems', slug: 'hidden-gems' },
+  { id: 'award-winners', name: 'Award Winners', slug: 'award-winners' },
+  { id: 'classics', name: 'Classics', slug: 'classics' },
+  { id: 'family-night', name: 'Family Night', slug: 'family-night' },
+  { id: 'date-night', name: 'Date Night', slug: 'date-night' },
+  { id: 'weekend-picks', name: 'Weekend Picks', slug: 'weekend-picks' },
+  { id: 'critically-acclaimed', name: "Critically Acclaimed", slug: 'critically-acclaimed' },
+  { id: 'based-on-true-events', name: 'Based on True Events', slug: 'based-on-true-events' },
+  { id: 'staff-picks', name: 'Staff Picks', slug: 'staff-picks' },
+  { id: 'editors-choice', name: "Editor's Choice", slug: 'editors-choice' },
+  { id: 'nollywood-spotlight', name: 'Nollywood Spotlight', slug: 'nollywood-spotlight' },
+  { id: 'african-cinema', name: 'African Cinema', slug: 'african-cinema' },
+  { id: 'hollywood-hits', name: 'Hollywood Hits', slug: 'hollywood-hits' },
+  { id: 'international-cinema', name: 'International Cinema', slug: 'international-cinema' },
+]
