@@ -246,27 +246,7 @@ function AuthenticatedApp({
     })
   }
 
-  /*
-   * PLAY / PAUSE
-   */
-  const togglePlay = async () => {
-    if (!videoRef.current) return
 
-    if (videoRef.current.paused) {
-      try {
-        await videoRef.current.play()
-      } catch (error) {
-        console.error(
-          'PMF play error:',
-          error,
-        )
-
-        setIsPlaying(false)
-      }
-    } else {
-      videoRef.current.pause()
-    }
-  }
 
   /*
    * MUTE
@@ -334,9 +314,6 @@ function AuthenticatedApp({
         handleEscape,
 const closeWatching = () => {
   setWatchingMovie(null)
-  setIsPlaying(false)
-  setVideoError(false)
-  setVideoLoading(true)
 }
 
 /*
