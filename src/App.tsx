@@ -595,124 +595,133 @@ function AuthenticatedApp({
       {/* HEADER */}
 
       <header className="fixed left-0 right-0 top-0 z-50 border-b border-white/10 bg-black/80 backdrop-blur-2xl">
-        <div className="mx-auto flex h-16 max-w-7xl items-center gap-5 px-4 sm:px-6 lg:px-8">
+  <div className="mx-auto flex h-16 max-w-7xl items-center gap-5 px-4 sm:px-6 lg:px-8">
 
-          <button
-            onClick={goHome}
-            className="shrink-0 text-2xl font-black tracking-tight"
-          >
-            <span className="text-red-600">PMF</span>
-            <span className="hidden text-white sm:inline">
-              LIX
-            </span>
-          </button>
+    <button
+      onClick={goHome}
+      className="shrink-0 text-2xl font-black tracking-tight"
+    >
+      <span className="text-red-600">PMF</span>
+      <span className="hidden text-white sm:inline">
+        LIX
+      </span>
+    </button>
 
-          <nav className="hidden items-center gap-6 text-sm font-semibold md:flex">
+    <nav className="hidden items-center gap-6 text-sm font-semibold md:flex">
 
-            <button
-              onClick={goHome}
-              className={
-                activeSection === 'home'
-                  ? 'text-white'
-                  : 'text-white/50 hover:text-white'
-              }
-            >
-              Home
-            </button>
+      <button
+        onClick={goHome}
+        className={
+          activeSection === 'home'
+            ? 'text-white'
+            : 'text-white/50 hover:text-white'
+        }
+      >
+        Home
+      </button>
 
-            <button
-              onClick={() => {
-                setActiveSection('movies')
-                setSearchQuery('')
-                window.scrollTo({
-                  top: 0,
-                  behavior: 'smooth',
-                })
-              }}
-              className={
-                activeSection === 'movies'
-                  ? 'text-white'
-                  : 'text-white/50 hover:text-white'
-              }
-            >
-              Movies
-            </button>
+      <button
+        onClick={() => {
+          setActiveSection('movies')
+          setSearchQuery('')
+          window.scrollTo({
+            top: 0,
+            behavior: 'smooth',
+          })
+        }}
+        className={
+          activeSection === 'movies'
+            ? 'text-white'
+            : 'text-white/50 hover:text-white'
+        }
+      >
+        Movies
+      </button>
 
-            <button
-              onClick={() => {
-                setActiveSection('series')
-                setSearchQuery('')
-                window.scrollTo({
-                  top: 0,
-                  behavior: 'smooth',
-                })
-              }}
-              className={
-                activeSection === 'series'
-                  ? 'text-white'
-                  : 'text-white/50 hover:text-white'
-              }
-            >
-              TV Series
-            </button>
+      <button
+        onClick={() => {
+          setActiveSection('series')
+          setSearchQuery('')
+          window.scrollTo({
+            top: 0,
+            behavior: 'smooth',
+          })
+        }}
+        className={
+          activeSection === 'series'
+            ? 'text-white'
+            : 'text-white/50 hover:text-white'
+        }
+      >
+        TV Series
+      </button>
 
-            <button
-              onClick={() => {
-                setActiveSection('my-list')
-                setSearchQuery('')
-                window.scrollTo({
-                  top: 0,
-                  behavior: 'smooth',
-                })
-              }}
-              className={
-                activeSection === 'my-list'
-                  ? 'text-white'
-                  : 'text-white/50 hover:text-white'
-              }
-            >
-              My List
-            </button>
+      <button
+        onClick={() => {
+          setActiveSection('my-list')
+          setSearchQuery('')
+          window.scrollTo({
+            top: 0,
+            behavior: 'smooth',
+          })
+        }}
+        className={
+          activeSection === 'my-list'
+            ? 'text-white'
+            : 'text-white/50 hover:text-white'
+        }
+      >
+        My List
+      </button>
 
-          </nav>
+    </nav>
 
-          <div className="ml-auto hidden flex-1 justify-end md:flex">
-            <div className="relative w-full max-w-xs">
+    <div className="ml-auto hidden flex-1 justify-end md:flex">
+      <div className="relative w-full max-w-xs">
 
-              <span className="pointer-events-none absolute left-4 top-1/2 -translate-y-1/2 text-white/40">
-                🔎
-              </span>
+        <span className="pointer-events-none absolute left-4 top-1/2 -translate-y-1/2 text-white/40">
+          🔎
+        </span>
 
-              <input
-                value={searchQuery}
-                onChange={(event) => {
-                  setSearchQuery(event.target.value)
-                  setActiveSection('home')
-                }}
-                placeholder="Search movies..."
-                className="w-full rounded-full border border-white/10 bg-white/10 py-2.5 pl-11 pr-4 text-sm outline-none placeholder:text-white/40 focus:border-red-600"
-              />
+        <input
+          value={searchQuery}
+          onChange={(event) => {
+            setSearchQuery(event.target.value)
+            setActiveSection('home')
+          }}
+          placeholder="Search movies..."
+          className="w-full rounded-full border border-white/10 bg-white/10 py-2.5 pl-11 pr-4 text-sm outline-none placeholder:text-white/40 focus:border-red-600"
+        />
 
-            </div>
-          </div>
+      </div>
+    </div>
 
-          <button
-  onClick={() => supabase.auth.signOut()}
-  className="rounded-full border border-white/10 bg-white/5 px-3 py-2 text-xs font-semibold text-white/70 transition hover:bg-white/10 hover:text-white sm:px-4"
->
-  <span className="hidden max-w-[150px] truncate sm:inline">
-    {session.user.email}
-  </span>
-  <span className="sm:ml-2">
-    Sign out
-  </span>
-</button>
-            className="rounded-full border border-white/10 bg-white/5 px-3 py-2 md:hidden"
-          >
-            🔎
-          </button>
+    <button
+      onClick={() =>
+        setShowMobileSearch(
+          (value) => !value,
+        )
+      }
+      className="rounded-full border border-white/10 bg-white/5 px-3 py-2 md:hidden"
+    >
+      🔎
+    </button>
 
-        </div>
+    <button
+      onClick={() => supabase.auth.signOut()}
+      className="rounded-full border border-white/10 bg-white/5 px-3 py-2 text-xs font-semibold text-white/70 transition hover:bg-white/10 hover:text-white sm:px-4"
+    >
+      <span className="hidden max-w-[150px] truncate sm:inline">
+        {session.user.email}
+      </span>
+
+      <span className="sm:ml-2">
+        Sign out
+      </span>
+    </button>
+
+  </div>
+                
 
         {showMobileSearch && (
           <div className="border-t border-white/10 bg-black p-3 md:hidden">
