@@ -1,4 +1,4 @@
-import { supabase } from '../lib/supabase'
+import { supabase } from '../supabase'
 import type { Movie } from '../types/movie'
 import {
   mapSupabaseMovieToCanonical,
@@ -30,8 +30,12 @@ const relationTables = {
 
 type RelationKey = keyof typeof relationTables
 
-const uniqueStrings = (values: string[]): string[] => {
-  return Array.from(new Set(values.filter(Boolean)))
+const uniqueStrings = (
+  values: string[],
+): string[] => {
+  return Array.from(
+    new Set(values.filter(Boolean)),
+  )
 }
 
 const getRelationshipRows = async (
@@ -50,42 +54,96 @@ const getRelationshipRows = async (
 
 const attachMetadata = (
   movies: Movie[],
-  relationships: Record<RelationKey, MetadataRelationRow[]>,
+  relationships: Record<
+    RelationKey,
+    MetadataRelationRow[]
+  >,
 ): Movie[] => {
   return movies.map((movie) => {
     const movieId = Number(movie.id)
 
     const genreIds = relationships.genres
-      .filter((row) => row.movie_id === movieId && row.genre_id)
+      .filter(
+        (row) =>
+          row.movie_id === movieId &&
+          row.genre_id,
+      )
       .map((row) => row.genre_id as string)
 
-    const subgenreIds = relationships.subgenres
-      .filter((row) => row.movie_id === movieId && row.subgenre_id)
-      .map((row) => row.subgenre_id as string)
+    const subgenreIds =
+      relationships.subgenres
+        .filter(
+          (row) =>
+            row.movie_id === movieId &&
+            row.subgenre_id,
+        )
+        .map(
+          (row) => row.subgenre_id as string,
+        )
 
-    const countryIds = relationships.countries
-      .filter((row) => row.movie_id === movieId && row.country_id)
-      .map((row) => row.country_id as string)
+    const countryIds =
+      relationships.countries
+        .filter(
+          (row) =>
+            row.movie_id === movieId &&
+            row.country_id,
+        )
+        .map(
+          (row) => row.country_id as string,
+        )
 
-    const regionIds = relationships.regions
-      .filter((row) => row.movie_id === movieId && row.region_id)
-      .map((row) => row.region_id as string)
+    const regionIds =
+      relationships.regions
+        .filter(
+          (row) =>
+            row.movie_id === movieId &&
+            row.region_id,
+        )
+        .map(
+          (row) => row.region_id as string,
+        )
 
-    const industryIds = relationships.industries
-      .filter((row) => row.movie_id === movieId && row.industry_id)
-      .map((row) => row.industry_id as string)
+    const industryIds =
+      relationships.industries
+        .filter(
+          (row) =>
+            row.movie_id === movieId &&
+            row.industry_id,
+        )
+        .map(
+          (row) => row.industry_id as string,
+        )
 
-    const languageIds = relationships.languages
-      .filter((row) => row.movie_id === movieId && row.language_id)
-      .map((row) => row.language_id as string)
+    const languageIds =
+      relationships.languages
+        .filter(
+          (row) =>
+            row.movie_id === movieId &&
+            row.language_id,
+        )
+        .map(
+          (row) => row.language_id as string,
+        )
 
     const tagIds = relationships.tags
-      .filter((row) => row.movie_id === movieId && row.tag_id)
+      .filter(
+        (row) =>
+          row.movie_id === movieId &&
+          row.tag_id,
+      )
       .map((row) => row.tag_id as string)
 
-    const collectionIds = relationships.collections
-      .filter((row) => row.movie_id === movieId && row.collection_id)
-      .map((row) => row.collection_id as string)
+    const collectionIds =
+      relationships.collections
+        .filter(
+          (row) =>
+            row.movie_id === movieId &&
+            row.collection_id,
+        )
+        .map(
+          (row) =>
+            row.collection_id as string,
+        )
 
     return {
       ...movie,
@@ -133,17 +191,22 @@ const attachMetadata = (
   })
 }
 
-export const getMovies = async (): Promise<Movie[]> => {
+export const getMovies = async (): Promise<
+  Movie[]
+> => {
   const { data, error } = await supabase
     .from('movies')
     .select('*')
-    .order('created_at', { ascending: false })
+    .order('created_at', {
+      ascending: false,
+    })
 
   if (error) {
     throw error
   }
 
-  const movies = mapSupabaseMoviesToCanonical(data ?? [])
+  const movies =
+    mapSupabaseMoviesToCanonical(data ?? [])
 
   const [
     genres,
@@ -155,14 +218,30 @@ export const getMovies = async (): Promise<Movie[]> => {
     tags,
     collections,
   ] = await Promise.all([
-    getRelationshipRows(relationTables.genres),
-    getRelationshipRows(relationTables.subgenres),
-    getRelationshipRows(relationTables.countries),
-    getRelationshipRows(relationTables.regions),
-    getRelationshipRows(relationTables.industries),
-    getRelationshipRows(relationTables.languages),
-    getRelationshipRows(relationTables.tags),
-    getRelationshipRows(relationTables.collections),
+    getRelationshipRows(
+      relationTables.genres,
+    ),
+    getRelationshipRows(
+      relationTables.subgenres,
+    ),
+    getRelationshipRows(
+      relationTables.countries,
+    ),
+    getRelationshipRows(
+      relationTables.regions,
+    ),
+    getRelationshipRows(
+      relationTables.industries,
+    ),
+    getRelationshipRows(
+      relationTables.languages,
+    ),
+    getRelationshipRows(
+      relationTables.tags,
+    ),
+    getRelationshipRows(
+      relationTables.collections,
+    ),
   ])
 
   return attachMetadata(movies, {
@@ -200,7 +279,8 @@ export const getMovieById = async (
     return null
   }
 
-  const movie = mapSupabaseMovieToCanonical(data)
+  const movie =
+    mapSupabaseMovieToCanonical(data)
 
   const [
     genres,
@@ -212,26 +292,45 @@ export const getMovieById = async (
     tags,
     collections,
   ] = await Promise.all([
-    getRelationshipRows(relationTables.genres),
-    getRelationshipRows(relationTables.subgenres),
-    getRelationshipRows(relationTables.countries),
-    getRelationshipRows(relationTables.regions),
-    getRelationshipRows(relationTables.industries),
-    getRelationshipRows(relationTables.languages),
-    getRelationshipRows(relationTables.tags),
-    getRelationshipRows(relationTables.collections),
+    getRelationshipRows(
+      relationTables.genres,
+    ),
+    getRelationshipRows(
+      relationTables.subgenres,
+    ),
+    getRelationshipRows(
+      relationTables.countries,
+    ),
+    getRelationshipRows(
+      relationTables.regions,
+    ),
+    getRelationshipRows(
+      relationTables.industries,
+    ),
+    getRelationshipRows(
+      relationTables.languages,
+    ),
+    getRelationshipRows(
+      relationTables.tags,
+    ),
+    getRelationshipRows(
+      relationTables.collections,
+    ),
   ])
 
-  const [result] = attachMetadata([movie], {
-    genres,
-    subgenres,
-    countries,
-    regions,
-    industries,
-    languages,
-    tags,
-    collections,
-  })
+  const [result] = attachMetadata(
+    [movie],
+    {
+      genres,
+      subgenres,
+      countries,
+      regions,
+      industries,
+      languages,
+      tags,
+      collections,
+    },
+  )
 
   return result ?? null
       }
