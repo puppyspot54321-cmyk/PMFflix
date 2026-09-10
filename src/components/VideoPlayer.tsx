@@ -1,6 +1,5 @@
 import {
   ChevronDown,
-  Expand,
   Lock,
   Maximize,
   Minimize,
@@ -181,7 +180,9 @@ function VideoPlayer({
 
   const resetControlsTimer = () => {
     if (hideControlsTimer.current) {
-      clearTimeout(hideControlsTimer.current)
+      clearTimeout(
+        hideControlsTimer.current,
+      )
     }
 
     setShowControls(true)
@@ -213,7 +214,8 @@ function VideoPlayer({
     }
 
     const handleLoadedMetadata = () => {
-      const nextDuration = video.duration
+      const nextDuration =
+        video.duration
 
       if (Number.isFinite(nextDuration)) {
         setDuration(nextDuration)
@@ -223,18 +225,24 @@ function VideoPlayer({
         initialTime > 0 &&
         Number.isFinite(video.duration)
       ) {
-        video.currentTime = Math.min(
-          initialTime,
-          video.duration,
+        video.currentTime =
+          Math.min(
+            initialTime,
+            video.duration,
+          )
+
+        setCurrentTime(
+          video.currentTime,
         )
-        setCurrentTime(video.currentTime)
       }
     }
 
     const handleTimeUpdate = () => {
-      const nextTime = video.currentTime
+      const nextTime =
+        video.currentTime
 
       setCurrentTime(nextTime)
+
       onTimeUpdate?.(nextTime)
     }
 
@@ -259,13 +267,15 @@ function VideoPlayer({
       setIsMuted(video.muted)
     }
 
-    const handleEnterPictureInPicture = () => {
-      setIsPictureInPicture(true)
-    }
+    const handleEnterPictureInPicture =
+      () => {
+        setIsPictureInPicture(true)
+      }
 
-    const handleLeavePictureInPicture = () => {
-      setIsPictureInPicture(false)
-    }
+    const handleLeavePictureInPicture =
+      () => {
+        setIsPictureInPicture(false)
+      }
 
     video.addEventListener(
       'loadedmetadata',
@@ -382,18 +392,17 @@ function VideoPlayer({
   useEffect(() => {
     const video = videoRef.current
 
-    if (!video) {
-      return
-    }
-
-    if (!autoPlay) {
+    if (!video || !autoPlay) {
       return
     }
 
     void video.play().catch(() => {
       setIsPlaying(false)
     })
-  }, [autoPlay, sourceUrl])
+  }, [
+    autoPlay,
+    sourceUrl,
+  ])
 
   useEffect(() => {
     const video = videoRef.current
@@ -402,13 +411,13 @@ function VideoPlayer({
       return
     }
 
-    const nextTime = video.currentTime
-
     if (
       sourceUrl &&
-      Number.isFinite(nextTime)
+      Number.isFinite(video.currentTime)
     ) {
-      setCurrentTime(nextTime)
+      setCurrentTime(
+        video.currentTime,
+      )
     }
   }, [sourceUrl])
 
@@ -419,9 +428,14 @@ function VideoPlayer({
       return
     }
 
-    const tracks = video.textTracks
+    const tracks =
+      video.textTracks
 
-    for (let index = 0; index < tracks.length; index += 1) {
+    for (
+      let index = 0;
+      index < tracks.length;
+      index += 1
+    ) {
       const track = tracks[index]
 
       if (!track) {
@@ -431,7 +445,8 @@ function VideoPlayer({
       track.mode =
         selectedSubtitle === 'off'
           ? 'disabled'
-          : track.label === selectedSubtitle
+          : track.label ===
+              selectedSubtitle
             ? 'showing'
             : 'disabled'
     }
@@ -467,6 +482,7 @@ function VideoPlayer({
     video.muted = !video.muted
 
     setIsMuted(video.muted)
+
     resetControlsTimer()
   }
 
@@ -479,12 +495,12 @@ function VideoPlayer({
       return
     }
 
-    const nextVolume = Number(
-      event.target.value,
-    )
+    const nextVolume =
+      Number(event.target.value)
 
     video.volume = nextVolume
-    video.muted = nextVolume === 0
+    video.muted =
+      nextVolume === 0
 
     setVolume(nextVolume)
     setIsMuted(video.muted)
@@ -492,23 +508,31 @@ function VideoPlayer({
     resetControlsTimer()
   }
 
-  const seek = (seconds: number) => {
+  const seek = (
+    seconds: number,
+  ) => {
     const video = videoRef.current
 
     if (!video || isLocked) {
       return
     }
 
-    const nextTime = Math.max(
-      0,
-      Math.min(
-        video.duration || 0,
-        video.currentTime + seconds,
-      ),
-    )
+    const nextTime =
+      Math.max(
+        0,
+        Math.min(
+          video.duration || 0,
+          video.currentTime +
+            seconds,
+        ),
+      )
 
-    video.currentTime = nextTime
-    setCurrentTime(nextTime)
+    video.currentTime =
+      nextTime
+
+    setCurrentTime(
+      nextTime,
+    )
 
     resetControlsTimer()
   }
@@ -522,77 +546,91 @@ function VideoPlayer({
       return
     }
 
-    const nextTime = Number(
-      event.target.value,
+    const nextTime =
+      Number(event.target.value)
+
+    video.currentTime =
+      nextTime
+
+    setCurrentTime(
+      nextTime,
     )
 
-    video.currentTime = nextTime
-    setCurrentTime(nextTime)
-
     resetControlsTimer()
   }
 
-  const toggleFullscreen = async () => {
-    if (isLocked) {
-      return
-    }
-
-    const container =
-      containerRef.current
-
-    if (!container) {
-      return
-    }
-
-    try {
-      if (!document.fullscreenElement) {
-        await container.requestFullscreen()
-
-        if (
-          'orientation' in screen &&
-          typeof screen.orientation.lock ===
-            'function'
-        ) {
-          try {
-            await screen.orientation.lock(
-              'landscape',
-            )
-
-            setIsOrientationLocked(true)
-          } catch {
-            setIsOrientationLocked(false)
-          }
-        }
-      } else {
-        await document.exitFullscreen()
+  const toggleFullscreen =
+    async () => {
+      if (isLocked) {
+        return
       }
-    } catch (error) {
-      console.error(
-        'PMF fullscreen error:',
-        error,
-      )
-    }
 
-    resetControlsTimer()
-  }
+      const container =
+        containerRef.current
+
+      if (!container) {
+        return
+      }
+
+      try {
+        if (
+          !document.fullscreenElement
+        ) {
+          await container.requestFullscreen()
+
+          if (
+            'orientation' in screen &&
+            typeof screen.orientation
+              .lock === 'function'
+          ) {
+            try {
+              await screen.orientation.lock(
+                'landscape',
+              )
+
+              setIsOrientationLocked(
+                true,
+              )
+            } catch {
+              setIsOrientationLocked(
+                false,
+              )
+            }
+          }
+        } else {
+          await document.exitFullscreen()
+        }
+      } catch (error) {
+        console.error(
+          'PMF fullscreen error:',
+          error,
+        )
+      }
+
+      resetControlsTimer()
+    }
 
   const toggleLock = () => {
-    setIsLocked((previous) => {
-      const nextLocked = !previous
+    setIsLocked(
+      (previous) => {
+        const nextLocked =
+          !previous
 
-      setShowControls(true)
+        setShowControls(true)
 
-      if (nextLocked) {
-        setShowSettings(false)
-      }
+        if (nextLocked) {
+          setShowSettings(false)
+        }
 
-      return nextLocked
-    })
+        return nextLocked
+      },
+    )
   }
 
   const togglePictureInPicture =
     async () => {
-      const video = videoRef.current
+      const video =
+        videoRef.current
 
       if (!video || isLocked) {
         return
@@ -623,81 +661,96 @@ function VideoPlayer({
     }
 
   const changeQuality = async (
-    quality: VideoQuality | 'auto',
+    quality:
+      | VideoQuality
+      | 'auto',
   ) => {
     if (isLocked) {
       return
     }
 
     if (
-      quality === selectedQuality
+      quality ===
+      selectedQuality
     ) {
       setShowSettings(false)
       return
     }
 
-    const video = videoRef.current
+    const video =
+      videoRef.current
 
     if (!video) {
       return
     }
 
-    const wasPlaying = !video.paused
+    const wasPlaying =
+      !video.paused
+
     const playbackTime =
       video.currentTime
 
-    setSelectedQuality(quality)
+    setSelectedQuality(
+      quality,
+    )
+
     setShowSettings(false)
 
-    window.setTimeout(() => {
-      const nextVideo =
-        videoRef.current
+    window.setTimeout(
+      () => {
+        const nextVideo =
+          videoRef.current
 
-      if (!nextVideo) {
-        return
-      }
+        if (!nextVideo) {
+          return
+        }
 
-      const restorePlayback = () => {
-        if (
-          Number.isFinite(
-            nextVideo.duration,
-          )
-        ) {
-          nextVideo.currentTime =
-            Math.min(
-              playbackTime,
-              nextVideo.duration,
+        const restorePlayback =
+          () => {
+            if (
+              Number.isFinite(
+                nextVideo.duration,
+              )
+            ) {
+              nextVideo.currentTime =
+                Math.min(
+                  playbackTime,
+                  nextVideo.duration,
+                )
+            } else {
+              nextVideo.currentTime =
+                playbackTime
+            }
+
+            setCurrentTime(
+              nextVideo.currentTime,
             )
+
+            if (wasPlaying) {
+              void nextVideo
+                .play()
+                .catch(() => {
+                  setIsPlaying(
+                    false,
+                  )
+                })
+            }
+          }
+
+        if (
+          nextVideo.readyState >= 1
+        ) {
+          restorePlayback()
         } else {
-          nextVideo.currentTime =
-            playbackTime
-        }
-
-        setCurrentTime(
-          nextVideo.currentTime,
-        )
-
-        if (wasPlaying) {
-          void nextVideo.play().catch(
-            () => {
-              setIsPlaying(false)
-            },
+          nextVideo.addEventListener(
+            'loadedmetadata',
+            restorePlayback,
+            { once: true },
           )
         }
-      }
-
-      if (
-        nextVideo.readyState >= 1
-      ) {
-        restorePlayback()
-      } else {
-        nextVideo.addEventListener(
-          'loadedmetadata',
-          restorePlayback,
-          { once: true },
-        )
-      }
-    }, 100)
+      },
+      100,
+    )
   }
 
   const selectSubtitle = (
@@ -707,26 +760,37 @@ function VideoPlayer({
       return
     }
 
-    setSelectedSubtitle(label)
+    setSelectedSubtitle(
+      label,
+    )
+
     setShowSettings(false)
   }
 
   const formatTime = (
     time: number,
   ) => {
-    if (!Number.isFinite(time)) {
+    if (
+      !Number.isFinite(time)
+    ) {
       return '00:00'
     }
 
     const totalSeconds =
-      Math.max(0, Math.floor(time))
+      Math.max(
+        0,
+        Math.floor(time),
+      )
 
     const hours =
-      Math.floor(totalSeconds / 3600)
+      Math.floor(
+        totalSeconds / 3600,
+      )
 
     const minutes =
       Math.floor(
-        (totalSeconds % 3600) / 60,
+        (totalSeconds % 3600) /
+          60,
       )
 
     const seconds =
@@ -735,18 +799,32 @@ function VideoPlayer({
     if (hours > 0) {
       return `${hours
         .toString()
-        .padStart(2, '0')}:${minutes
+        .padStart(
+          2,
+          '0',
+        )}:${minutes
         .toString()
-        .padStart(2, '0')}:${seconds
+        .padStart(
+          2,
+          '0',
+        )}:${seconds
         .toString()
-        .padStart(2, '0')}`
+        .padStart(
+          2,
+          '0',
+        )}`
     }
 
     return `${minutes
       .toString()
-      .padStart(2, '0')}:${seconds
+      .padStart(
+        2,
+        '0',
+      )}:${seconds
       .toString()
-      .padStart(2, '0')}`
+      .padStart(
+        2,
+        '0')}`
   }
 
   if (!sourceUrl) {
@@ -765,8 +843,12 @@ function VideoPlayer({
           ? 'h-full w-full rounded-none'
           : ''
       }`}
-      onMouseMove={resetControlsTimer}
-      onTouchStart={resetControlsTimer}
+      onMouseMove={
+        resetControlsTimer
+      }
+      onTouchStart={
+        resetControlsTimer
+      }
       onClick={() => {
         if (!isLocked) {
           resetControlsTimer()
@@ -775,6 +857,7 @@ function VideoPlayer({
     >
       <video
         ref={videoRef}
+        key={sourceUrl}
         className={`aspect-video w-full bg-black object-contain ${
           isFullscreen
             ? 'h-full'
@@ -797,7 +880,8 @@ function VideoPlayer({
         {subtitles
           .filter(
             (track) =>
-              track.format === 'vtt',
+              track.format ===
+              'vtt',
           )
           .map((track) => (
             <track
@@ -808,7 +892,9 @@ function VideoPlayer({
                 track.languageId
               }
               label={track.label}
-              default={track.isDefault}
+              default={
+                track.isDefault
+              }
             />
           ))}
       </video>
@@ -843,7 +929,9 @@ function VideoPlayer({
               currentTime,
               duration || 0,
             )}
-            onChange={changeProgress}
+            onChange={
+              changeProgress
+            }
             className="mb-3 h-1.5 w-full cursor-pointer accent-red-600"
             aria-label="Video progress"
           />
@@ -868,25 +956,35 @@ function VideoPlayer({
 
             <button
               type="button"
-              onClick={() => seek(-10)}
+              onClick={() =>
+                seek(-10)
+              }
               aria-label="Rewind 10 seconds"
               className="rounded-full p-2 transition hover:bg-white/10 active:scale-95"
             >
-              <RotateCcw size={18} />
+              <RotateCcw
+                size={18}
+              />
             </button>
 
             <button
               type="button"
-              onClick={() => seek(10)}
+              onClick={() =>
+                seek(10)
+              }
               aria-label="Forward 10 seconds"
               className="rounded-full p-2 transition hover:bg-white/10 active:scale-95"
             >
-              <RotateCw size={18} />
+              <RotateCw
+                size={18}
+              />
             </button>
 
             <button
               type="button"
-              onClick={toggleMute}
+              onClick={
+                toggleMute
+              }
               aria-label={
                 isMuted
                   ? 'Unmute'
@@ -895,9 +993,13 @@ function VideoPlayer({
               className="rounded-full p-2 transition hover:bg-white/10 active:scale-95"
             >
               {isMuted ? (
-                <VolumeX size={20} />
+                <VolumeX
+                  size={20}
+                />
               ) : (
-                <Volume2 size={20} />
+                <Volume2
+                  size={20}
+                />
               )}
             </button>
 
@@ -911,7 +1013,9 @@ function VideoPlayer({
                   ? 0
                   : volume
               }
-              onChange={changeVolume}
+              onChange={
+                changeVolume
+              }
               aria-label="Volume"
               className="hidden w-20 cursor-pointer accent-red-600 sm:block"
             />
@@ -921,7 +1025,9 @@ function VideoPlayer({
                 currentTime,
               )}{' '}
               /{' '}
-              {formatTime(duration)}
+              {formatTime(
+                duration,
+              )}
             </span>
 
             <div className="ml-auto flex items-center gap-1">
@@ -936,16 +1042,13 @@ function VideoPlayer({
                           !previous,
                       )
                     }
-                    aria-label="Player settings"
+                                        aria-label="Player settings"
                     className="flex items-center gap-1 rounded-lg px-2 py-2 text-xs font-bold transition hover:bg-white/10"
                   >
-                    <Settings
-                      size={18}
-                    />
+                    <Settings size={18} />
 
                     <span className="hidden sm:inline">
-                      {selectedQuality ===
-                      'auto'
+                      {selectedQuality === 'auto'
                         ? 'Auto'
                         : getQualityLabel(
                             selectedQuality,
@@ -959,7 +1062,7 @@ function VideoPlayer({
                   </button>
 
                   {showSettings && (
-                    <div className="absolute bottom-12 right-0 w-56 overflow-hidden rounded-xl border border-white/10 bg-black/95 p-2 shadow-2xl backdrop-blur-xl">
+                    <div className="absolute bottom-12 right-0 z-30 w-56 overflow-hidden rounded-xl border border-white/10 bg-black/95 p-2 shadow-2xl backdrop-blur-xl">
                       <div className="px-3 py-2 text-[10px] font-black uppercase tracking-[0.2em] text-white/40">
                         Video quality
                       </div>
@@ -995,7 +1098,8 @@ function VideoPlayer({
                               )
                             }
                             className={`flex w-full items-center justify-between rounded-lg px-3 py-2.5 text-left text-sm ${
-                              selectedQuality === quality
+                              selectedQuality ===
+                              quality
                                 ? 'bg-white/10 text-white'
                                 : 'text-white/70 hover:bg-white/5'
                             }`}
@@ -1109,7 +1213,11 @@ function VideoPlayer({
                 aria-label="Lock player controls"
                 className="rounded-full p-2 transition hover:bg-white/10 active:scale-95"
               >
-                <Lock size={18} />
+                {isLocked ? (
+                  <Unlock size={18} />
+                ) : (
+                  <Lock size={18} />
+                )}
               </button>
 
               <button
@@ -1174,5 +1282,3 @@ function VideoPlayer({
 }
 
 export default VideoPlayer
-After pasting, make sure the very
-          
