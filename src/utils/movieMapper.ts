@@ -26,30 +26,56 @@ function slugify(value: string): string {
     .replace(/^-+|-+$/g, '')
 }
 
-function toContentType(value: string | null): ContentType {
-  const normalized = value?.toLowerCase().trim()
+function toContentType(
+  value: string | null,
+): ContentType {
+  const normalized =
+    value?.toLowerCase().trim()
 
-  if (normalized === 'series' || normalized === 'tv show') {
+  if (
+    normalized === 'series' ||
+    normalized === 'tv show' ||
+    normalized === 'tv series' ||
+    normalized === 'tv_show'
+  ) {
     return 'tv_show'
+  }
+
+  if (normalized === 'season') {
+    return 'season'
+  }
+
+  if (normalized === 'episode') {
+    return 'episode'
   }
 
   if (normalized === 'documentary') {
     return 'documentary'
   }
 
-  if (normalized === 'short film') {
+  if (
+    normalized === 'short film' ||
+    normalized === 'short_film'
+  ) {
     return 'short_film'
+  }
+
+  if (normalized === 'special') {
+    return 'special'
   }
 
   return 'movie'
 }
 
-function parseRating(value: string | null): number | undefined {
+function parseRating(
+  value: string | null,
+): number | undefined {
   if (!value) {
     return undefined
   }
 
-  const numericValue = Number.parseFloat(value)
+  const numericValue =
+    Number.parseFloat(value)
 
   return Number.isFinite(numericValue)
     ? numericValue
@@ -63,25 +89,59 @@ function parseRuntimeMinutes(
     return undefined
   }
 
-  const match = value.match(
-    /(\d+(?:\.\d+)?)\s*(?:min|mins|minutes|m)\b/i,
+  const normalized = value.trim()
+
+  const hourMatch = normalized.match(
+    /(\d+(?:\.\d+)?)\s*(?:h|hr|hrs|hour|hours)\b/i,
   )
 
-  if (!match) {
-    return undefined
+  const minuteMatch = normalized.match(
+    /(\d+(?:\.\d+)?)\s*(?:m|min|mins|minute|minutes)\b/i,
+  )
+
+  const hours = hourMatch
+    ? Number.parseFloat(hourMatch[1])
+    : 0
+
+  const minutes = minuteMatch
+    ? Number.parseFloat(minuteMatch[1])
+    : 0
+
+  if (
+    Number.isFinite(hours) &&
+    Number.isFinite(minutes) &&
+    (hours > 0 || minutes > 0)
+  ) {
+    return Math.round(
+      hours * 60 + minutes,
+    )
   }
 
-  const minutes = Number.parseFloat(match[1])
+  const numericValue =
+    Number.parseFloat(normalized)
 
-  return Number.isFinite(minutes)
-    ? Math.round(minutes)
+  return Number.isFinite(numericValue)
+    ? Math.round(numericValue)
     : undefined
+}
+
+function toBoolean(
+  value: boolean | null,
+): boolean {
+  return value === true
 }
 
 export function mapSupabaseMovieToCanonical(
   row: LegacyMovieRow,
 ): Movie {
-  const title = row.title?.trim() || 'Untitled'
+  const title =
+    row.title?.trim() || 'Untitled'
+
+  const category =
+    row.category?.trim() || ''
+
+  const contentType =
+    toContentType(row.type)
 
   return {
     id: String(row.id),
@@ -94,13 +154,16 @@ export function mapSupabaseMovieToCanonical(
       row.description?.trim() ||
       'No description available.',
 
-    contentType: toContentType(row.type),
+    contentType,
 
-    releaseYear: row.year ?? undefined,
-    runtimeMinutes: parseRuntimeMinutes(row.duration),
+    releaseYear:
+      row.year ?? undefined,
 
-    genres: row.category
-      ? [slugify(row.category)]
+    runtimeMinutes:
+      parseRuntimeMinutes(row.duration),
+
+    genres: category
+      ? [slugify(category)]
       : [],
 
     subgenres: [],
@@ -118,12 +181,20 @@ export function mapSupabaseMovieToCanonical(
     writers: [],
     producers: [],
 
-    posterUrl: row.poster_url?.trim() || undefined,
+    posterUrl:
+      row.poster_url?.trim() ||
+      undefined,
+
     backdropUrl: undefined,
     logoUrl: undefined,
 
-    trailerUrl: row.trailer_url?.trim() || undefined,
-    videoUrl: row.video_url?.trim() || undefined,
+    trailerUrl:
+      row.trailer_url?.trim() ||
+      undefined,
+
+    videoUrl:
+      row.video_url?.trim() ||
+      undefined,
 
     videoAssets: [],
 
@@ -131,18 +202,26 @@ export function mapSupabaseMovieToCanonical(
     audioTracks: [],
 
     downloadAvailability: {
-      available: row.downloadable === true,
+      available:
+        toBoolean(row.downloadable),
     },
 
-    rating: parseRating(row.rating),
+    rating:
+      parseRating(row.rating),
+
     ratingCount: undefined,
 
-    ageRating: row.rating?.trim() || undefined,
+    ageRating:
+      row.rating?.trim() ||
+      undefined,
+
     videoQualities: [],
 
     collectionIds: [],
 
-    isFeatured: row.featured === true,
+    isFeatured:
+      toBoolean(row.featured),
+
     isTrending: false,
     isNewRelease: false,
     isComingSoon: false,
@@ -159,8 +238,11 @@ export function mapSupabaseMovieToCanonical(
 export function mapSupabaseMoviesToCanonical(
   rows: LegacyMovieRow[],
 ): Movie[] {
-  return rows.map(mapSupabaseMovieToCanonical)
-  }
+  return rows.map(
+    mapSupabaseMovieToCanonical,
+  )
+}
+
 export function mapCanonicalMovieToLegacy(
   movie: Movie,
 ): {
@@ -180,31 +262,48 @@ export function mapCanonicalMovieToLegacy(
 } {
   return {
     id: Number(movie.id),
+
     title: movie.title,
+
     year:
       movie.releaseYear ??
       new Date().getFullYear(),
-    poster: movie.posterUrl ?? '',
+
+    poster:
+      movie.posterUrl ?? '',
+
     type:
       movie.contentType === 'tv_show'
         ? 'Series'
         : 'Movie',
-    description: movie.synopsis,
+
+    description:
+      movie.synopsis,
+
     category:
       movie.genres[0] ?? 'Other',
+
     duration:
       movie.runtimeMinutes !== undefined
         ? `${movie.runtimeMinutes} min`
         : undefined,
+
     rating:
       movie.rating !== undefined
         ? String(movie.rating)
         : undefined,
-    videoUrl: movie.videoUrl,
-    trailerUrl: movie.trailerUrl,
-    featured: movie.isFeatured,
+
+    videoUrl:
+      movie.videoUrl,
+
+    trailerUrl:
+      movie.trailerUrl,
+
+    featured:
+      movie.isFeatured,
+
     downloadable:
-      movie.downloadAvailability?.available ??
-      false,
+      movie.downloadAvailability
+        ?.available ?? false,
   }
 }
