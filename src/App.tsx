@@ -6,8 +6,16 @@ import { mapCanonicalMovieToLegacy } from './utils/movieMapper'
 import { supabase } from './supabase'
 import type { Session } from '@supabase/supabase-js'
 import AuthScreen from './Auth'
+import {
+  getMetadataCatalog,
+  type MetadataCatalog,
+} from './services/metadataService'
 
-type Section = 'home' | 'movies' | 'series' | 'my-list'
+type Section =
+  | 'home'
+  | 'movies'
+  | 'series'
+  | 'my-list'
 
 type SortMode =
   | 'featured'
@@ -21,6 +29,17 @@ type DiscoveryFilters = {
   type: string
   year: string
   minRating: string
+  genre: string
+  subgenre: string
+  country: string
+  region: string
+  industry: string
+  language: string
+  tag: string
+  collection: string
+  contentType: string
+  ageRating: string
+  quality: string
   sort: SortMode
 }
 
@@ -32,7 +51,8 @@ function AuthenticatedApp({
   const [activeSection, setActiveSection] =
     useState<Section>('home')
 
-  const [searchQuery, setSearchQuery] = useState('')
+  const [searchQuery, setSearchQuery] =
+    useState('')
 
   const [selectedMovie, setSelectedMovie] =
     useState<Movie | null>(null)
@@ -40,9 +60,23 @@ function AuthenticatedApp({
   const [watchingMovie, setWatchingMovie] =
     useState<Movie | null>(null)
 
-  const [movies, setMovies] = useState<Movie[]>([])
-  const [moviesLoading, setMoviesLoading] = useState(true)
-  const [moviesError, setMoviesError] = useState('')
+  const [movies, setMovies] =
+    useState<Movie[]>([])
+
+  const [moviesLoading, setMoviesLoading] =
+    useState(true)
+
+  const [moviesError, setMoviesError] =
+    useState('')
+
+  const [metadata, setMetadata] =
+    useState<MetadataCatalog | null>(null)
+
+  const [metadataLoading, setMetadataLoading] =
+    useState(true)
+
+  const [metadataError, setMetadataError] =
+    useState('')
 
   const [showMobileSearch, setShowMobileSearch] =
     useState(false)
@@ -56,8 +90,698 @@ function AuthenticatedApp({
       type: '',
       year: '',
       minRating: '',
+      genre: '',
+      subgenre: '',
+      country: '',
+      region: '',
+      industry: '',
+      language: '',
+      tag: '',
+      collection: '',
+      contentType: '',
+      ageRating: '',
+      quality: '',
       sort: 'featured',
     })
+
+  const [myList, setMyList] =
+    useState<number[]>(() => {
+      try {
+        const saved =
+          localStorage.getItem(
+            'pmf-my-list',
+          )
+
+        if (!saved) return []
+
+        const parsed: unknown =
+          JSON.parse(saved)
+
+        if (!Array.isArray(parsed)) {
+          return []
+        }
+
+        return parsed.filter(
+          (value): value is number =>
+            typeof value === 'number',
+        )
+      } catch {
+        return []
+      }
+    })
+
+  const [continueWatching, setContinueWatching] =
+    useState<number[]>(() => {
+      try {
+        const saved =
+          localStorage.getItem(
+            'pmf-continue-watching',
+          )
+
+        if (!saved) return []
+
+        const parsed: unknown =
+          JSON.parse(saved)
+
+        if (!Array.isArray(parsed)) {
+          return []
+        }
+
+        return parsed.filter(
+          (value): value is number =>
+            typeof value === 'number',
+        )
+      } catch {
+        return []
+      }
+    })
+
+  useEffect(() => {
+    let mounted = true
+
+    const loadMovies = async () => {
+      setMoviesLoading(true)
+      setMoviesError('')
+
+      try {
+        const canonicalMovies =
+          await getMovies()
+
+        if (!mounted) return
+
+        const mappedMovies: Movie[] =
+          canonicalMovies.map(
+            mapCanonicalMovieToLegacy,
+          )
+
+        setMovies(mappedMovies)
+        setMoviesLoading(false)
+      } catch (error) {
+        if (!mounted) return
+
+        console.error(
+          'PMF Supabase movie error:',
+          error,
+        )
+
+        setMoviesError(
+          'We could not load the PMF movie catalogue right now.',
+        )
+
+        setMoviesLoading(false)
+      }
+    }
+
+    void loadMovies()
+
+    const channel = supabase
+      .channel('pmf-movies-live')
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'movies',
+        },
+        () => {
+          void loadMovies()
+        },
+      )
+      .subscribe((status) => {
+        console.log(
+          'PMF movie realtime status:',
+          status,
+        )
+      })
+
+    return () => {
+      mounted = false
+      void supabase.removeChannel(channel)
+    }
+  }, [])
+
+  useEffect(() => {
+    let mounted = true
+
+    const loadMetadata = async () => {
+      setMetadataLoading(true)
+      setMetadataError('')
+
+      try {
+        const catalog =
+          await getMetadataCatalog()
+
+        if (!mounted) return
+
+        setMetadata(catalog)
+        setMetadataLoading(false)
+      } catch (error) {
+        if (!mounted) return
+
+        console.error(
+          'PMF metadata error:',
+          error,
+        )
+
+        setMetadataError(
+          'Some discovery metadata could not be loaded.',
+        )
+
+        setMetadataLoading(false)
+      }
+    }
+
+    void loadMetadata()
+
+    return () => {
+      mounted = false
+    }
+  }, [])
+
+  const saveMyList = (list: number[]) => {
+    try {
+      localStorage.setItem(
+        'pmf-my-list',
+        JSON.stringify(list),
+      )
+    } catch {
+      // Ignore localStorage failures.
+    }
+  }
+
+  const toggleMyList = (movieId: number) => {
+    setMyList((current) => {
+      const updated = current.includes(
+        movieId,
+      )
+        ? current.filter(
+            (id) => id !== movieId,
+          )
+        : [...current, movieId]
+
+      saveMyList(updated)
+
+      return updated
+    })
+  }
+
+  const addToContinueWatching = (
+    movieId: number,
+  ) => {
+    setContinueWatching((current) => {
+      const updated = [
+        movieId,
+        ...current.filter(
+          (id) => id !== movieId,
+        ),
+      ].slice(0, 10)
+
+      try {
+        localStorage.setItem(
+          'pmf-continue-watching',
+          JSON.stringify(updated),
+        )
+      } catch {
+        // Ignore localStorage failures.
+      }
+
+      return updated
+    })
+  }
+
+  const getVideoUrl = (movie: Movie) => {
+    if (
+      movie.videoUrl &&
+      movie.videoUrl.trim() !== ''
+    ) {
+      return movie.videoUrl.trim()
+    }
+
+    if (
+      movie.title.trim().toLowerCase() ===
+      'the journey'
+    ) {
+      return '/movies/the-journey.mp4'
+    }
+
+    return ''
+  }
+
+  const isYouTubeUrl = (url: string) =>
+    /youtube\.com|youtu\.be/i.test(url)
+
+  const openMovie = (movie: Movie) => {
+    setSelectedMovie(movie)
+  }
+
+  const startWatching = (movie: Movie) => {
+    setSelectedMovie(null)
+    setWatchingMovie(movie)
+    addToContinueWatching(movie.id)
+  }
+
+  const closeWatching = () => {
+    setWatchingMovie(null)
+  }
+
+  const goHome = () => {
+    setActiveSection('home')
+    setSearchQuery('')
+    setSelectedMovie(null)
+    setWatchingMovie(null)
+    setShowFilters(false)
+
+    window.scrollTo({
+      top: 0,
+      behavior: 'smooth',
+    })
+  }
+
+  const navigateTo = (
+    section: Section,
+  ) => {
+    setActiveSection(section)
+    setSearchQuery('')
+    setShowFilters(false)
+
+    window.scrollTo({
+      top: 0,
+      behavior: 'smooth',
+    })
+  }
+
+  useEffect(() => {
+    const handleEscape = (
+      event: KeyboardEvent,
+    ) => {
+      if (event.key !== 'Escape') return
+
+      if (watchingMovie) {
+        closeWatching()
+      } else if (selectedMovie) {
+        setSelectedMovie(null)
+      }
+    }
+
+    window.addEventListener(
+      'keydown',
+      handleEscape,
+    )
+
+    return () => {
+      window.removeEventListener(
+        'keydown',
+        handleEscape,
+      )
+    }
+  }, [
+    watchingMovie,
+    selectedMovie,
+  ])
+
+  useEffect(() => {
+    if (!selectedMovie) return
+
+    const updatedMovie = movies.find(
+      (movie) =>
+        movie.id === selectedMovie.id,
+    )
+
+    if (updatedMovie) {
+      setSelectedMovie(updatedMovie)
+    }
+  }, [
+    movies,
+    selectedMovie?.id,
+  ])
+
+  useEffect(() => {
+    if (!watchingMovie) return
+
+    const updatedMovie = movies.find(
+      (movie) =>
+        movie.id === watchingMovie.id,
+    )
+
+    if (updatedMovie) {
+      setWatchingMovie(updatedMovie)
+    }
+  }, [
+    movies,
+    watchingMovie?.id,
+  ])
+
+  const categoryOptions = useMemo(() => {
+    return Array.from(
+      new Set(
+        movies
+          .map((movie) =>
+            movie.category?.trim(),
+          )
+          .filter(
+            (
+              category,
+            ): category is string =>
+              Boolean(category),
+          ),
+      ),
+    ).sort()
+  }, [movies])
+
+  const typeOptions = useMemo(() => {
+    return Array.from(
+      new Set(
+        movies
+          .map((movie) =>
+            movie.type?.trim(),
+          )
+          .filter(
+            (type): type is string =>
+              Boolean(type),
+          ),
+      ),
+    ).sort()
+  }, [movies])
+
+  const yearOptions = useMemo(() => {
+    return Array.from(
+      new Set(
+        movies
+          .map((movie) => movie.year)
+          .filter(
+            (year): year is number =>
+              typeof year === 'number',
+          ),
+      ),
+    ).sort((a, b) => b - a)
+  }, [movies])
+
+  const genreOptions =
+    metadata?.genres ?? []
+
+  const subgenreOptions =
+    metadata?.subgenres ?? []
+
+  const countryOptions =
+    metadata?.countries ?? []
+
+  const regionOptions =
+    metadata?.regions ?? []
+
+  const industryOptions =
+    metadata?.industries ?? []
+
+  const languageOptions =
+    metadata?.languages ?? []
+
+  const tagOptions =
+    metadata?.tags ?? []
+
+  const collectionOptions =
+    metadata?.collections ?? []
+
+  const ageRatingOptions =
+    metadata?.ageRatings ?? []
+
+  const contentTypeOptions =
+    metadata
+      ? [
+          {
+            id: 'movie',
+            name: 'Movie',
+          },
+          {
+            id: 'tv_show',
+            name: 'TV Show',
+          },
+          {
+            id: 'season',
+            name: 'Season',
+          },
+          {
+            id: 'episode',
+            name: 'Episode',
+          },
+          {
+            id: 'short_film',
+            name: 'Short Film',
+          },
+          {
+            id: 'documentary',
+            name: 'Documentary',
+          },
+          {
+            id: 'special',
+            name: 'Special',
+          },
+        ]
+      : []
+
+  const qualityOptions = [
+    '480p',
+    '720p',
+    '1080p',
+    '1440p',
+    '4k',
+  ]
+
+  const filteredMovies = useMemo(() => {
+    const query =
+      searchQuery.trim().toLowerCase()
+
+    let result = movies.filter((movie) => {
+      if (
+        activeSection === 'movies' &&
+        movie.type !== 'Movie'
+      ) {
+        return false
+      }
+
+      if (
+        activeSection === 'series' &&
+        movie.type !== 'Series'
+      ) {
+        return false
+      }
+
+      if (
+        activeSection === 'my-list' &&
+        !myList.includes(movie.id)
+      ) {
+        return false
+      }
+
+      if (
+        filters.category &&
+        movie.category !==
+          filters.category
+      ) {
+        return false
+      }
+
+      if (
+        filters.type &&
+        movie.type !== filters.type
+      ) {
+        return false
+      }
+
+      if (
+        filters.year &&
+        String(movie.year) !==
+          filters.year
+      ) {
+        return false
+      }
+
+      if (filters.minRating) {
+        const minimum = Number(
+          filters.minRating,
+        )
+
+        const rating = Number(
+          movie.rating ?? 0,
+        )
+
+        if (rating < minimum) {
+          return false
+        }
+      }
+
+      if (query) {
+        const searchable = [
+          movie.title,
+          movie.description,
+          movie.category,
+          movie.type,
+          String(movie.year),
+        ]
+          .filter(Boolean)
+          .join(' ')
+          .toLowerCase()
+
+        if (!searchable.includes(query)) {
+          return false
+        }
+      }
+
+      return true
+    })
+
+    result = [...result].sort(
+      (a, b) => {
+        switch (filters.sort) {
+          case 'newest':
+            return b.year - a.year
+
+          case 'oldest':
+            return a.year - b.year
+
+          case 'rating':
+            return (
+              Number(b.rating ?? 0) -
+              Number(a.rating ?? 0)
+            )
+
+          case 'title':
+            return a.title.localeCompare(
+              b.title,
+            )
+
+          case 'featured':
+          default:
+            return (
+              Number(
+                Boolean(b.featured),
+              ) -
+              Number(
+                Boolean(a.featured),
+              )
+            )
+        }
+      },
+    )
+
+    return result
+  }, [
+    movies,
+    activeSection,
+    myList,
+    filters,
+    searchQuery,
+  ])
+
+  const trendingMovies = useMemo(
+    () =>
+      movies.filter(
+        (movie) => movie.featured,
+      ),
+    [movies],
+  )
+
+  const latestMovies = useMemo(
+    () =>
+      [...movies].sort(
+        (a, b) => b.year - a.year,
+      ),
+    [movies],
+  )
+
+  const actionMovies = useMemo(
+    () =>
+      movies.filter(
+        (movie) =>
+          movie.category
+            ?.toLowerCase()
+            .includes('action'),
+      ),
+    [movies],
+  )
+
+  const adventureMovies = useMemo(
+    () =>
+      movies.filter(
+        (movie) =>
+          movie.category
+            ?.toLowerCase()
+            .includes('adventure'),
+      ),
+    [movies],
+  )
+
+  const continueMovies = useMemo(
+    () =>
+      continueWatching
+        .map((id) =>
+          movies.find(
+            (movie) =>
+              movie.id === id,
+          ),
+        )
+        .filter(
+          (movie): movie is Movie =>
+            Boolean(movie),
+        ),
+    [continueWatching, movies],
+  )
+
+  const resetFilters = () => {
+    setFilters({
+      category: '',
+      type: '',
+      year: '',
+      minRating: '',
+      genre: '',
+      subgenre: '',
+      country: '',
+      region: '',
+      industry: '',
+      language: '',
+      tag: '',
+      collection: '',
+      contentType: '',
+      ageRating: '',
+      quality: '',
+      sort: 'featured',
+    })
+  }
+
+  const hasActiveFilters =
+    Boolean(filters.category) ||
+    Boolean(filters.type) ||
+    Boolean(filters.year) ||
+    Boolean(filters.minRating) ||
+    Boolean(filters.genre) ||
+    Boolean(filters.subgenre) ||
+    Boolean(filters.country) ||
+    Boolean(filters.region) ||
+    Boolean(filters.industry) ||
+    Boolean(filters.language) ||
+    Boolean(filters.tag) ||
+    Boolean(filters.collection) ||
+    Boolean(filters.contentType) ||
+    Boolean(filters.ageRating) ||
+    Boolean(filters.quality) ||
+    filters.sort !== 'featured'
+
+  const setFilter = (
+    key: keyof DiscoveryFilters,
+    value: string,
+  ) => {
+    setFilters((current) => ({
+      ...current,
+      [key]: value,
+    }))
+        }
+    const [showFilters, setShowFilters] = useState(false)
+
+  const [filters, setFilters] = useState<DiscoveryFilters>({
+    category: '',
+    type: '',
+    year: '',
+    minRating: '',
+    sort: 'featured',
+  })
 
   const [myList, setMyList] = useState<number[]>(() => {
     try {
@@ -232,6 +956,8 @@ function AuthenticatedApp({
   }
 
   const startWatching = (movie: Movie) => {
+    if (!movie) return
+
     setSelectedMovie(null)
     setWatchingMovie(movie)
     addToContinueWatching(movie.id)
@@ -314,7 +1040,8 @@ function AuthenticatedApp({
       setWatchingMovie(updatedMovie)
     }
   }, [movies, watchingMovie?.id])
-    const categoryOptions = useMemo(() => {
+
+  const categoryOptions = useMemo(() => {
     return Array.from(
       new Set(
         movies
@@ -405,11 +1132,18 @@ function AuthenticatedApp({
           filters.minRating,
         )
 
-        const rating = Number(
-          movie.rating ?? 0,
-        )
+        const numericRating =
+          typeof movie.rating === 'number'
+            ? movie.rating
+            : Number(
+                String(movie.rating ?? '')
+                  .replace(/[^\d.]/g, ''),
+              )
 
-        if (rating < minimum) {
+        if (
+          Number.isFinite(numericRating) &&
+          numericRating < minimum
+        ) {
           return false
         }
       }
@@ -442,11 +1176,32 @@ function AuthenticatedApp({
         case 'oldest':
           return a.year - b.year
 
-        case 'rating':
+        case 'rating': {
+          const ratingA =
+            typeof a.rating === 'number'
+              ? a.rating
+              : Number(
+                  String(a.rating ?? '')
+                    .replace(/[^\d.]/g, ''),
+                )
+
+          const ratingB =
+            typeof b.rating === 'number'
+              ? b.rating
+              : Number(
+                  String(b.rating ?? '')
+                    .replace(/[^\d.]/g, ''),
+                )
+
           return (
-            Number(b.rating ?? 0) -
-            Number(a.rating ?? 0)
+            (Number.isFinite(ratingB)
+              ? ratingB
+              : 0) -
+            (Number.isFinite(ratingA)
+              ? ratingA
+              : 0)
           )
+        }
 
         case 'title':
           return a.title.localeCompare(b.title)
@@ -538,8 +1293,7 @@ function AuthenticatedApp({
     Boolean(filters.year) ||
     Boolean(filters.minRating) ||
     filters.sort !== 'featured'
-
-  const MovieCard = ({
+    const MovieCard = ({
     movie,
   }: {
     movie: Movie
@@ -785,18 +1539,23 @@ function AuthenticatedApp({
             <option value="">
               Any rating
             </option>
+
             <option value="5">
               5+
             </option>
+
             <option value="6">
               6+
             </option>
+
             <option value="7">
               7+
             </option>
+
             <option value="8">
               8+
             </option>
+
             <option value="9">
               9+
             </option>
@@ -807,8 +1566,9 @@ function AuthenticatedApp({
             onChange={(event) =>
               setFilters((current) => ({
                 ...current,
-                sort: event.target
-                  .value as SortMode,
+                sort:
+                  event.target
+                    .value as SortMode,
               }))
             }
             className="rounded-lg border border-white/10 bg-black/60 px-3 py-3 text-sm text-white outline-none focus:border-red-500"
@@ -816,15 +1576,19 @@ function AuthenticatedApp({
             <option value="featured">
               Featured first
             </option>
+
             <option value="newest">
               Newest
             </option>
+
             <option value="oldest">
               Oldest
             </option>
+
             <option value="rating">
               Highest rated
             </option>
+
             <option value="title">
               A–Z
             </option>
@@ -832,8 +1596,9 @@ function AuthenticatedApp({
         </div>
       </div>
     )
-              }
-    return (
+  }
+
+  return (
     <div className="min-h-screen bg-black text-white">
       <header className="sticky top-0 z-40 border-b border-white/10 bg-black/85 backdrop-blur-xl">
         <div className="mx-auto flex h-16 max-w-7xl items-center gap-5 px-4 sm:px-6 lg:px-8">
@@ -962,8 +1727,7 @@ function AuthenticatedApp({
           </div>
         </div>
       </header>
-
-      {activeSection === 'home' &&
+            {activeSection === 'home' &&
         !searchQuery.trim() && (
           <section className="relative min-h-[62vh] overflow-hidden">
             <img
@@ -1213,7 +1977,8 @@ function AuthenticatedApp({
             </div>
           )}
       </main>
-            {selectedMovie && (
+
+      {selectedMovie && (
         <div
           className="fixed inset-0 z-50 flex items-center justify-center bg-black/90 p-4 backdrop-blur-sm"
           onClick={() =>
@@ -1330,8 +2095,7 @@ function AuthenticatedApp({
           </div>
         </div>
       )}
-
-      {watchingMovie && (
+            {watchingMovie && (
         <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black">
           <div className="relative h-full w-full">
             <button
@@ -1344,9 +2108,7 @@ function AuthenticatedApp({
 
             {(() => {
               const videoUrl =
-                getVideoUrl(
-                  watchingMovie,
-                )
+                getVideoUrl(watchingMovie)
 
               if (!videoUrl) {
                 return (
@@ -1552,4 +2314,5 @@ export default function App() {
       session={session}
     />
   )
-                    }
+      }
+  
