@@ -35,7 +35,11 @@ function matchesPeople(
   movie: Movie,
   searchTerm: string,
 ): boolean {
-  const normalized = searchTerm.toLowerCase()
+  const normalized = searchTerm.trim().toLowerCase()
+
+  if (!normalized) {
+    return true
+  }
 
   const castMatches = movie.cast.some((member) =>
     member.personId
@@ -75,11 +79,80 @@ function getNumericRating(
     return rating
   }
 
-  const numericRating = Number.parseFloat(rating)
+  const numericRating =
+    Number.parseFloat(rating)
 
   return Number.isFinite(numericRating)
     ? numericRating
     : undefined
+}
+
+function matchesTitle(
+  movie: Movie,
+  searchTerm: string,
+): boolean {
+  const normalized =
+    searchTerm.trim().toLowerCase()
+
+  if (!normalized) {
+    return true
+  }
+
+  return (
+    movie.title
+      .toLowerCase()
+      .includes(normalized) ||
+    Boolean(
+      movie.originalTitle
+        ?.toLowerCase()
+        .includes(normalized),
+    ) ||
+    Boolean(
+      movie.slug
+        ?.toLowerCase()
+        .includes(normalized),
+    )
+  )
+}
+
+function matchesPeopleFilter(
+  movie: Movie,
+  actor?: string,
+  director?: string,
+): boolean {
+  if (actor) {
+    const normalizedActor =
+      actor.trim().toLowerCase()
+
+    const actorMatches =
+      movie.cast.some((member) =>
+        member.personId
+          .toLowerCase()
+          .includes(normalizedActor),
+      )
+
+    if (!actorMatches) {
+      return false
+    }
+  }
+
+  if (director) {
+    const normalizedDirector =
+      director.trim().toLowerCase()
+
+    const directorMatches =
+      movie.directors.some((person) =>
+        person.name
+          .toLowerCase()
+          .includes(normalizedDirector),
+      )
+
+    if (!directorMatches) {
+      return false
+    }
+  }
+
+  return true
 }
 
 export function filterMovies(
@@ -88,26 +161,37 @@ export function filterMovies(
 ): Movie[] {
   return movies.filter((movie) => {
     if (filters.title) {
-      const searchTerm = filters.title
-        .trim()
-        .toLowerCase()
+      const searchTerm =
+        filters.title.trim()
 
       const titleMatches =
-        movie.title
-          .toLowerCase()
-          .includes(searchTerm) ||
-        movie.originalTitle
-          ?.toLowerCase()
-          .includes(searchTerm)
+        matchesTitle(
+          movie,
+          searchTerm,
+        )
 
-      const peopleMatch = matchesPeople(
-        movie,
-        searchTerm,
-      )
+      const peopleMatch =
+        matchesPeople(
+          movie,
+          searchTerm,
+        )
 
-      if (!titleMatches && !peopleMatch) {
+      if (
+        !titleMatches &&
+        !peopleMatch
+      ) {
         return false
       }
+    }
+
+    if (
+      !matchesPeopleFilter(
+        movie,
+        filters.actor,
+        filters.director,
+      )
+    ) {
+      return false
     }
 
     if (
@@ -190,13 +274,15 @@ export function filterMovies(
     }
 
     if (filters.minRating !== undefined) {
-      const numericRating = getNumericRating(
-        movie.rating,
-      )
+      const numericRating =
+        getNumericRating(
+          movie.rating,
+        )
 
       if (
         numericRating === undefined ||
-        numericRating < filters.minRating
+        numericRating <
+          filters.minRating
       ) {
         return false
       }
@@ -204,7 +290,8 @@ export function filterMovies(
 
     if (
       filters.contentType &&
-      movie.contentType !== filters.contentType
+      movie.contentType !==
+        filters.contentType
     ) {
       return false
     }
