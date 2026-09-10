@@ -1739,10 +1739,7 @@ export default function App() {
 
     return (
     <>
-      <AuthenticatedApp
-        session={session}
-      />
-
+      <AuthenticatedApp />
       <AuthenticatedAppFooter />
     </>
   )
