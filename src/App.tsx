@@ -6,10 +6,6 @@ import { mapCanonicalMovieToLegacy } from './utils/movieMapper'
 import { supabase } from './supabase'
 import type { Session } from '@supabase/supabase-js'
 import AuthScreen from './Auth'
-import {
-  getMetadataCatalog,
-  type MetadataCatalog,
-} from './services/metadataService'
 
 type Section =
   | 'home'
@@ -29,17 +25,6 @@ type DiscoveryFilters = {
   type: string
   year: string
   minRating: string
-  genre: string
-  subgenre: string
-  country: string
-  region: string
-  industry: string
-  language: string
-  tag: string
-  collection: string
-  contentType: string
-  ageRating: string
-  quality: string
   sort: SortMode
 }
 
@@ -69,15 +54,6 @@ function AuthenticatedApp({
   const [moviesError, setMoviesError] =
     useState('')
 
-  const [metadata, setMetadata] =
-    useState<MetadataCatalog | null>(null)
-
-  const [metadataLoading, setMetadataLoading] =
-    useState(true)
-
-  const [metadataError, setMetadataError] =
-    useState('')
-
   const [showMobileSearch, setShowMobileSearch] =
     useState(false)
 
@@ -90,17 +66,6 @@ function AuthenticatedApp({
       type: '',
       year: '',
       minRating: '',
-      genre: '',
-      subgenre: '',
-      country: '',
-      region: '',
-      industry: '',
-      language: '',
-      tag: '',
-      collection: '',
-      contentType: '',
-      ageRating: '',
-      quality: '',
       sort: 'featured',
     })
 
@@ -216,49 +181,15 @@ function AuthenticatedApp({
 
     return () => {
       mounted = false
-      void supabase.removeChannel(channel)
+      void supabase.removeChannel(
+        channel,
+      )
     }
   }, [])
 
-  useEffect(() => {
-    let mounted = true
-
-    const loadMetadata = async () => {
-      setMetadataLoading(true)
-      setMetadataError('')
-
-      try {
-        const catalog =
-          await getMetadataCatalog()
-
-        if (!mounted) return
-
-        setMetadata(catalog)
-        setMetadataLoading(false)
-      } catch (error) {
-        if (!mounted) return
-
-        console.error(
-          'PMF metadata error:',
-          error,
-        )
-
-        setMetadataError(
-          'Some discovery metadata could not be loaded.',
-        )
-
-        setMetadataLoading(false)
-      }
-    }
-
-    void loadMetadata()
-
-    return () => {
-      mounted = false
-    }
-  }, [])
-
-  const saveMyList = (list: number[]) => {
+  const saveMyList = (
+    list: number[],
+  ) => {
     try {
       localStorage.setItem(
         'pmf-my-list',
@@ -269,15 +200,19 @@ function AuthenticatedApp({
     }
   }
 
-  const toggleMyList = (movieId: number) => {
+  const toggleMyList = (
+    movieId: number,
+  ) => {
     setMyList((current) => {
-      const updated = current.includes(
-        movieId,
-      )
-        ? current.filter(
-            (id) => id !== movieId,
-          )
-        : [...current, movieId]
+      const updated =
+        current.includes(movieId)
+          ? current.filter(
+              (id) => id !== movieId,
+            )
+          : [
+              ...current,
+              movieId,
+            ]
 
       saveMyList(updated)
 
@@ -309,7 +244,9 @@ function AuthenticatedApp({
     })
   }
 
-  const getVideoUrl = (movie: Movie) => {
+  const getVideoUrl = (
+    movie: Movie,
+  ) => {
     if (
       movie.videoUrl &&
       movie.videoUrl.trim() !== ''
@@ -318,7 +255,9 @@ function AuthenticatedApp({
     }
 
     if (
-      movie.title.trim().toLowerCase() ===
+      movie.title
+        .trim()
+        .toLowerCase() ===
       'the journey'
     ) {
       return '/movies/the-journey.mp4'
@@ -327,14 +266,24 @@ function AuthenticatedApp({
     return ''
   }
 
-  const isYouTubeUrl = (url: string) =>
-    /youtube\.com|youtu\.be/i.test(url)
+  const isYouTubeUrl = (
+    url: string,
+  ) =>
+    /youtube\.com|youtu\.be/i.test(
+      url,
+    )
 
-  const openMovie = (movie: Movie) => {
+  const openMovie = (
+    movie: Movie,
+  ) => {
     setSelectedMovie(movie)
   }
 
-  const startWatching = (movie: Movie) => {
+  const startWatching = (
+    movie: Movie,
+  ) => {
+    if (!movie) return
+
     setSelectedMovie(null)
     setWatchingMovie(movie)
     addToContinueWatching(movie.id)
@@ -374,7 +323,9 @@ function AuthenticatedApp({
     const handleEscape = (
       event: KeyboardEvent,
     ) => {
-      if (event.key !== 'Escape') return
+      if (event.key !== 'Escape') {
+        return
+      }
 
       if (watchingMovie) {
         closeWatching()
@@ -402,13 +353,17 @@ function AuthenticatedApp({
   useEffect(() => {
     if (!selectedMovie) return
 
-    const updatedMovie = movies.find(
-      (movie) =>
-        movie.id === selectedMovie.id,
-    )
+    const updatedMovie =
+      movies.find(
+        (movie) =>
+          movie.id ===
+          selectedMovie.id,
+      )
 
     if (updatedMovie) {
-      setSelectedMovie(updatedMovie)
+      setSelectedMovie(
+        updatedMovie,
+      )
     }
   }, [
     movies,
@@ -418,13 +373,17 @@ function AuthenticatedApp({
   useEffect(() => {
     if (!watchingMovie) return
 
-    const updatedMovie = movies.find(
-      (movie) =>
-        movie.id === watchingMovie.id,
-    )
+    const updatedMovie =
+      movies.find(
+        (movie) =>
+          movie.id ===
+          watchingMovie.id,
+      )
 
     if (updatedMovie) {
-      setWatchingMovie(updatedMovie)
+      setWatchingMovie(
+        updatedMovie,
+      )
     }
   }, [
     movies,
@@ -439,9 +398,7 @@ function AuthenticatedApp({
             movie.category?.trim(),
           )
           .filter(
-            (
-              category,
-            ): category is string =>
+            (category): category is string =>
               Boolean(category),
           ),
       ),
@@ -458,609 +415,6 @@ function AuthenticatedApp({
           .filter(
             (type): type is string =>
               Boolean(type),
-          ),
-      ),
-    ).sort()
-  }, [movies])
-
-  const yearOptions = useMemo(() => {
-    return Array.from(
-      new Set(
-        movies
-          .map((movie) => movie.year)
-          .filter(
-            (year): year is number =>
-              typeof year === 'number',
-          ),
-      ),
-    ).sort((a, b) => b - a)
-  }, [movies])
-
-  const genreOptions =
-    metadata?.genres ?? []
-
-  const subgenreOptions =
-    metadata?.subgenres ?? []
-
-  const countryOptions =
-    metadata?.countries ?? []
-
-  const regionOptions =
-    metadata?.regions ?? []
-
-  const industryOptions =
-    metadata?.industries ?? []
-
-  const languageOptions =
-    metadata?.languages ?? []
-
-  const tagOptions =
-    metadata?.tags ?? []
-
-  const collectionOptions =
-    metadata?.collections ?? []
-
-  const ageRatingOptions =
-    metadata?.ageRatings ?? []
-
-  const contentTypeOptions =
-    metadata
-      ? [
-          {
-            id: 'movie',
-            name: 'Movie',
-          },
-          {
-            id: 'tv_show',
-            name: 'TV Show',
-          },
-          {
-            id: 'season',
-            name: 'Season',
-          },
-          {
-            id: 'episode',
-            name: 'Episode',
-          },
-          {
-            id: 'short_film',
-            name: 'Short Film',
-          },
-          {
-            id: 'documentary',
-            name: 'Documentary',
-          },
-          {
-            id: 'special',
-            name: 'Special',
-          },
-        ]
-      : []
-
-  const qualityOptions = [
-    '480p',
-    '720p',
-    '1080p',
-    '1440p',
-    '4k',
-  ]
-
-  const filteredMovies = useMemo(() => {
-    const query =
-      searchQuery.trim().toLowerCase()
-
-    let result = movies.filter((movie) => {
-      if (
-        activeSection === 'movies' &&
-        movie.type !== 'Movie'
-      ) {
-        return false
-      }
-
-      if (
-        activeSection === 'series' &&
-        movie.type !== 'Series'
-      ) {
-        return false
-      }
-
-      if (
-        activeSection === 'my-list' &&
-        !myList.includes(movie.id)
-      ) {
-        return false
-      }
-
-      if (
-        filters.category &&
-        movie.category !==
-          filters.category
-      ) {
-        return false
-      }
-
-      if (
-        filters.type &&
-        movie.type !== filters.type
-      ) {
-        return false
-      }
-
-      if (
-        filters.year &&
-        String(movie.year) !==
-          filters.year
-      ) {
-        return false
-      }
-
-      if (filters.minRating) {
-        const minimum = Number(
-          filters.minRating,
-        )
-
-        const rating = Number(
-          movie.rating ?? 0,
-        )
-
-        if (rating < minimum) {
-          return false
-        }
-      }
-
-      if (query) {
-        const searchable = [
-          movie.title,
-          movie.description,
-          movie.category,
-          movie.type,
-          String(movie.year),
-        ]
-          .filter(Boolean)
-          .join(' ')
-          .toLowerCase()
-
-        if (!searchable.includes(query)) {
-          return false
-        }
-      }
-
-      return true
-    })
-
-    result = [...result].sort(
-      (a, b) => {
-        switch (filters.sort) {
-          case 'newest':
-            return b.year - a.year
-
-          case 'oldest':
-            return a.year - b.year
-
-          case 'rating':
-            return (
-              Number(b.rating ?? 0) -
-              Number(a.rating ?? 0)
-            )
-
-          case 'title':
-            return a.title.localeCompare(
-              b.title,
-            )
-
-          case 'featured':
-          default:
-            return (
-              Number(
-                Boolean(b.featured),
-              ) -
-              Number(
-                Boolean(a.featured),
-              )
-            )
-        }
-      },
-    )
-
-    return result
-  }, [
-    movies,
-    activeSection,
-    myList,
-    filters,
-    searchQuery,
-  ])
-
-  const trendingMovies = useMemo(
-    () =>
-      movies.filter(
-        (movie) => movie.featured,
-      ),
-    [movies],
-  )
-
-  const latestMovies = useMemo(
-    () =>
-      [...movies].sort(
-        (a, b) => b.year - a.year,
-      ),
-    [movies],
-  )
-
-  const actionMovies = useMemo(
-    () =>
-      movies.filter(
-        (movie) =>
-          movie.category
-            ?.toLowerCase()
-            .includes('action'),
-      ),
-    [movies],
-  )
-
-  const adventureMovies = useMemo(
-    () =>
-      movies.filter(
-        (movie) =>
-          movie.category
-            ?.toLowerCase()
-            .includes('adventure'),
-      ),
-    [movies],
-  )
-
-  const continueMovies = useMemo(
-    () =>
-      continueWatching
-        .map((id) =>
-          movies.find(
-            (movie) =>
-              movie.id === id,
-          ),
-        )
-        .filter(
-          (movie): movie is Movie =>
-            Boolean(movie),
-        ),
-    [continueWatching, movies],
-  )
-
-  const resetFilters = () => {
-    setFilters({
-      category: '',
-      type: '',
-      year: '',
-      minRating: '',
-      genre: '',
-      subgenre: '',
-      country: '',
-      region: '',
-      industry: '',
-      language: '',
-      tag: '',
-      collection: '',
-      contentType: '',
-      ageRating: '',
-      quality: '',
-      sort: 'featured',
-    })
-  }
-
-  const hasActiveFilters =
-    Boolean(filters.category) ||
-    Boolean(filters.type) ||
-    Boolean(filters.year) ||
-    Boolean(filters.minRating) ||
-    Boolean(filters.genre) ||
-    Boolean(filters.subgenre) ||
-    Boolean(filters.country) ||
-    Boolean(filters.region) ||
-    Boolean(filters.industry) ||
-    Boolean(filters.language) ||
-    Boolean(filters.tag) ||
-    Boolean(filters.collection) ||
-    Boolean(filters.contentType) ||
-    Boolean(filters.ageRating) ||
-    Boolean(filters.quality) ||
-    filters.sort !== 'featured'
-
-  const setFilter = (
-    key: keyof DiscoveryFilters,
-    value: string,
-  ) => {
-    setFilters((current) => ({
-      ...current,
-      [key]: value,
-    }))
-        }
-    const [showFilters, setShowFilters] = useState(false)
-
-  const [filters, setFilters] = useState<DiscoveryFilters>({
-    category: '',
-    type: '',
-    year: '',
-    minRating: '',
-    sort: 'featured',
-  })
-
-  const [myList, setMyList] = useState<number[]>(() => {
-    try {
-      const saved = localStorage.getItem('pmf-my-list')
-
-      if (!saved) return []
-
-      const parsed: unknown = JSON.parse(saved)
-
-      if (!Array.isArray(parsed)) return []
-
-      return parsed.filter(
-        (value): value is number =>
-          typeof value === 'number',
-      )
-    } catch {
-      return []
-    }
-  })
-
-  const [continueWatching, setContinueWatching] =
-    useState<number[]>(() => {
-      try {
-        const saved = localStorage.getItem(
-          'pmf-continue-watching',
-        )
-
-        if (!saved) return []
-
-        const parsed: unknown = JSON.parse(saved)
-
-        if (!Array.isArray(parsed)) return []
-
-        return parsed.filter(
-          (value): value is number =>
-            typeof value === 'number',
-        )
-      } catch {
-        return []
-      }
-    })
-
-  useEffect(() => {
-    let mounted = true
-
-    const loadMovies = async () => {
-      setMoviesLoading(true)
-      setMoviesError('')
-
-      try {
-        const canonicalMovies = await getMovies()
-
-        if (!mounted) return
-
-        const mappedMovies: Movie[] =
-          canonicalMovies.map(
-            mapCanonicalMovieToLegacy,
-          )
-
-        setMovies(mappedMovies)
-        setMoviesLoading(false)
-      } catch (error) {
-        if (!mounted) return
-
-        console.error(
-          'PMF Supabase movie error:',
-          error,
-        )
-
-        setMoviesError(
-          'We could not load the PMF movie catalogue right now.',
-        )
-
-        setMoviesLoading(false)
-      }
-    }
-
-    void loadMovies()
-
-    const channel = supabase
-      .channel('pmf-movies-live')
-      .on(
-        'postgres_changes',
-        {
-          event: '*',
-          schema: 'public',
-          table: 'movies',
-        },
-        () => {
-          void loadMovies()
-        },
-      )
-      .subscribe((status) => {
-        console.log(
-          'PMF movie realtime status:',
-          status,
-        )
-      })
-
-    return () => {
-      mounted = false
-      void supabase.removeChannel(channel)
-    }
-  }, [])
-
-  const saveMyList = (list: number[]) => {
-    try {
-      localStorage.setItem(
-        'pmf-my-list',
-        JSON.stringify(list),
-      )
-    } catch {
-      // Ignore localStorage failures.
-    }
-  }
-
-  const toggleMyList = (movieId: number) => {
-    setMyList((current) => {
-      const updated = current.includes(movieId)
-        ? current.filter((id) => id !== movieId)
-        : [...current, movieId]
-
-      saveMyList(updated)
-
-      return updated
-    })
-  }
-
-  const addToContinueWatching = (movieId: number) => {
-    setContinueWatching((current) => {
-      const updated = [
-        movieId,
-        ...current.filter((id) => id !== movieId),
-      ].slice(0, 10)
-
-      try {
-        localStorage.setItem(
-          'pmf-continue-watching',
-          JSON.stringify(updated),
-        )
-      } catch {
-        // Ignore localStorage failures.
-      }
-
-      return updated
-    })
-  }
-
-  const getVideoUrl = (movie: Movie) => {
-    if (
-      movie.videoUrl &&
-      movie.videoUrl.trim() !== ''
-    ) {
-      return movie.videoUrl.trim()
-    }
-
-    if (
-      movie.title.trim().toLowerCase() ===
-      'the journey'
-    ) {
-      return '/movies/the-journey.mp4'
-    }
-
-    return ''
-  }
-
-  const isYouTubeUrl = (url: string) =>
-    /youtube\.com|youtu\.be/i.test(url)
-
-  const openMovie = (movie: Movie) => {
-    setSelectedMovie(movie)
-  }
-
-  const startWatching = (movie: Movie) => {
-    if (!movie) return
-
-    setSelectedMovie(null)
-    setWatchingMovie(movie)
-    addToContinueWatching(movie.id)
-  }
-
-  const closeWatching = () => {
-    setWatchingMovie(null)
-  }
-
-  const goHome = () => {
-    setActiveSection('home')
-    setSearchQuery('')
-    setSelectedMovie(null)
-    setWatchingMovie(null)
-    setShowFilters(false)
-
-    window.scrollTo({
-      top: 0,
-      behavior: 'smooth',
-    })
-  }
-
-  const navigateTo = (section: Section) => {
-    setActiveSection(section)
-    setSearchQuery('')
-    setShowFilters(false)
-
-    window.scrollTo({
-      top: 0,
-      behavior: 'smooth',
-    })
-  }
-
-  useEffect(() => {
-    const handleEscape = (
-      event: KeyboardEvent,
-    ) => {
-      if (event.key !== 'Escape') return
-
-      if (watchingMovie) {
-        closeWatching()
-      } else if (selectedMovie) {
-        setSelectedMovie(null)
-      }
-    }
-
-    window.addEventListener(
-      'keydown',
-      handleEscape,
-    )
-
-    return () => {
-      window.removeEventListener(
-        'keydown',
-        handleEscape,
-      )
-    }
-  }, [watchingMovie, selectedMovie])
-
-  useEffect(() => {
-    if (!selectedMovie) return
-
-    const updatedMovie = movies.find(
-      (movie) => movie.id === selectedMovie.id,
-    )
-
-    if (updatedMovie) {
-      setSelectedMovie(updatedMovie)
-    }
-  }, [movies, selectedMovie?.id])
-
-  useEffect(() => {
-    if (!watchingMovie) return
-
-    const updatedMovie = movies.find(
-      (movie) => movie.id === watchingMovie.id,
-    )
-
-    if (updatedMovie) {
-      setWatchingMovie(updatedMovie)
-    }
-  }, [movies, watchingMovie?.id])
-
-  const categoryOptions = useMemo(() => {
-    return Array.from(
-      new Set(
-        movies
-          .map((movie) => movie.category?.trim())
-          .filter(
-            (category): category is string =>
-              Boolean(category),
-          ),
-      ),
-    ).sort()
-  }, [movies])
-
-  const typeOptions = useMemo(() => {
-    return Array.from(
-      new Set(
-        movies
-          .map((movie) => movie.type?.trim())
-          .filter(
-            (type): type is string => Boolean(type),
           ),
       ),
     ).sort()
@@ -1108,41 +462,54 @@ function AuthenticatedApp({
 
       if (
         filters.category &&
-        movie.category !== filters.category
+        movie.category !==
+          filters.category
       ) {
         return false
       }
 
       if (
         filters.type &&
-        movie.type !== filters.type
+        movie.type !==
+          filters.type
       ) {
         return false
       }
 
       if (
         filters.year &&
-        String(movie.year) !== filters.year
+        String(movie.year) !==
+          filters.year
       ) {
         return false
       }
 
       if (filters.minRating) {
-        const minimum = Number(
-          filters.minRating,
-        )
+        const minimum =
+          Number(
+            filters.minRating,
+          )
 
         const numericRating =
-          typeof movie.rating === 'number'
+          typeof movie.rating ===
+          'number'
             ? movie.rating
             : Number(
-                String(movie.rating ?? '')
-                  .replace(/[^\d.]/g, ''),
+                String(
+                  movie.rating ??
+                    '',
+                ).replace(
+                  /[^\d.]/g,
+                  '',
+                ),
               )
 
         if (
-          Number.isFinite(numericRating) &&
-          numericRating < minimum
+          Number.isFinite(
+            numericRating,
+          ) &&
+          numericRating <
+            minimum
         ) {
           return false
         }
@@ -1160,7 +527,11 @@ function AuthenticatedApp({
           .join(' ')
           .toLowerCase()
 
-        if (!searchable.includes(query)) {
+        if (
+          !searchable.includes(
+            query,
+          )
+        ) {
           return false
         }
       }
@@ -1168,52 +539,84 @@ function AuthenticatedApp({
       return true
     })
 
-    result = [...result].sort((a, b) => {
-      switch (filters.sort) {
-        case 'newest':
-          return b.year - a.year
+    result = [...result].sort(
+      (a, b) => {
+        switch (filters.sort) {
+          case 'newest':
+            return (
+              b.year - a.year
+            )
 
-        case 'oldest':
-          return a.year - b.year
+          case 'oldest':
+            return (
+              a.year - b.year
+            )
 
-        case 'rating': {
-          const ratingA =
-            typeof a.rating === 'number'
-              ? a.rating
-              : Number(
-                  String(a.rating ?? '')
-                    .replace(/[^\d.]/g, ''),
-                )
+          case 'rating': {
+            const ratingA =
+              typeof a.rating ===
+              'number'
+                ? a.rating
+                : Number(
+                    String(
+                      a.rating ??
+                        '',
+                    ).replace(
+                      /[^\d.]/g,
+                      '',
+                    ),
+                  )
 
-          const ratingB =
-            typeof b.rating === 'number'
-              ? b.rating
-              : Number(
-                  String(b.rating ?? '')
-                    .replace(/[^\d.]/g, ''),
-                )
+            const ratingB =
+              typeof b.rating ===
+              'number'
+                ? b.rating
+                : Number(
+                    String(
+                      b.rating ??
+                        '',
+                    ).replace(
+                      /[^\d.]/g,
+                      '',
+                    ),
+                  )
 
-          return (
-            (Number.isFinite(ratingB)
-              ? ratingB
-              : 0) -
-            (Number.isFinite(ratingA)
-              ? ratingA
-              : 0)
-          )
+            return (
+              (Number.isFinite(
+                ratingB,
+              )
+                ? ratingB
+                : 0) -
+              (Number.isFinite(
+                ratingA,
+              )
+                ? ratingA
+                : 0)
+            )
+          }
+
+          case 'title':
+            return a.title.localeCompare(
+              b.title,
+            )
+
+          case 'featured':
+          default:
+            return (
+              Number(
+                Boolean(
+                  b.featured,
+                ),
+              ) -
+              Number(
+                Boolean(
+                  a.featured,
+                ),
+              )
+            )
         }
-
-        case 'title':
-          return a.title.localeCompare(b.title)
-
-        case 'featured':
-        default:
-          return (
-            Number(Boolean(b.featured)) -
-            Number(Boolean(a.featured))
-          )
-      }
-    })
+      },
+    )
 
     return result
   }, [
@@ -1227,7 +630,8 @@ function AuthenticatedApp({
   const trendingMovies = useMemo(
     () =>
       movies.filter(
-        (movie) => movie.featured,
+        (movie) =>
+          movie.featured,
       ),
     [movies],
   )
@@ -1235,7 +639,8 @@ function AuthenticatedApp({
   const latestMovies = useMemo(
     () =>
       [...movies].sort(
-        (a, b) => b.year - a.year,
+        (a, b) =>
+          b.year - a.year,
       ),
     [movies],
   )
@@ -1246,7 +651,9 @@ function AuthenticatedApp({
         (movie) =>
           movie.category
             ?.toLowerCase()
-            .includes('action'),
+            .includes(
+              'action',
+            ),
       ),
     [movies],
   )
@@ -1257,7 +664,9 @@ function AuthenticatedApp({
         (movie) =>
           movie.category
             ?.toLowerCase()
-            .includes('adventure'),
+            .includes(
+              'adventure',
+            ),
       ),
     [movies],
   )
@@ -1267,14 +676,20 @@ function AuthenticatedApp({
       continueWatching
         .map((id) =>
           movies.find(
-            (movie) => movie.id === id,
+            (movie) =>
+              movie.id === id,
           ),
         )
         .filter(
-          (movie): movie is Movie =>
+          (
+            movie,
+          ): movie is Movie =>
             Boolean(movie),
         ),
-    [continueWatching, movies],
+    [
+      continueWatching,
+      movies,
+    ],
   )
 
   const resetFilters = () => {
@@ -1288,12 +703,18 @@ function AuthenticatedApp({
   }
 
   const hasActiveFilters =
-    Boolean(filters.category) ||
+    Boolean(
+      filters.category,
+    ) ||
     Boolean(filters.type) ||
     Boolean(filters.year) ||
-    Boolean(filters.minRating) ||
-    filters.sort !== 'featured'
-    const MovieCard = ({
+    Boolean(
+      filters.minRating,
+    ) ||
+    filters.sort !==
+      'featured'
+
+  const MovieCard = ({
     movie,
   }: {
     movie: Movie
@@ -1301,77 +722,79 @@ function AuthenticatedApp({
     const inMyList = myList.includes(movie.id)
 
     return (
-      <article
-        className="group relative min-w-0 cursor-pointer overflow-hidden rounded-xl bg-white/[0.04] ring-1 ring-white/10 transition duration-300 hover:-translate-y-1 hover:bg-white/[0.08] hover:ring-white/20"
-        onClick={() => openMovie(movie)}
-      >
-        <div className="relative aspect-[2/3] overflow-hidden bg-zinc-900">
-          {movie.poster ? (
+      <article className="group relative overflow-hidden rounded-2xl bg-white/5 shadow-lg ring-1 ring-white/10 transition duration-300 hover:-translate-y-1 hover:shadow-2xl">
+        <button
+          type="button"
+          onClick={() => openMovie(movie)}
+          className="block w-full text-left"
+        >
+          <div className="relative aspect-[2/3] overflow-hidden bg-black">
             <img
               src={movie.poster}
               alt={movie.title}
               className="h-full w-full object-cover transition duration-500 group-hover:scale-105"
               loading="lazy"
             />
-          ) : (
-            <div className="flex h-full items-center justify-center bg-gradient-to-br from-zinc-900 to-black p-4 text-center">
-              <span className="text-sm font-bold text-white/40">
-                {movie.title}
+
+            <div className="absolute inset-0 bg-gradient-to-t from-black via-black/10 to-transparent opacity-80" />
+
+            {movie.featured && (
+              <span className="absolute left-3 top-3 rounded-full bg-white px-2.5 py-1 text-[10px] font-bold uppercase tracking-wider text-black">
+                Featured
               </span>
+            )}
+
+            <div className="absolute bottom-3 left-3 right-3">
+              <h3 className="line-clamp-1 text-base font-bold text-white">
+                {movie.title}
+              </h3>
+
+              <div className="mt-1 flex flex-wrap items-center gap-2 text-xs text-white/70">
+                <span>{movie.year}</span>
+
+                {movie.type && (
+                  <>
+                    <span>•</span>
+                    <span>{movie.type}</span>
+                  </>
+                )}
+
+                {movie.category && (
+                  <>
+                    <span>•</span>
+                    <span>{movie.category}</span>
+                  </>
+                )}
+              </div>
             </div>
-          )}
+          </div>
+        </button>
 
-          <div className="absolute inset-0 bg-gradient-to-t from-black via-transparent to-transparent opacity-80" />
-
-          {movie.featured && (
-            <span className="absolute left-2 top-2 rounded-full bg-red-600 px-2 py-1 text-[9px] font-black uppercase tracking-wider text-white shadow-lg">
-              Featured
-            </span>
-          )}
+        <div className="flex items-center justify-between gap-2 border-t border-white/10 bg-black/40 p-2">
+          <button
+            type="button"
+            onClick={() => openMovie(movie)}
+            className="min-w-0 flex-1 rounded-lg px-3 py-2 text-left text-xs font-semibold text-white transition hover:bg-white/10"
+          >
+            View Details
+          </button>
 
           <button
             type="button"
+            onClick={() =>
+              toggleMyList(movie.id)
+            }
+            className="rounded-lg border border-white/10 px-3 py-2 text-xs font-semibold text-white transition hover:bg-white/10"
             aria-label={
               inMyList
                 ? `Remove ${movie.title} from My List`
                 : `Add ${movie.title} to My List`
             }
-            onClick={(event) => {
-              event.stopPropagation()
-              toggleMyList(movie.id)
-            }}
-            className="absolute right-2 top-2 flex h-8 w-8 items-center justify-center rounded-full bg-black/70 text-lg text-white backdrop-blur transition hover:bg-red-600"
           >
-            {inMyList ? '✓' : '+'}
+            {inMyList
+              ? '✓ Saved'
+              : '+ List'}
           </button>
-
-          <div className="absolute bottom-0 left-0 right-0 p-3">
-            <h3 className="truncate text-sm font-bold text-white">
-              {movie.title}
-            </h3>
-
-            <div className="mt-1 flex items-center gap-2 text-[10px] text-white/60">
-              <span>{movie.year}</span>
-
-              {movie.category && (
-                <>
-                  <span>•</span>
-                  <span>
-                    {movie.category}
-                  </span>
-                </>
-              )}
-
-              {movie.rating && (
-                <>
-                  <span>•</span>
-                  <span>
-                    {movie.rating}
-                  </span>
-                </>
-              )}
-            </div>
-          </div>
         </div>
       </article>
     )
@@ -1384,242 +807,75 @@ function AuthenticatedApp({
     title: string
     items: Movie[]
   }) => {
-    if (!items.length) return null
+    if (items.length === 0) {
+      return null
+    }
 
     return (
-      <section className="mx-auto max-w-7xl px-4 py-6 sm:px-6 lg:px-8">
-        <div className="mb-4 flex items-end justify-between">
+      <section className="mt-10">
+        <div className="mb-4 flex items-end justify-between gap-4">
           <div>
-            <p className="mb-1 text-[10px] font-black uppercase tracking-[0.3em] text-red-500">
-              PMF Flix
-            </p>
-
-            <h2 className="text-xl font-black text-white sm:text-2xl">
+            <h2 className="text-xl font-bold tracking-tight text-white sm:text-2xl">
               {title}
             </h2>
+            <div className="mt-1 h-1 w-10 rounded-full bg-white/80" />
           </div>
 
-          <button
-            type="button"
-            onClick={() =>
-              setActiveSection('movies')
-            }
-            className="text-xs font-bold text-white/50 transition hover:text-white"
-          >
-            See all
-          </button>
+          <span className="text-xs text-white/40">
+            {items.length}{' '}
+            {items.length === 1
+              ? 'title'
+              : 'titles'}
+          </span>
         </div>
 
-        <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5">
-          {items
-            .slice(0, 10)
-            .map((movie) => (
-              <MovieCard
-                key={movie.id}
-                movie={movie}
-              />
-            ))}
+        <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6">
+          {items.map((movie) => (
+            <MovieCard
+              key={movie.id}
+              movie={movie}
+            />
+          ))}
         </div>
       </section>
     )
   }
 
-  const FilterPanel = () => {
-    if (!showFilters) return null
+  const heroMovie =
+    movies.find(
+      (movie) =>
+        movie.featured,
+    ) ?? movies[0]
 
-    return (
-      <div className="mb-8 rounded-2xl border border-white/10 bg-white/[0.04] p-4 backdrop-blur-xl">
-        <div className="mb-4 flex items-center justify-between">
-          <div>
-            <p className="text-[10px] font-black uppercase tracking-[0.25em] text-red-500">
-              Discovery
-            </p>
+  const searchResults =
+    searchQuery.trim() !== ''
+      ? filteredMovies
+      : []
 
-            <h3 className="mt-1 text-lg font-bold text-white">
-              Find your next story
-            </h3>
-          </div>
-
-          {hasActiveFilters && (
-            <button
-              type="button"
-              onClick={resetFilters}
-              className="text-xs font-bold text-red-400 hover:text-red-300"
-            >
-              Reset
-            </button>
-          )}
-        </div>
-
-        <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-5">
-          <select
-            value={filters.category}
-            onChange={(event) =>
-              setFilters((current) => ({
-                ...current,
-                category: event.target.value,
-              }))
-            }
-            className="rounded-lg border border-white/10 bg-black/60 px-3 py-3 text-sm text-white outline-none focus:border-red-500"
-          >
-            <option value="">
-              All genres
-            </option>
-
-            {categoryOptions.map(
-              (category) => (
-                <option
-                  key={category}
-                  value={category}
-                >
-                  {category}
-                </option>
-              ),
-            )}
-          </select>
-
-          <select
-            value={filters.type}
-            onChange={(event) =>
-              setFilters((current) => ({
-                ...current,
-                type: event.target.value,
-              }))
-            }
-            className="rounded-lg border border-white/10 bg-black/60 px-3 py-3 text-sm text-white outline-none focus:border-red-500"
-          >
-            <option value="">
-              All content
-            </option>
-
-            {typeOptions.map((type) => (
-              <option
-                key={type}
-                value={type}
-              >
-                {type}
-              </option>
-            ))}
-          </select>
-
-          <select
-            value={filters.year}
-            onChange={(event) =>
-              setFilters((current) => ({
-                ...current,
-                year: event.target.value,
-              }))
-            }
-            className="rounded-lg border border-white/10 bg-black/60 px-3 py-3 text-sm text-white outline-none focus:border-red-500"
-          >
-            <option value="">
-              All years
-            </option>
-
-            {yearOptions.map((year) => (
-              <option
-                key={year}
-                value={String(year)}
-              >
-                {year}
-              </option>
-            ))}
-          </select>
-
-          <select
-            value={filters.minRating}
-            onChange={(event) =>
-              setFilters((current) => ({
-                ...current,
-                minRating: event.target.value,
-              }))
-            }
-            className="rounded-lg border border-white/10 bg-black/60 px-3 py-3 text-sm text-white outline-none focus:border-red-500"
-          >
-            <option value="">
-              Any rating
-            </option>
-
-            <option value="5">
-              5+
-            </option>
-
-            <option value="6">
-              6+
-            </option>
-
-            <option value="7">
-              7+
-            </option>
-
-            <option value="8">
-              8+
-            </option>
-
-            <option value="9">
-              9+
-            </option>
-          </select>
-
-          <select
-            value={filters.sort}
-            onChange={(event) =>
-              setFilters((current) => ({
-                ...current,
-                sort:
-                  event.target
-                    .value as SortMode,
-              }))
-            }
-            className="rounded-lg border border-white/10 bg-black/60 px-3 py-3 text-sm text-white outline-none focus:border-red-500"
-          >
-            <option value="featured">
-              Featured first
-            </option>
-
-            <option value="newest">
-              Newest
-            </option>
-
-            <option value="oldest">
-              Oldest
-            </option>
-
-            <option value="rating">
-              Highest rated
-            </option>
-
-            <option value="title">
-              A–Z
-            </option>
-          </select>
-        </div>
-      </div>
-    )
-  }
+  const visibleMovies =
+    activeSection === 'home'
+      ? movies
+      : filteredMovies
 
   return (
-    <div className="min-h-screen bg-black text-white">
-      <header className="sticky top-0 z-40 border-b border-white/10 bg-black/85 backdrop-blur-xl">
-        <div className="mx-auto flex h-16 max-w-7xl items-center gap-5 px-4 sm:px-6 lg:px-8">
+    <div className="min-h-screen bg-[#050505] text-white">
+      <header className="sticky top-0 z-40 border-b border-white/10 bg-[#050505]/95 backdrop-blur-xl">
+        <div className="mx-auto flex h-16 max-w-[1600px] items-center gap-4 px-4 sm:px-6 lg:px-8">
           <button
             type="button"
             onClick={goHome}
-            className="shrink-0 text-left"
+            className="flex shrink-0 items-center gap-2"
+            aria-label="PMF Flix home"
           >
-            <div className="text-xl font-black tracking-tight">
+            <span className="text-xl font-black tracking-tighter text-white sm:text-2xl">
               PMF
-              <span className="text-red-600">
-                LIX
-              </span>
-            </div>
-
-            <div className="hidden text-[8px] font-bold uppercase tracking-[0.25em] text-white/30 sm:block">
-              Prince Mufasa Flix
-            </div>
+            </span>
+            <span className="hidden text-sm font-semibold tracking-[0.2em] text-white/50 sm:inline">
+              FLIX
+            </span>
           </button>
 
-          <nav className="hidden items-center gap-5 md:flex">
+          <nav className="hidden items-center gap-1 md:flex">
             {(
               [
                 ['home', 'Home'],
@@ -1627,26 +883,38 @@ function AuthenticatedApp({
                 ['series', 'TV Series'],
                 ['my-list', 'My List'],
               ] as const
-            ).map(([section, label]) => (
-              <button
-                key={section}
-                type="button"
-                onClick={() =>
-                  navigateTo(section)
-                }
-                className={`text-sm font-semibold transition ${
-                  activeSection === section
-                    ? 'text-white'
-                    : 'text-white/50 hover:text-white'
-                }`}
-              >
-                {label}
-              </button>
-            ))}
+            ).map(
+              ([
+                section,
+                label,
+              ]) => (
+                <button
+                  key={section}
+                  type="button"
+                  onClick={() =>
+                    navigateTo(
+                      section,
+                    )
+                  }
+                  className={`rounded-lg px-3 py-2 text-sm font-medium transition ${
+                    activeSection ===
+                    section
+                      ? 'bg-white text-black'
+                      : 'text-white/60 hover:bg-white/10 hover:text-white'
+                  }`}
+                >
+                  {label}
+                </button>
+              ),
+            )}
           </nav>
 
           <div className="ml-auto flex items-center gap-2">
-            <div className="hidden lg:block">
+            <div className="hidden items-center rounded-xl border border-white/10 bg-white/5 px-3 md:flex">
+              <span className="mr-2 text-white/40">
+                🔎
+              </span>
+
               <input
                 value={searchQuery}
                 onChange={(event) =>
@@ -1654,8 +922,8 @@ function AuthenticatedApp({
                     event.target.value,
                   )
                 }
-                placeholder="Search movies, genres..."
-                className="w-56 rounded-full border border-white/10 bg-white/[0.06] px-4 py-2 text-xs text-white outline-none placeholder:text-white/30 focus:border-red-500"
+                placeholder="Search movies..."
+                className="w-40 bg-transparent py-2 text-sm text-white outline-none placeholder:text-white/30 lg:w-56"
               />
             </div>
 
@@ -1663,28 +931,48 @@ function AuthenticatedApp({
               type="button"
               onClick={() =>
                 setShowMobileSearch(
-                  (current) => !current,
+                  (value) =>
+                    !value,
                 )
               }
-              className="rounded-full px-3 py-2 text-xs font-bold text-white/60 hover:bg-white/10 hover:text-white lg:hidden"
+              className="rounded-lg p-2 text-white/70 transition hover:bg-white/10 hover:text-white md:hidden"
+              aria-label="Search"
             >
-              Search
+              🔎
             </button>
 
             <button
               type="button"
               onClick={() =>
-                supabase.auth.signOut()
+                setShowFilters(
+                  (value) =>
+                    !value,
+                )
               }
-              className="rounded-full border border-white/10 px-3 py-2 text-[10px] font-bold text-white/60 transition hover:border-red-500/40 hover:text-white"
+              className={`rounded-lg px-3 py-2 text-xs font-semibold transition ${
+                showFilters ||
+                hasActiveFilters
+                  ? 'bg-white text-black'
+                  : 'bg-white/5 text-white/70 hover:bg-white/10 hover:text-white'
+              }`}
             >
-              Sign out
+              Filters
+            </button>
+
+            <button
+              type="button"
+              onClick={async () => {
+                await supabase.auth.signOut()
+              }}
+              className="hidden rounded-lg bg-white/5 px-3 py-2 text-xs font-semibold text-white/70 transition hover:bg-white/10 hover:text-white sm:block"
+            >
+              Sign Out
             </button>
           </div>
         </div>
 
         {showMobileSearch && (
-          <div className="border-t border-white/10 px-4 py-3 lg:hidden">
+          <div className="border-t border-white/10 px-4 py-3 md:hidden">
             <input
               autoFocus
               value={searchQuery}
@@ -1693,399 +981,318 @@ function AuthenticatedApp({
                   event.target.value,
                 )
               }
-              placeholder="Search PMF Flix..."
-              className="w-full rounded-xl border border-white/10 bg-white/[0.06] px-4 py-3 text-sm text-white outline-none placeholder:text-white/30 focus:border-red-500"
+              placeholder="Search movies..."
+              className="w-full rounded-xl border border-white/10 bg-white/5 px-4 py-3 text-sm text-white outline-none placeholder:text-white/30"
             />
           </div>
         )}
 
-        <div className="border-t border-white/[0.05] md:hidden">
-          <div className="mx-auto flex max-w-7xl overflow-x-auto px-4 py-2">
-            {(
-              [
-                ['home', 'Home'],
-                ['movies', 'Movies'],
-                ['series', 'TV Series'],
-                ['my-list', 'My List'],
-              ] as const
-            ).map(([section, label]) => (
-              <button
-                key={section}
-                type="button"
-                onClick={() =>
-                  navigateTo(section)
-                }
-                className={`mr-5 whitespace-nowrap py-2 text-xs font-bold ${
-                  activeSection === section
-                    ? 'text-red-500'
-                    : 'text-white/45'
-                }`}
-              >
-                {label}
-              </button>
-            ))}
-          </div>
-        </div>
-      </header>
-            {activeSection === 'home' &&
-        !searchQuery.trim() && (
-          <section className="relative min-h-[62vh] overflow-hidden">
-            <img
-              src={heroImage}
-              alt="PMF Cinematic Hero"
-              className="absolute inset-0 h-full w-full object-cover"
-            />
-
-            <div className="absolute inset-0 bg-gradient-to-r from-black via-black/65 to-transparent" />
-            <div className="absolute inset-0 bg-gradient-to-t from-black via-transparent to-black/20" />
-
-            <div className="relative mx-auto flex min-h-[62vh] max-w-7xl items-end px-4 pb-16 pt-24 sm:px-6 lg:px-8">
-              <div className="max-w-2xl">
-                <p className="mb-3 text-xs font-black uppercase tracking-[0.35em] text-red-500">
-                  Featured Film
-                </p>
-
-                <h1 className="text-4xl font-black leading-none tracking-tight sm:text-6xl">
-                  Your World.
-                  <br />
-                  Your Stories.
-                  <br />
-                  <span className="text-red-600">
-                    Your Flix.
-                  </span>
-                </h1>
-
-                <p className="mt-5 max-w-xl text-sm leading-6 text-white/60 sm:text-base">
-                  Discover cinematic stories,
-                  unforgettable characters and
-                  premium entertainment on PMF
-                  Flix.
-                </p>
-
-                <div className="mt-7 flex flex-wrap gap-3">
-                  {trendingMovies[0] && (
-                    <>
-                      <button
-                        type="button"
-                        onClick={() =>
-                          startWatching(
-                            trendingMovies[0],
-                          )
-                        }
-                        className="rounded-full bg-white px-6 py-3 text-sm font-black text-black transition hover:bg-white/90"
-                      >
-                        ▶ Play
-                      </button>
-
-                      <button
-                        type="button"
-                        onClick={() =>
-                          openMovie(
-                            trendingMovies[0],
-                          )
-                        }
-                        className="rounded-full bg-white/10 px-6 py-3 text-sm font-black text-white backdrop-blur transition hover:bg-white/20"
-                      >
-                        More Info
-                      </button>
-                    </>
-                  )}
-                </div>
-              </div>
-            </div>
-          </section>
-        )}
-
-      <main>
-        <div className="mx-auto max-w-7xl px-4 pt-8 sm:px-6 lg:px-8">
-          {searchQuery.trim() && (
-            <div className="mb-7">
-              <p className="text-[10px] font-black uppercase tracking-[0.3em] text-red-500">
-                PMF Search
-              </p>
-
-              <h1 className="mt-2 text-2xl font-black">
-                Results for “
-                {searchQuery.trim()}
-                ”
-              </h1>
-            </div>
-          )}
-
-          {activeSection !== 'home' &&
-            !searchQuery.trim() && (
-              <div className="mb-8 pt-4">
-                <p className="text-[10px] font-black uppercase tracking-[0.3em] text-red-500">
-                  PMF Catalogue
-                </p>
-
-                <h1 className="mt-2 text-3xl font-black">
-                  {activeSection ===
-                  'my-list'
-                    ? 'My List'
-                    : activeSection ===
-                        'series'
-                      ? 'TV Series'
-                      : 'Movies'}
-                </h1>
-              </div>
-            )}
-
-          {(activeSection !== 'home' ||
-            searchQuery.trim()) && (
-            <div className="mb-5 flex items-center justify-between gap-3">
-              <p className="text-xs text-white/40">
-                {filteredMovies.length}{' '}
-                {filteredMovies.length ===
-                1
-                  ? 'title'
-                  : 'titles'}{' '}
-                found
-              </p>
-
-              <button
-                type="button"
-                onClick={() =>
-                  setShowFilters(
-                    (current) => !current,
+        {showFilters && (
+          <div className="border-t border-white/10 bg-black/80 px-4 py-4 sm:px-6 lg:px-8">
+            <div className="mx-auto grid max-w-[1600px] gap-3 sm:grid-cols-2 lg:grid-cols-5">
+              <select
+                value={filters.category}
+                onChange={(event) =>
+                  setFilters(
+                    (current) => ({
+                      ...current,
+                      category:
+                        event.target
+                          .value,
+                    }),
                   )
                 }
-                className="rounded-full border border-white/10 bg-white/[0.04] px-4 py-2 text-xs font-bold text-white/70 transition hover:border-red-500/40 hover:text-white"
+                className="rounded-xl border border-white/10 bg-white/5 px-3 py-3 text-sm text-white outline-none"
               >
-                {showFilters
-                  ? 'Hide Filters'
-                  : 'Filters'}
-              </button>
-            </div>
-          )}
+                <option
+                  value=""
+                  className="bg-black"
+                >
+                  All Genres
+                </option>
 
-          {(activeSection !== 'home' ||
-            searchQuery.trim()) && (
-            <FilterPanel />
-          )}
-        </div>
-
-        {moviesLoading && (
-          <section className="mx-auto flex min-h-[45vh] max-w-7xl items-center justify-center px-4">
-            <div className="text-center">
-              <div className="mx-auto mb-4 h-10 w-10 animate-spin rounded-full border-2 border-white/10 border-t-red-600" />
-
-              <p className="text-sm font-semibold text-white/50">
-                Loading PMF catalogue...
-              </p>
-            </div>
-          </section>
-        )}
-
-        {!moviesLoading && moviesError && (
-          <section className="mx-auto max-w-7xl px-4 py-16 sm:px-6 lg:px-8">
-            <div className="rounded-2xl border border-red-500/20 bg-red-500/5 p-8 text-center">
-              <p className="text-sm font-bold text-red-400">
-                {moviesError}
-              </p>
-
-              <button
-                type="button"
-                onClick={() =>
-                  window.location.reload()
-                }
-                className="mt-5 rounded-full bg-red-600 px-5 py-2 text-xs font-black text-white hover:bg-red-500"
-              >
-                Try Again
-              </button>
-            </div>
-          </section>
-        )}
-
-        {!moviesLoading &&
-          !moviesError &&
-          (activeSection !== 'home' ||
-            searchQuery.trim()) && (
-            <section className="mx-auto max-w-7xl px-4 pb-20 sm:px-6 lg:px-8">
-              {filteredMovies.length ? (
-                <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5">
-                  {filteredMovies.map(
-                    (movie) => (
-                      <MovieCard
-                        key={movie.id}
-                        movie={movie}
-                      />
-                    ),
-                  )}
-                </div>
-              ) : (
-                <div className="flex min-h-[35vh] items-center justify-center rounded-2xl border border-white/10 bg-white/[0.02] p-10 text-center">
-                  <div>
-                    <div className="text-4xl">
-                      🎬
-                    </div>
-
-                    <h2 className="mt-4 text-lg font-black">
-                      Nothing found
-                    </h2>
-
-                    <p className="mt-2 text-sm text-white/40">
-                      Try another search or
-                      adjust your filters.
-                    </p>
-
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setSearchQuery('')
-                        resetFilters()
-                      }}
-                      className="mt-5 rounded-full bg-red-600 px-5 py-2 text-xs font-black"
+                {categoryOptions.map(
+                  (category) => (
+                    <option
+                      key={category}
+                      value={category}
+                      className="bg-black"
                     >
-                      Clear Discovery
-                    </button>
-                  </div>
-                </div>
-              )}
-            </section>
-          )}
+                      {category}
+                    </option>
+                  ),
+                )}
+              </select>
 
-        {!moviesLoading &&
-          !moviesError &&
-          activeSection === 'home' &&
-          !searchQuery.trim() && (
-            <div className="pb-16">
-              <MovieRow
-                title="Trending Now"
-                items={trendingMovies}
-              />
+              <select
+                value={filters.type}
+                onChange={(event) =>
+                  setFilters(
+                    (current) => ({
+                      ...current,
+                      type:
+                        event.target
+                          .value,
+                    }),
+                  )
+                }
+                className="rounded-xl border border-white/10 bg-white/5 px-3 py-3 text-sm text-white outline-none"
+              >
+                <option
+                  value=""
+                  className="bg-black"
+                >
+                  All Types
+                </option>
 
-              <MovieRow
-                title="Continue Watching"
-                items={continueMovies}
-              />
+                {typeOptions.map(
+                  (type) => (
+                    <option
+                      key={type}
+                      value={type}
+                      className="bg-black"
+                    >
+                      {type}
+                    </option>
+                  ),
+                )}
+              </select>
 
-              <MovieRow
-                title="Latest Releases"
-                items={latestMovies}
-              />
+              <select
+                value={filters.year}
+                onChange={(event) =>
+                  setFilters(
+                    (current) => ({
+                      ...current,
+                      year:
+                        event.target
+                          .value,
+                    }),
+                  )
+                }
+                className="rounded-xl border border-white/10 bg-white/5 px-3 py-3 text-sm text-white outline-none"
+              >
+                <option
+                  value=""
+                  className="bg-black"
+                >
+                  All Years
+                </option>
 
-              <MovieRow
-                title="Action"
-                items={actionMovies}
-              />
+                {yearOptions.map(
+                  (year) => (
+                    <option
+                      key={year}
+                      value={year}
+                      className="bg-black"
+                    >
+                      {year}
+                    </option>
+                  ),
+                )}
+              </select>
 
-              <MovieRow
-                title="Adventure"
-                items={adventureMovies}
-              />
+              <select
+                value={filters.minRating}
+                onChange={(event) =>
+                  setFilters(
+                    (current) => ({
+                      ...current,
+                      minRating:
+                        event.target
+                          .value,
+                    }),
+                  )
+                }
+                className="rounded-xl border border-white/10 bg-white/5 px-3 py-3 text-sm text-white outline-none"
+              >
+                <option
+                  value=""
+                  className="bg-black"
+                >
+                  Any Rating
+                </option>
+
+                <option
+                  value="5"
+                  className="bg-black"
+                >
+                  5+
+                </option>
+
+                <option
+                  value="6"
+                  className="bg-black"
+                >
+                  6+
+                </option>
+
+                <option
+                  value="7"
+                  className="bg-black"
+                >
+                  7+
+                </option>
+
+                <option
+                  value="8"
+                  className="bg-black"
+                >
+                  8+
+                </option>
+              </select>
+
+              <select
+                value={filters.sort}
+                onChange={(event) =>
+                  setFilters(
+                    (current) => ({
+                      ...current,
+                      sort:
+                        event.target
+                          .value as SortMode,
+                    }),
+                  )
+                }
+                className="rounded-xl border border-white/10 bg-white/5 px-3 py-3 text-sm text-white outline-none"
+              >
+                <option
+                  value="featured"
+                  className="bg-black"
+                >
+                  Featured
+                </option>
+
+                <option
+                  value="newest"
+                  className="bg-black"
+                >
+                  Newest
+                </option>
+
+                <option
+                  value="oldest"
+                  className="bg-black"
+                >
+                  Oldest
+                </option>
+
+                <option
+                  value="rating"
+                  className="bg-black"
+                >
+                  Highest Rated
+                </option>
+
+                <option
+                  value="title"
+                  className="bg-black"
+                >
+                  A–Z
+                </option>
+              </select>
             </div>
-          )}
-      </main>
 
-      {selectedMovie && (
-        <div
-          className="fixed inset-0 z-50 flex items-center justify-center bg-black/90 p-4 backdrop-blur-sm"
-          onClick={() =>
-            setSelectedMovie(null)
-          }
-        >
-          <div
-            className="max-h-[90vh] w-full max-w-3xl overflow-y-auto rounded-2xl border border-white/10 bg-zinc-950 shadow-2xl"
-            onClick={(event) =>
-              event.stopPropagation()
-            }
-          >
-            <div className="relative aspect-video overflow-hidden bg-black">
-              {selectedMovie.poster ? (
-                <img
-                  src={selectedMovie.poster}
-                  alt={selectedMovie.title}
-                  className="h-full w-full object-cover opacity-60"
-                />
-              ) : (
-                <div className="h-full w-full bg-gradient-to-br from-zinc-900 to-black" />
-              )}
-
-              <div className="absolute inset-0 bg-gradient-to-t from-zinc-950 via-transparent to-black/20" />
-
+            <div className="mx-auto mt-3 flex max-w-[1600px] justify-end">
               <button
                 type="button"
-                onClick={() =>
-                  setSelectedMovie(null)
-                }
-                className="absolute right-4 top-4 flex h-9 w-9 items-center justify-center rounded-full bg-black/70 text-white hover:bg-white/20"
+                onClick={resetFilters}
+                className="rounded-lg px-3 py-2 text-xs font-semibold text-white/60 transition hover:bg-white/10 hover:text-white"
               >
-                ×
+                Reset Filters
               </button>
-
-              <div className="absolute bottom-5 left-5 right-5">
-                <p className="mb-2 text-[10px] font-black uppercase tracking-[0.3em] text-red-500">
-                  PMF Flix
-                </p>
-
-                <h2 className="text-3xl font-black sm:text-5xl">
-                  {selectedMovie.title}
-                </h2>
-              </div>
             </div>
+          </div>
+        )}
+      </header>
 
-            <div className="p-5 sm:p-7">
-              <div className="flex flex-wrap items-center gap-3 text-xs text-white/50">
-                <span>
-                  {selectedMovie.year}
-                </span>
+        <main className="mx-auto max-w-[1600px] px-4 pb-20 sm:px-6 lg:px-8">
+    {activeSection === 'home' &&
+      !searchQuery.trim() &&
+      heroMovie && (
+        <section className="relative -mx-4 min-h-[520px] overflow-hidden sm:-mx-6 lg:-mx-8 lg:min-h-[620px]">
+          <img
+            src={heroImage}
+            alt="PMF Cinematic Hero"
+            className="absolute inset-0 h-full w-full object-cover"
+          />
 
-                {selectedMovie.type && (
-                  <span>
-                    {selectedMovie.type}
-                  </span>
+          <div className="absolute inset-0 bg-gradient-to-r from-black via-black/70 to-black/20" />
+          <div className="absolute inset-0 bg-gradient-to-t from-[#050505] via-transparent to-black/20" />
+
+          <div className="relative flex min-h-[520px] items-end px-4 pb-12 sm:px-6 lg:min-h-[620px] lg:px-8 lg:pb-16">
+            <div className="max-w-2xl">
+              <p className="mb-3 text-xs font-bold uppercase tracking-[0.3em] text-white/50">
+                PMF Flix Original
+              </p>
+
+              <h1 className="text-4xl font-black tracking-tight text-white sm:text-6xl lg:text-7xl">
+                {heroMovie.title}
+              </h1>
+
+              <div className="mt-4 flex flex-wrap items-center gap-3 text-sm text-white/70">
+                <span>{heroMovie.year}</span>
+                <span>•</span>
+                <span>{heroMovie.type}</span>
+
+                {heroMovie.category && (
+                  <>
+                    <span>•</span>
+                    <span>{heroMovie.category}</span>
+                  </>
                 )}
 
-                {selectedMovie.category && (
-                  <span>
-                    {selectedMovie.category}
-                  </span>
+                {heroMovie.duration && (
+                  <>
+                    <span>•</span>
+                    <span>{heroMovie.duration}</span>
+                  </>
                 )}
 
-                {selectedMovie.duration && (
-                  <span>
-                    {selectedMovie.duration}
-                  </span>
-                )}
-
-                {selectedMovie.rating && (
-                  <span>
-                    ★ {selectedMovie.rating}
-                  </span>
+                {heroMovie.rating && (
+                  <>
+                    <span>•</span>
+                    <span>{heroMovie.rating}</span>
+                  </>
                 )}
               </div>
 
-              {selectedMovie.description && (
-                <p className="mt-5 text-sm leading-7 text-white/60">
-                  {selectedMovie.description}
-                </p>
-              )}
+              <p className="mt-5 max-w-xl text-sm leading-7 text-white/65 sm:text-base">
+                {heroMovie.description}
+              </p>
 
               <div className="mt-7 flex flex-wrap gap-3">
                 <button
                   type="button"
                   onClick={() =>
-                    startWatching(
-                      selectedMovie,
-                    )
+                    startWatching(heroMovie)
                   }
-                  className="rounded-full bg-white px-6 py-3 text-sm font-black text-black transition hover:bg-white/90"
+                  className="rounded-xl bg-white px-5 py-3 text-sm font-bold text-black transition hover:bg-white/85"
                 >
-                  ▶ Play
+                  ▶ Play Now
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() =>
+                    openMovie(heroMovie)
+                  }
+                  className="rounded-xl border border-white/15 bg-white/10 px-5 py-3 text-sm font-bold text-white backdrop-blur transition hover:bg-white/15"
+                >
+                  More Info
                 </button>
 
                 <button
                   type="button"
                   onClick={() =>
                     toggleMyList(
-                      selectedMovie.id,
+                      heroMovie.id,
                     )
                   }
-                  className="rounded-full border border-white/10 bg-white/[0.06] px-6 py-3 text-sm font-black text-white transition hover:bg-white/10"
+                  className="rounded-xl border border-white/15 bg-black/30 px-5 py-3 text-sm font-bold text-white backdrop-blur transition hover:bg-white/10"
                 >
                   {myList.includes(
-                    selectedMovie.id,
+                    heroMovie.id,
                   )
                     ? '✓ In My List'
                     : '+ My List'}
@@ -2093,152 +1300,387 @@ function AuthenticatedApp({
               </div>
             </div>
           </div>
-        </div>
+        </section>
       )}
-            {watchingMovie && (
-        <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black">
-          <div className="relative h-full w-full">
+
+    {searchQuery.trim() && (
+      <section className="pt-8">
+        <div className="mb-6">
+          <p className="text-xs font-semibold uppercase tracking-[0.25em] text-white/40">
+            Search
+          </p>
+
+          <h1 className="mt-2 text-2xl font-bold text-white sm:text-3xl">
+            Results for “{searchQuery.trim()}”
+          </h1>
+        </div>
+
+        {searchResults.length > 0 ? (
+          <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6">
+            {searchResults.map(
+              (movie) => (
+                <MovieCard
+                  key={movie.id}
+                  movie={movie}
+                />
+              ),
+            )}
+          </div>
+        ) : (
+          <div className="rounded-2xl border border-white/10 bg-white/[0.03] px-6 py-16 text-center">
+            <p className="text-lg font-semibold text-white">
+              No titles found
+            </p>
+
+            <p className="mt-2 text-sm text-white/40">
+              Try another movie, genre, year, or title.
+            </p>
+          </div>
+        )}
+      </section>
+    )}
+
+    {!searchQuery.trim() &&
+      activeSection === 'home' && (
+        <>
+          <MovieRow
+            title="Trending Now"
+            items={trendingMovies}
+          />
+
+          <MovieRow
+            title="Latest Releases"
+            items={latestMovies}
+          />
+
+          <MovieRow
+            title="Action"
+            items={actionMovies}
+          />
+
+          <MovieRow
+            title="Adventure"
+            items={adventureMovies}
+          />
+
+          <MovieRow
+            title="Continue Watching"
+            items={continueMovies}
+          />
+        </>
+      )}
+
+    {!searchQuery.trim() &&
+      activeSection !== 'home' && (
+        <section className="pt-8">
+          <div className="mb-7 flex flex-wrap items-end justify-between gap-4">
+            <div>
+              <p className="text-xs font-semibold uppercase tracking-[0.25em] text-white/40">
+                PMF Catalogue
+              </p>
+
+              <h1 className="mt-2 text-3xl font-black tracking-tight text-white">
+                {activeSection ===
+                'movies'
+                  ? 'Movies'
+                  : activeSection ===
+                      'series'
+                    ? 'TV Series'
+                    : 'My List'}
+              </h1>
+            </div>
+
+            <p className="text-sm text-white/40">
+              {visibleMovies.length}{' '}
+              {visibleMovies.length ===
+              1
+                ? 'title'
+                : 'titles'}
+            </p>
+          </div>
+
+          {moviesLoading ? (
+            <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6">
+              {Array.from({
+                length: 6,
+              }).map((_, index) => (
+                <div
+                  key={index}
+                  className="aspect-[2/3] animate-pulse rounded-2xl bg-white/5"
+                />
+              ))}
+            </div>
+          ) : visibleMovies.length > 0 ? (
+            <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6">
+              {visibleMovies.map(
+                (movie) => (
+                  <MovieCard
+                    key={movie.id}
+                    movie={movie}
+                  />
+                ),
+              )}
+            </div>
+          ) : (
+            <div className="rounded-2xl border border-white/10 bg-white/[0.03] px-6 py-16 text-center">
+              <p className="text-lg font-semibold text-white">
+                {activeSection ===
+                'my-list'
+                  ? 'Your My List is empty'
+                  : 'No titles found'}
+              </p>
+
+              <p className="mt-2 text-sm text-white/40">
+                {activeSection ===
+                'my-list'
+                  ? 'Add movies to My List and they will appear here.'
+                  : 'Try changing your filters or search terms.'}
+              </p>
+            </div>
+          )}
+        </section>
+      )}
+
+    {moviesError && (
+      <div className="mt-8 rounded-xl border border-red-500/20 bg-red-500/5 px-4 py-3 text-sm text-red-300">
+        {moviesError}
+      </div>
+    )}
+  </main>
+
+  {selectedMovie && (
+    <div
+      className="fixed inset-0 z-50 flex items-center justify-center overflow-y-auto bg-black/80 p-4 backdrop-blur-sm"
+      onMouseDown={(event) => {
+        if (
+          event.target ===
+          event.currentTarget
+        ) {
+          setSelectedMovie(null)
+        }
+      }}
+    >
+      <div className="relative w-full max-w-3xl overflow-hidden rounded-3xl border border-white/10 bg-[#111] shadow-2xl">
+        <button
+          type="button"
+          onClick={() =>
+            setSelectedMovie(null)
+          }
+          className="absolute right-4 top-4 z-10 rounded-full bg-black/60 px-3 py-2 text-sm text-white backdrop-blur hover:bg-black"
+          aria-label="Close movie details"
+        >
+          ✕
+        </button>
+
+        <div className="relative aspect-[16/8] overflow-hidden bg-black">
+          <img
+            src={selectedMovie.poster}
+            alt={selectedMovie.title}
+            className="h-full w-full object-cover opacity-60"
+          />
+
+          <div className="absolute inset-0 bg-gradient-to-t from-[#111] via-transparent to-transparent" />
+
+          <div className="absolute bottom-5 left-5 right-5 sm:left-8 sm:right-8">
+            <p className="text-xs font-bold uppercase tracking-[0.25em] text-white/50">
+              {selectedMovie.type}
+            </p>
+
+            <h2 className="mt-2 text-3xl font-black text-white sm:text-4xl">
+              {selectedMovie.title}
+            </h2>
+          </div>
+        </div>
+
+        <div className="space-y-5 p-5 sm:p-8">
+          <div className="flex flex-wrap gap-2 text-xs text-white/60">
+            <span className="rounded-full bg-white/5 px-3 py-1.5">
+              {selectedMovie.year}
+            </span>
+
+            {selectedMovie.category && (
+              <span className="rounded-full bg-white/5 px-3 py-1.5">
+                {selectedMovie.category}
+              </span>
+            )}
+
+            {selectedMovie.duration && (
+              <span className="rounded-full bg-white/5 px-3 py-1.5">
+                {selectedMovie.duration}
+              </span>
+            )}
+
+            {selectedMovie.rating && (
+              <span className="rounded-full bg-white/5 px-3 py-1.5">
+                {selectedMovie.rating}
+              </span>
+            )}
+          </div>
+
+          <p className="text-sm leading-7 text-white/65 sm:text-base">
+            {selectedMovie.description}
+          </p>
+
+          <div className="flex flex-wrap gap-3">
             <button
               type="button"
-              onClick={closeWatching}
-              className="absolute right-4 top-4 z-10 rounded-full bg-black/70 px-4 py-2 text-sm font-bold text-white backdrop-blur transition hover:bg-white/20"
+              onClick={() =>
+                startWatching(
+                  selectedMovie,
+                )
+              }
+              className="rounded-xl bg-white px-5 py-3 text-sm font-bold text-black transition hover:bg-white/85"
+            >
+              ▶ Play
+            </button>
+
+            <button
+              type="button"
+              onClick={() =>
+                toggleMyList(
+                  selectedMovie.id,
+                )
+              }
+              className="rounded-xl border border-white/10 bg-white/5 px-5 py-3 text-sm font-semibold text-white transition hover:bg-white/10"
+            >
+              {myList.includes(
+                selectedMovie.id,
+              )
+                ? '✓ In My List'
+                : '+ My List'}
+            </button>
+
+            <button
+              type="button"
+              onClick={() =>
+                setSelectedMovie(null)
+              }
+              className="rounded-xl border border-white/10 px-5 py-3 text-sm font-semibold text-white/60 transition hover:bg-white/5 hover:text-white"
             >
               Close
             </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  )}
 
-            {(() => {
-              const videoUrl =
-                getVideoUrl(watchingMovie)
+  {watchingMovie && (
+    <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black p-0">
+      <button
+        type="button"
+        onClick={closeWatching}
+        className="absolute right-4 top-4 z-20 rounded-full bg-white/10 px-4 py-3 text-sm font-semibold text-white backdrop-blur transition hover:bg-white/20"
+      >
+        ✕ Close
+      </button>
 
-              if (!videoUrl) {
-                return (
-                  <div className="flex h-full items-center justify-center p-6">
-                    <div className="max-w-md text-center">
-                      <div className="text-5xl">
-                        🎬
-                      </div>
+      <div className="w-full max-w-6xl px-4">
+        <div className="overflow-hidden rounded-2xl border border-white/10 bg-black shadow-2xl">
+          {(() => {
+            const videoUrl =
+              getVideoUrl(
+                watchingMovie,
+              )
 
-                      <h2 className="mt-5 text-xl font-black">
-                        Video coming soon
-                      </h2>
+            if (!videoUrl) {
+              return (
+                <div className="flex aspect-video items-center justify-center bg-[#111] p-8 text-center">
+                  <div>
+                    <p className="text-lg font-bold text-white">
+                      Video unavailable
+                    </p>
 
-                      <p className="mt-3 text-sm leading-6 text-white/40">
-                        No licensed video source
-                        is currently available for
-                        this title.
-                      </p>
-
-                      <button
-                        type="button"
-                        onClick={
-                          closeWatching
-                        }
-                        className="mt-6 rounded-full bg-red-600 px-6 py-3 text-sm font-black"
-                      >
-                        Back to PMF
-                      </button>
-                    </div>
+                    <p className="mt-2 text-sm text-white/40">
+                      This title does not have a playable video yet.
+                    </p>
                   </div>
-                )
-              }
+                </div>
+              )
+            }
 
-              if (isYouTubeUrl(videoUrl)) {
-                let embedUrl = videoUrl
-
-                try {
-                  const parsed =
-                    new URL(videoUrl)
-
-                  if (
-                    parsed.hostname.includes(
-                      'youtu.be',
-                    )
-                  ) {
-                    embedUrl = `https://www.youtube.com/embed/${parsed.pathname.replace('/', '')}`
-                  } else {
-                    const id =
-                      parsed.searchParams.get(
-                        'v',
-                      )
-
-                    if (id) {
-                      embedUrl = `https://www.youtube.com/embed/${id}`
-                    }
-                  }
-                } catch {
-                  // Keep original URL if parsing fails.
-                }
-
-                return (
-                  <iframe
-                    src={embedUrl}
-                    title={watchingMovie.title}
-                    className="h-full w-full"
-                    allow="autoplay; encrypted-media; fullscreen; picture-in-picture"
-                    allowFullScreen
-                  />
-                )
-              }
+            if (
+              isYouTubeUrl(
+                videoUrl,
+              )
+            ) {
+              const embedUrl =
+                videoUrl
+                  .replace(
+                    'watch?v=',
+                    'embed/',
+                  )
+                  .replace(
+                    'youtu.be/',
+                    'youtube.com/embed/',
+                  )
+                  .split('&')[0]
 
               return (
-                <video
-                  key={videoUrl}
-                  src={videoUrl}
-                  controls
-                  autoPlay
-                  playsInline
-                  className="h-full w-full bg-black object-contain"
-                  onError={() => {
-                    console.error(
-                      'PMF video failed to load:',
-                      videoUrl,
-                    )
-                  }}
+                <iframe
+                  src={embedUrl}
+                  title={
+                    watchingMovie.title
+                  }
+                  className="aspect-video w-full"
+                  allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+                  allowFullScreen
                 />
               )
-            })()}
-          </div>
+            }
+
+            return (
+              <video
+                key={videoUrl}
+                src={videoUrl}
+                controls
+                playsInline
+                className="aspect-video w-full bg-black"
+                autoPlay
+              />
+            )
+          })()}
         </div>
-      )}
 
-      <footer className="border-t border-white/10 bg-black">
-        <div className="mx-auto max-w-7xl px-4 py-10 sm:px-6 lg:px-8">
-          <div className="flex flex-col gap-6 sm:flex-row sm:items-center sm:justify-between">
-            <div>
-              <button
-                type="button"
-                onClick={goHome}
-                className="text-xl font-black"
-              >
-                PMF
-                <span className="text-red-600">
-                  LIX
-                </span>
-              </button>
+        <div className="mt-4">
+          <h2 className="text-xl font-bold text-white">
+            {watchingMovie.title}
+          </h2>
 
-              <p className="mt-2 text-xs text-white/30">
-                Prince Mufasa Flix
-              </p>
-            </div>
+          <p className="mt-1 text-sm text-white/40">
+            {watchingMovie.year} •{' '}
+            {watchingMovie.type}
+          </p>
+        </div>
+      </div>
+    </div>
+  )}
 
-            <div className="text-xs text-white/25">
-              Signed in as{' '}
-              {session.user.email ??
-                'PMF member'}
-            </div>
+        function AuthenticatedAppFooter() {
+    return (
+      <footer className="border-t border-white/10 bg-black px-4 py-8 sm:px-6 lg:px-8">
+        <div className="mx-auto flex max-w-[1600px] flex-col gap-3 text-center text-xs text-white/35 sm:flex-row sm:items-center sm:justify-between sm:text-left">
+          <div>
+            <span className="font-bold text-white/60">
+              PMF FLIX
+            </span>
+            <span className="ml-2">
+              Your World. Your Stories. Your Flix.
+            </span>
           </div>
 
-          <div className="mt-8 border-t border-white/5 pt-5 text-[10px] leading-5 text-white/20">
-            © {new Date().getFullYear()}{' '}
-            Prince Mufasa Flix. All rights
-            reserved. Content available on PMF
-            Flix must be properly licensed,
-            owned, or otherwise legally
-            authorized for streaming.
-          </div>
+          <span>
+            © {new Date().getFullYear()} PMF Flix
+          </span>
         </div>
       </footer>
-    </div>
+    )
+  }
+
+  return (
+    <>
+      <AuthenticatedAppFooter />
+    </>
   )
 }
 
@@ -2254,25 +1696,41 @@ export default function App() {
 
     const loadSession = async () => {
       const {
-        data: { session: currentSession },
+        data,
+        error,
       } = await supabase.auth.getSession()
 
       if (!mounted) return
 
-      setSession(currentSession)
+      if (error) {
+        console.error(
+          'PMF auth session error:',
+          error,
+        )
+      }
+
+      setSession(
+        data.session,
+      )
+
       setAuthLoading(false)
     }
 
     void loadSession()
 
     const {
-      data: { subscription },
+      data: {
+        subscription,
+      },
     } =
       supabase.auth.onAuthStateChange(
-        (_event, currentSession) => {
+        (_event, nextSession) => {
           if (!mounted) return
 
-          setSession(currentSession)
+          setSession(
+            nextSession,
+          )
+
           setAuthLoading(false)
         },
       )
@@ -2285,20 +1743,12 @@ export default function App() {
 
   if (authLoading) {
     return (
-      <div className="flex min-h-screen items-center justify-center bg-black text-white">
+      <div className="flex min-h-screen items-center justify-center bg-[#050505] text-white">
         <div className="text-center">
-          <div className="text-3xl font-black">
-            PMF
-            <span className="text-red-600">
-              LIX
-            </span>
-          </div>
+          <div className="mx-auto h-10 w-10 animate-spin rounded-full border-2 border-white/20 border-t-white" />
 
-          <div className="mx-auto mt-5 h-8 w-8 animate-spin rounded-full border-2 border-white/10 border-t-red-600" />
-
-          <p className="mt-4 text-xs text-white/30">
-            Preparing your cinematic
-            experience...
+          <p className="mt-4 text-sm text-white/50">
+            Loading PMF Flix...
           </p>
         </div>
       </div>
@@ -2315,4 +1765,3 @@ export default function App() {
     />
   )
       }
-  
