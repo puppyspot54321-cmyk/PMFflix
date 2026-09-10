@@ -174,10 +174,12 @@ export function filterMovies(
     }
 
     if (
-      filters.quality &&
-      !movie.videoQualities.includes(filters.quality)
-    ) {
-      return false
+  filters.quality &&
+  !movie.videoQualities.includes(
+    filters.quality as Movie['videoQualities'][number],
+  )
+) {
+  return false
     }
 
     return true
