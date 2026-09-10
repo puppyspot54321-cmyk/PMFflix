@@ -1644,9 +1644,11 @@ function AuthenticatedApp({
         </div>
       </div>
     </div>
-  )}
+    )}
 
-  </main>
+    </main>
+  </div>
+  )
 }
 
 function AuthenticatedAppFooter() {
@@ -1740,7 +1742,7 @@ export default function App() {
     return <AuthScreen />
   }
 
-  return (
+    return (
     <>
       <AuthenticatedApp
         session={session}
@@ -1749,4 +1751,4 @@ export default function App() {
       <AuthenticatedAppFooter />
     </>
   )
-  }
+}
