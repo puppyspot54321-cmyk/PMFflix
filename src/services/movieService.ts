@@ -31,9 +31,7 @@ const relationTables = {
 type RelationKey = keyof typeof relationTables
 
 const uniqueStrings = (values: string[]): string[] => {
-  return Array.from(
-    new Set(values.filter(Boolean)),
-  )
+  return Array.from(new Set(values.filter(Boolean)))
 }
 
 const getRelationshipRows = async (
@@ -278,4 +276,4 @@ export const getMovieById = async (
   )
 
   return result ?? null
-}
+        }
