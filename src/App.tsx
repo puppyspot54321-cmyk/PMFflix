@@ -1446,7 +1446,6 @@ function AuthenticatedApp({
         {moviesError}
       </div>
     )}
-  </main>
 
   {selectedMovie && (
     <div
