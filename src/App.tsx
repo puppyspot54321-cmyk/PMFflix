@@ -28,11 +28,7 @@ type DiscoveryFilters = {
   sort: SortMode
 }
 
-function AuthenticatedApp({
-  session,
-}: {
-  session: Session
-}) {
+function AuthenticatedApp() {
   const [activeSection, setActiveSection] =
     useState<Section>('home')
 
