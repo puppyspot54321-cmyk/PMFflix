@@ -6,9 +6,23 @@ import { mapCanonicalMovieToLegacy } from './utils/movieMapper'
 import { supabase } from './supabase'
 import type { Session } from '@supabase/supabase-js'
 import AuthScreen from './Auth'
-import { VideoPlayer } from './components'
 
 type Section = 'home' | 'movies' | 'series' | 'my-list'
+
+type SortMode =
+  | 'featured'
+  | 'newest'
+  | 'oldest'
+  | 'rating'
+  | 'title'
+
+type DiscoveryFilters = {
+  category: string
+  type: string
+  year: string
+  minRating: string
+  sort: SortMode
+}
 
 function AuthenticatedApp({
   session,
@@ -30,10 +44,35 @@ function AuthenticatedApp({
   const [moviesLoading, setMoviesLoading] = useState(true)
   const [moviesError, setMoviesError] = useState('')
 
+  const [showMobileSearch, setShowMobileSearch] =
+    useState(false)
+
+  const [showFilters, setShowFilters] =
+    useState(false)
+
+  const [filters, setFilters] =
+    useState<DiscoveryFilters>({
+      category: '',
+      type: '',
+      year: '',
+      minRating: '',
+      sort: 'featured',
+    })
+
   const [myList, setMyList] = useState<number[]>(() => {
     try {
       const saved = localStorage.getItem('pmf-my-list')
-      return saved ? JSON.parse(saved) : []
+
+      if (!saved) return []
+
+      const parsed: unknown = JSON.parse(saved)
+
+      if (!Array.isArray(parsed)) return []
+
+      return parsed.filter(
+        (value): value is number =>
+          typeof value === 'number',
+      )
     } catch {
       return []
     }
@@ -46,18 +85,21 @@ function AuthenticatedApp({
           'pmf-continue-watching',
         )
 
-        return saved ? JSON.parse(saved) : []
+        if (!saved) return []
+
+        const parsed: unknown = JSON.parse(saved)
+
+        if (!Array.isArray(parsed)) return []
+
+        return parsed.filter(
+          (value): value is number =>
+            typeof value === 'number',
+        )
       } catch {
         return []
       }
     })
 
-  const [showMobileSearch, setShowMobileSearch] =
-    useState(false)
-
-  /*
-   * LOAD MOVIES FROM SUPABASE
-   */
   useEffect(() => {
     let mounted = true
 
@@ -95,9 +137,6 @@ function AuthenticatedApp({
 
     void loadMovies()
 
-    /*
-     * REALTIME SUPABASE UPDATES
-     */
     const channel = supabase
       .channel('pmf-movies-live')
       .on(
@@ -124,14 +163,15 @@ function AuthenticatedApp({
     }
   }, [])
 
-  /*
-   * SAVE MY LIST
-   */
   const saveMyList = (list: number[]) => {
-    localStorage.setItem(
-      'pmf-my-list',
-      JSON.stringify(list),
-    )
+    try {
+      localStorage.setItem(
+        'pmf-my-list',
+        JSON.stringify(list),
+      )
+    } catch {
+      // Ignore localStorage failures.
+    }
   }
 
   const toggleMyList = (movieId: number) => {
@@ -146,9 +186,6 @@ function AuthenticatedApp({
     })
   }
 
-  /*
-   * CONTINUE WATCHING
-   */
   const addToContinueWatching = (movieId: number) => {
     setContinueWatching((current) => {
       const updated = [
@@ -156,18 +193,19 @@ function AuthenticatedApp({
         ...current.filter((id) => id !== movieId),
       ].slice(0, 10)
 
-      localStorage.setItem(
-        'pmf-continue-watching',
-        JSON.stringify(updated),
-      )
+      try {
+        localStorage.setItem(
+          'pmf-continue-watching',
+          JSON.stringify(updated),
+        )
+      } catch {
+        // Ignore localStorage failures.
+      }
 
       return updated
     })
   }
 
-  /*
-   * GET VIDEO URL
-   */
   const getVideoUrl = (movie: Movie) => {
     if (
       movie.videoUrl &&
@@ -176,9 +214,6 @@ function AuthenticatedApp({
       return movie.videoUrl.trim()
     }
 
-    /*
-     * LOCAL VIDEO FALLBACK
-     */
     if (
       movie.title.trim().toLowerCase() ===
       'the journey'
@@ -189,45 +224,29 @@ function AuthenticatedApp({
     return ''
   }
 
-  /*
-   * CHECK IF URL IS YOUTUBE
-   */
-  const isYouTubeUrl = (url: string) => {
-    return /youtube\.com|youtu\.be/i.test(url)
-  }
+  const isYouTubeUrl = (url: string) =>
+    /youtube\.com|youtu\.be/i.test(url)
 
-  /*
-   * OPEN MOVIE DETAILS
-   */
   const openMovie = (movie: Movie) => {
     setSelectedMovie(movie)
   }
 
-  /*
-   * START WATCHING
-   */
   const startWatching = (movie: Movie) => {
     setSelectedMovie(null)
     setWatchingMovie(movie)
-
     addToContinueWatching(movie.id)
   }
 
-  /*
-   * CLOSE VIDEO PLAYER
-   */
   const closeWatching = () => {
     setWatchingMovie(null)
   }
 
-  /*
-   * GO HOME
-   */
   const goHome = () => {
     setActiveSection('home')
     setSearchQuery('')
     setSelectedMovie(null)
     setWatchingMovie(null)
+    setShowFilters(false)
 
     window.scrollTo({
       top: 0,
@@ -235,9 +254,17 @@ function AuthenticatedApp({
     })
   }
 
-  /*
-   * ESCAPE KEY
-   */
+  const navigateTo = (section: Section) => {
+    setActiveSection(section)
+    setSearchQuery('')
+    setShowFilters(false)
+
+    window.scrollTo({
+      top: 0,
+      behavior: 'smooth',
+    })
+  }
+
   useEffect(() => {
     const handleEscape = (
       event: KeyboardEvent,
@@ -264,9 +291,6 @@ function AuthenticatedApp({
     }
   }, [watchingMovie, selectedMovie])
 
-  /*
-   * UPDATE SELECTED MOVIE
-   */
   useEffect(() => {
     if (!selectedMovie) return
 
@@ -279,9 +303,6 @@ function AuthenticatedApp({
     }
   }, [movies, selectedMovie?.id])
 
-  /*
-   * UPDATE WATCHING MOVIE
-   */
   useEffect(() => {
     if (!watchingMovie) return
 
@@ -293,464 +314,818 @@ function AuthenticatedApp({
       setWatchingMovie(updatedMovie)
     }
   }, [movies, watchingMovie?.id])
+    const categoryOptions = useMemo(() => {
+    return Array.from(
+      new Set(
+        movies
+          .map((movie) => movie.category?.trim())
+          .filter(
+            (category): category is string =>
+              Boolean(category),
+          ),
+      ),
+    ).sort()
+  }, [movies])
 
-  /*
-   * FILTER MOVIES
-   */
+  const typeOptions = useMemo(() => {
+    return Array.from(
+      new Set(
+        movies
+          .map((movie) => movie.type?.trim())
+          .filter(
+            (type): type is string => Boolean(type),
+          ),
+      ),
+    ).sort()
+  }, [movies])
+
+  const yearOptions = useMemo(() => {
+    return Array.from(
+      new Set(
+        movies
+          .map((movie) => movie.year)
+          .filter(
+            (year): year is number =>
+              typeof year === 'number',
+          ),
+      ),
+    ).sort((a, b) => b - a)
+  }, [movies])
+
   const filteredMovies = useMemo(() => {
-    const query =
-      searchQuery.trim().toLowerCase()
+    const query = searchQuery
+      .trim()
+      .toLowerCase()
 
-    let result = movies
+    let result = movies.filter((movie) => {
+      if (
+        activeSection === 'movies' &&
+        movie.type !== 'Movie'
+      ) {
+        return false
+      }
 
-    if (activeSection === 'movies') {
-      result = result.filter(
-        (movie) =>
-          movie.type.toLowerCase() === 'movie',
-      )
-    }
+      if (
+        activeSection === 'series' &&
+        movie.type !== 'Series'
+      ) {
+        return false
+      }
 
-    if (activeSection === 'series') {
-      result = result.filter(
-        (movie) =>
-          movie.type
-            .toLowerCase()
-            .includes('series') ||
-          movie.type
-            .toLowerCase()
-            .includes('tv'),
-      )
-    }
+      if (
+        activeSection === 'my-list' &&
+        !myList.includes(movie.id)
+      ) {
+        return false
+      }
 
-    if (activeSection === 'my-list') {
-      result = result.filter((movie) =>
-        myList.includes(movie.id),
-      )
-    }
+      if (
+        filters.category &&
+        movie.category !== filters.category
+      ) {
+        return false
+      }
 
-    if (query) {
-      result = result.filter(
-        (movie) =>
-          movie.title
-            .toLowerCase()
-            .includes(query) ||
-          movie.category
-            .toLowerCase()
-            .includes(query) ||
-          movie.type
-            .toLowerCase()
-            .includes(query) ||
-          movie.description
-            .toLowerCase()
-            .includes(query),
-      )
-    }
+      if (
+        filters.type &&
+        movie.type !== filters.type
+      ) {
+        return false
+      }
+
+      if (
+        filters.year &&
+        String(movie.year) !== filters.year
+      ) {
+        return false
+      }
+
+      if (filters.minRating) {
+        const minimum = Number(
+          filters.minRating,
+        )
+
+        const rating = Number(
+          movie.rating ?? 0,
+        )
+
+        if (rating < minimum) {
+          return false
+        }
+      }
+
+      if (query) {
+        const searchable = [
+          movie.title,
+          movie.description,
+          movie.category,
+          movie.type,
+          String(movie.year),
+        ]
+          .filter(Boolean)
+          .join(' ')
+          .toLowerCase()
+
+        if (!searchable.includes(query)) {
+          return false
+        }
+      }
+
+      return true
+    })
+
+    result = [...result].sort((a, b) => {
+      switch (filters.sort) {
+        case 'newest':
+          return b.year - a.year
+
+        case 'oldest':
+          return a.year - b.year
+
+        case 'rating':
+          return (
+            Number(b.rating ?? 0) -
+            Number(a.rating ?? 0)
+          )
+
+        case 'title':
+          return a.title.localeCompare(b.title)
+
+        case 'featured':
+        default:
+          return (
+            Number(Boolean(b.featured)) -
+            Number(Boolean(a.featured))
+          )
+      }
+    })
 
     return result
   }, [
     movies,
     activeSection,
-    searchQuery,
     myList,
+    filters,
+    searchQuery,
   ])
 
-  /*
-   * MOVIE SECTIONS
-   */
-  const trendingMovies = movies
-    .filter((movie) => movie.featured)
-    .slice(0, 5)
-
-  const latestMovies = [...movies]
-    .sort((a, b) => b.year - a.year)
-    .slice(0, 5)
-
-  const actionMovies = movies.filter(
-    (movie) =>
-      movie.category.toLowerCase() ===
-      'action',
+  const trendingMovies = useMemo(
+    () =>
+      movies.filter(
+        (movie) => movie.featured,
+      ),
+    [movies],
   )
 
-  const adventureMovies = movies.filter(
-    (movie) =>
-      movie.category.toLowerCase() ===
-      'adventure',
+  const latestMovies = useMemo(
+    () =>
+      [...movies].sort(
+        (a, b) => b.year - a.year,
+      ),
+    [movies],
   )
 
-  const continueMovies = continueWatching
-    .map((id) =>
-      movies.find((movie) => movie.id === id),
-    )
-    .filter(Boolean) as Movie[]
-
-  /*
-   * MOVIE CARD
-   */
-  const renderMovieCard = (movie: Movie) => (
-    <button
-      key={movie.id}
-      onClick={() => openMovie(movie)}
-      className="group relative min-w-[170px] overflow-hidden rounded-xl border border-white/10 bg-white/5 text-left transition duration-300 hover:-translate-y-2 hover:border-white/30 hover:bg-white/10 sm:min-w-[190px]"
-    >
-      <div className="relative aspect-[2/3] overflow-hidden bg-black">
-        {movie.poster ? (
-          <img
-            src={movie.poster}
-            alt={movie.title}
-            className="h-full w-full object-cover transition duration-500 group-hover:scale-110"
-          />
-        ) : (
-          <div className="flex h-full items-center justify-center text-white/30">
-            No Poster
-          </div>
-        )}
-
-        <div className="absolute inset-0 bg-gradient-to-t from-black via-transparent to-transparent opacity-80" />
-
-        <div className="absolute left-3 right-3 top-3 flex justify-between">
-          <span className="rounded bg-black/70 px-2 py-1 text-[10px] font-bold uppercase tracking-wider backdrop-blur">
-            {movie.type}
-          </span>
-
-          <span className="rounded bg-red-600 px-2 py-1 text-[10px] font-bold">
-            HD
-          </span>
-        </div>
-
-        <div className="absolute bottom-3 left-3 right-3">
-          <p className="text-[10px] font-semibold uppercase tracking-widest text-red-400">
-            {movie.category}
-          </p>
-
-          <h3 className="mt-1 line-clamp-2 text-base font-bold">
-            {movie.title}
-          </h3>
-        </div>
-      </div>
-
-      <div className="p-3">
-        <p className="text-xs text-white/50">
-          {movie.year} • {movie.category}
-        </p>
-      </div>
-    </button>
+  const actionMovies = useMemo(
+    () =>
+      movies.filter(
+        (movie) =>
+          movie.category
+            ?.toLowerCase()
+            .includes('action'),
+      ),
+    [movies],
   )
 
-  /*
-   * MOVIE ROW
-   */
-  const renderMovieRow = (
-    title: string,
-    subtitle: string,
-    list: Movie[],
-  ) => {
-    if (list.length === 0) return null
+  const adventureMovies = useMemo(
+    () =>
+      movies.filter(
+        (movie) =>
+          movie.category
+            ?.toLowerCase()
+            .includes('adventure'),
+      ),
+    [movies],
+  )
+
+  const continueMovies = useMemo(
+    () =>
+      continueWatching
+        .map((id) =>
+          movies.find(
+            (movie) => movie.id === id,
+          ),
+        )
+        .filter(
+          (movie): movie is Movie =>
+            Boolean(movie),
+        ),
+    [continueWatching, movies],
+  )
+
+  const resetFilters = () => {
+    setFilters({
+      category: '',
+      type: '',
+      year: '',
+      minRating: '',
+      sort: 'featured',
+    })
+  }
+
+  const hasActiveFilters =
+    Boolean(filters.category) ||
+    Boolean(filters.type) ||
+    Boolean(filters.year) ||
+    Boolean(filters.minRating) ||
+    filters.sort !== 'featured'
+
+  const MovieCard = ({
+    movie,
+  }: {
+    movie: Movie
+  }) => {
+    const inMyList = myList.includes(movie.id)
 
     return (
-      <section className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
-        <div className="mb-5">
-          <p className="text-xs font-bold uppercase tracking-[0.25em] text-red-500">
-            {subtitle}
-          </p>
+      <article
+        className="group relative min-w-0 cursor-pointer overflow-hidden rounded-xl bg-white/[0.04] ring-1 ring-white/10 transition duration-300 hover:-translate-y-1 hover:bg-white/[0.08] hover:ring-white/20"
+        onClick={() => openMovie(movie)}
+      >
+        <div className="relative aspect-[2/3] overflow-hidden bg-zinc-900">
+          {movie.poster ? (
+            <img
+              src={movie.poster}
+              alt={movie.title}
+              className="h-full w-full object-cover transition duration-500 group-hover:scale-105"
+              loading="lazy"
+            />
+          ) : (
+            <div className="flex h-full items-center justify-center bg-gradient-to-br from-zinc-900 to-black p-4 text-center">
+              <span className="text-sm font-bold text-white/40">
+                {movie.title}
+              </span>
+            </div>
+          )}
 
-          <h2 className="mt-1 text-2xl font-black sm:text-3xl">
-            {title}
-          </h2>
+          <div className="absolute inset-0 bg-gradient-to-t from-black via-transparent to-transparent opacity-80" />
+
+          {movie.featured && (
+            <span className="absolute left-2 top-2 rounded-full bg-red-600 px-2 py-1 text-[9px] font-black uppercase tracking-wider text-white shadow-lg">
+              Featured
+            </span>
+          )}
+
+          <button
+            type="button"
+            aria-label={
+              inMyList
+                ? `Remove ${movie.title} from My List`
+                : `Add ${movie.title} to My List`
+            }
+            onClick={(event) => {
+              event.stopPropagation()
+              toggleMyList(movie.id)
+            }}
+            className="absolute right-2 top-2 flex h-8 w-8 items-center justify-center rounded-full bg-black/70 text-lg text-white backdrop-blur transition hover:bg-red-600"
+          >
+            {inMyList ? '✓' : '+'}
+          </button>
+
+          <div className="absolute bottom-0 left-0 right-0 p-3">
+            <h3 className="truncate text-sm font-bold text-white">
+              {movie.title}
+            </h3>
+
+            <div className="mt-1 flex items-center gap-2 text-[10px] text-white/60">
+              <span>{movie.year}</span>
+
+              {movie.category && (
+                <>
+                  <span>•</span>
+                  <span>
+                    {movie.category}
+                  </span>
+                </>
+              )}
+
+              {movie.rating && (
+                <>
+                  <span>•</span>
+                  <span>
+                    {movie.rating}
+                  </span>
+                </>
+              )}
+            </div>
+          </div>
+        </div>
+      </article>
+    )
+  }
+
+  const MovieRow = ({
+    title,
+    items,
+  }: {
+    title: string
+    items: Movie[]
+  }) => {
+    if (!items.length) return null
+
+    return (
+      <section className="mx-auto max-w-7xl px-4 py-6 sm:px-6 lg:px-8">
+        <div className="mb-4 flex items-end justify-between">
+          <div>
+            <p className="mb-1 text-[10px] font-black uppercase tracking-[0.3em] text-red-500">
+              PMF Flix
+            </p>
+
+            <h2 className="text-xl font-black text-white sm:text-2xl">
+              {title}
+            </h2>
+          </div>
+
+          <button
+            type="button"
+            onClick={() =>
+              setActiveSection('movies')
+            }
+            className="text-xs font-bold text-white/50 transition hover:text-white"
+          >
+            See all
+          </button>
         </div>
 
-        <div className="flex gap-4 overflow-x-auto pb-5 scrollbar-hide">
-          {list.map(renderMovieCard)}
+        <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5">
+          {items
+            .slice(0, 10)
+            .map((movie) => (
+              <MovieCard
+                key={movie.id}
+                movie={movie}
+              />
+            ))}
         </div>
       </section>
     )
   }
 
-  return (
-    <div className="min-h-screen bg-[#050505] text-white">
-      {/* HEADER */}
+  const FilterPanel = () => {
+    if (!showFilters) return null
 
-      <header className="fixed left-0 right-0 top-0 z-50 border-b border-white/10 bg-black/80 backdrop-blur-2xl">
-        <div className="mx-auto flex h-16 max-w-7xl items-center gap-5 px-4 sm:px-6 lg:px-8">
-          <button
-            onClick={goHome}
-            className="shrink-0 text-2xl font-black tracking-tight"
-          >
-            <span className="text-red-600">
-              PMF
-            </span>
+    return (
+      <div className="mb-8 rounded-2xl border border-white/10 bg-white/[0.04] p-4 backdrop-blur-xl">
+        <div className="mb-4 flex items-center justify-between">
+          <div>
+            <p className="text-[10px] font-black uppercase tracking-[0.25em] text-red-500">
+              Discovery
+            </p>
 
-            <span className="hidden text-white sm:inline">
-              LIX
-            </span>
-          </button>
-
-          <nav className="hidden items-center gap-6 text-sm font-semibold md:flex">
-            <button
-              onClick={goHome}
-              className={
-                activeSection === 'home'
-                  ? 'text-white'
-                  : 'text-white/50 hover:text-white'
-              }
-            >
-              Home
-            </button>
-
-            <button
-              onClick={() => {
-                setActiveSection('movies')
-                setSearchQuery('')
-
-                window.scrollTo({
-                  top: 0,
-                  behavior: 'smooth',
-                })
-              }}
-              className={
-                activeSection === 'movies'
-                  ? 'text-white'
-                  : 'text-white/50 hover:text-white'
-              }
-            >
-              Movies
-            </button>
-
-            <button
-              onClick={() => {
-                setActiveSection('series')
-                setSearchQuery('')
-
-                window.scrollTo({
-                  top: 0,
-                  behavior: 'smooth',
-                })
-              }}
-              className={
-                activeSection === 'series'
-                  ? 'text-white'
-                  : 'text-white/50 hover:text-white'
-              }
-            >
-              TV Series
-            </button>
-
-            <button
-              onClick={() => {
-                setActiveSection('my-list')
-                setSearchQuery('')
-
-                window.scrollTo({
-                  top: 0,
-                  behavior: 'smooth',
-                })
-              }}
-              className={
-                activeSection === 'my-list'
-                  ? 'text-white'
-                  : 'text-white/50 hover:text-white'
-              }
-            >
-              My List
-            </button>
-          </nav>
-
-          <div className="ml-auto hidden flex-1 justify-end md:flex">
-            <div className="relative w-full max-w-xs">
-              <span className="pointer-events-none absolute left-4 top-1/2 -translate-y-1/2 text-white/40">
-                🔎
-              </span>
-
-              <input
-                value={searchQuery}
-                onChange={(event) => {
-                  setSearchQuery(event.target.value)
-                  setActiveSection('home')
-                }}
-                placeholder="Search movies..."
-                className="w-full rounded-full border border-white/10 bg-white/10 py-2.5 pl-11 pr-4 text-sm outline-none placeholder:text-white/40 focus:border-red-600"
-              />
-            </div>
+            <h3 className="mt-1 text-lg font-bold text-white">
+              Find your next story
+            </h3>
           </div>
 
-          <button
-            onClick={() =>
-              setShowMobileSearch(
-                (value) => !value,
-              )
+          {hasActiveFilters && (
+            <button
+              type="button"
+              onClick={resetFilters}
+              className="text-xs font-bold text-red-400 hover:text-red-300"
+            >
+              Reset
+            </button>
+          )}
+        </div>
+
+        <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-5">
+          <select
+            value={filters.category}
+            onChange={(event) =>
+              setFilters((current) => ({
+                ...current,
+                category: event.target.value,
+              }))
             }
-            className="rounded-full border border-white/10 bg-white/5 px-3 py-2 md:hidden"
+            className="rounded-lg border border-white/10 bg-black/60 px-3 py-3 text-sm text-white outline-none focus:border-red-500"
           >
-            🔎
+            <option value="">
+              All genres
+            </option>
+
+            {categoryOptions.map(
+              (category) => (
+                <option
+                  key={category}
+                  value={category}
+                >
+                  {category}
+                </option>
+              ),
+            )}
+          </select>
+
+          <select
+            value={filters.type}
+            onChange={(event) =>
+              setFilters((current) => ({
+                ...current,
+                type: event.target.value,
+              }))
+            }
+            className="rounded-lg border border-white/10 bg-black/60 px-3 py-3 text-sm text-white outline-none focus:border-red-500"
+          >
+            <option value="">
+              All content
+            </option>
+
+            {typeOptions.map((type) => (
+              <option
+                key={type}
+                value={type}
+              >
+                {type}
+              </option>
+            ))}
+          </select>
+
+          <select
+            value={filters.year}
+            onChange={(event) =>
+              setFilters((current) => ({
+                ...current,
+                year: event.target.value,
+              }))
+            }
+            className="rounded-lg border border-white/10 bg-black/60 px-3 py-3 text-sm text-white outline-none focus:border-red-500"
+          >
+            <option value="">
+              All years
+            </option>
+
+            {yearOptions.map((year) => (
+              <option
+                key={year}
+                value={String(year)}
+              >
+                {year}
+              </option>
+            ))}
+          </select>
+
+          <select
+            value={filters.minRating}
+            onChange={(event) =>
+              setFilters((current) => ({
+                ...current,
+                minRating: event.target.value,
+              }))
+            }
+            className="rounded-lg border border-white/10 bg-black/60 px-3 py-3 text-sm text-white outline-none focus:border-red-500"
+          >
+            <option value="">
+              Any rating
+            </option>
+            <option value="5">
+              5+
+            </option>
+            <option value="6">
+              6+
+            </option>
+            <option value="7">
+              7+
+            </option>
+            <option value="8">
+              8+
+            </option>
+            <option value="9">
+              9+
+            </option>
+          </select>
+
+          <select
+            value={filters.sort}
+            onChange={(event) =>
+              setFilters((current) => ({
+                ...current,
+                sort: event.target
+                  .value as SortMode,
+              }))
+            }
+            className="rounded-lg border border-white/10 bg-black/60 px-3 py-3 text-sm text-white outline-none focus:border-red-500"
+          >
+            <option value="featured">
+              Featured first
+            </option>
+            <option value="newest">
+              Newest
+            </option>
+            <option value="oldest">
+              Oldest
+            </option>
+            <option value="rating">
+              Highest rated
+            </option>
+            <option value="title">
+              A–Z
+            </option>
+          </select>
+        </div>
+      </div>
+    )
+              }
+    return (
+    <div className="min-h-screen bg-black text-white">
+      <header className="sticky top-0 z-40 border-b border-white/10 bg-black/85 backdrop-blur-xl">
+        <div className="mx-auto flex h-16 max-w-7xl items-center gap-5 px-4 sm:px-6 lg:px-8">
+          <button
+            type="button"
+            onClick={goHome}
+            className="shrink-0 text-left"
+          >
+            <div className="text-xl font-black tracking-tight">
+              PMF
+              <span className="text-red-600">
+                LIX
+              </span>
+            </div>
+
+            <div className="hidden text-[8px] font-bold uppercase tracking-[0.25em] text-white/30 sm:block">
+              Prince Mufasa Flix
+            </div>
           </button>
 
-          <button
-            onClick={() =>
-              void supabase.auth.signOut()
-            }
-            className="rounded-full border border-white/10 bg-white/5 px-3 py-2 text-xs font-semibold text-white/70 transition hover:bg-white/10 hover:text-white sm:px-4"
-          >
-            <span className="hidden max-w-[150px] truncate sm:inline">
-              {session.user.email}
-            </span>
+          <nav className="hidden items-center gap-5 md:flex">
+            {(
+              [
+                ['home', 'Home'],
+                ['movies', 'Movies'],
+                ['series', 'TV Series'],
+                ['my-list', 'My List'],
+              ] as const
+            ).map(([section, label]) => (
+              <button
+                key={section}
+                type="button"
+                onClick={() =>
+                  navigateTo(section)
+                }
+                className={`text-sm font-semibold transition ${
+                  activeSection === section
+                    ? 'text-white'
+                    : 'text-white/50 hover:text-white'
+                }`}
+              >
+                {label}
+              </button>
+            ))}
+          </nav>
 
-            <span className="sm:ml-2">
+          <div className="ml-auto flex items-center gap-2">
+            <div className="hidden lg:block">
+              <input
+                value={searchQuery}
+                onChange={(event) =>
+                  setSearchQuery(
+                    event.target.value,
+                  )
+                }
+                placeholder="Search movies, genres..."
+                className="w-56 rounded-full border border-white/10 bg-white/[0.06] px-4 py-2 text-xs text-white outline-none placeholder:text-white/30 focus:border-red-500"
+              />
+            </div>
+
+            <button
+              type="button"
+              onClick={() =>
+                setShowMobileSearch(
+                  (current) => !current,
+                )
+              }
+              className="rounded-full px-3 py-2 text-xs font-bold text-white/60 hover:bg-white/10 hover:text-white lg:hidden"
+            >
+              Search
+            </button>
+
+            <button
+              type="button"
+              onClick={() =>
+                supabase.auth.signOut()
+              }
+              className="rounded-full border border-white/10 px-3 py-2 text-[10px] font-bold text-white/60 transition hover:border-red-500/40 hover:text-white"
+            >
               Sign out
-            </span>
-          </button>
+            </button>
+          </div>
         </div>
 
         {showMobileSearch && (
-          <div className="border-t border-white/10 bg-black p-3 md:hidden">
+          <div className="border-t border-white/10 px-4 py-3 lg:hidden">
             <input
               autoFocus
               value={searchQuery}
-              onChange={(event) => {
-                setSearchQuery(event.target.value)
-                setActiveSection('home')
-              }}
-              placeholder="Search movies..."
-              className="w-full rounded-full border border-white/10 bg-white/10 px-5 py-3 text-sm outline-none placeholder:text-white/40"
+              onChange={(event) =>
+                setSearchQuery(
+                  event.target.value,
+                )
+              }
+              placeholder="Search PMF Flix..."
+              className="w-full rounded-xl border border-white/10 bg-white/[0.06] px-4 py-3 text-sm text-white outline-none placeholder:text-white/30 focus:border-red-500"
             />
           </div>
         )}
 
-        <div className="flex border-t border-white/5 md:hidden">
-          {(
-            [
-              'home',
-              'movies',
-              'series',
-              'my-list',
-            ] as Section[]
-          ).map((section) => (
-            <button
-              key={section}
-              onClick={() => {
-                setActiveSection(section)
-                setSearchQuery('')
-
-                window.scrollTo({
-                  top: 0,
-                  behavior: 'smooth',
-                })
-              }}
-              className={`flex-1 py-3 text-xs font-semibold capitalize ${
-                activeSection === section
-                  ? 'text-white'
-                  : 'text-white/40'
-              }`}
-            >
-              {section === 'my-list'
-                ? 'My List'
-                : section}
-            </button>
-          ))}
+        <div className="border-t border-white/[0.05] md:hidden">
+          <div className="mx-auto flex max-w-7xl overflow-x-auto px-4 py-2">
+            {(
+              [
+                ['home', 'Home'],
+                ['movies', 'Movies'],
+                ['series', 'TV Series'],
+                ['my-list', 'My List'],
+              ] as const
+            ).map(([section, label]) => (
+              <button
+                key={section}
+                type="button"
+                onClick={() =>
+                  navigateTo(section)
+                }
+                className={`mr-5 whitespace-nowrap py-2 text-xs font-bold ${
+                  activeSection === section
+                    ? 'text-red-500'
+                    : 'text-white/45'
+                }`}
+              >
+                {label}
+              </button>
+            ))}
+          </div>
         </div>
       </header>
 
-      {/* MAIN */}
+      {activeSection === 'home' &&
+        !searchQuery.trim() && (
+          <section className="relative min-h-[62vh] overflow-hidden">
+            <img
+              src={heroImage}
+              alt="PMF Cinematic Hero"
+              className="absolute inset-0 h-full w-full object-cover"
+            />
 
-      <main className="pt-16">
-        {activeSection === 'home' &&
-          !searchQuery.trim() && (
-            <section className="relative flex min-h-[75vh] items-end overflow-hidden">
-              <img
-                src={heroImage}
-                alt="PMF cinematic hero"
-                className="absolute inset-0 h-full w-full object-cover"
-              />
+            <div className="absolute inset-0 bg-gradient-to-r from-black via-black/65 to-transparent" />
+            <div className="absolute inset-0 bg-gradient-to-t from-black via-transparent to-black/20" />
 
-              <div className="absolute inset-0 bg-black/40" />
+            <div className="relative mx-auto flex min-h-[62vh] max-w-7xl items-end px-4 pb-16 pt-24 sm:px-6 lg:px-8">
+              <div className="max-w-2xl">
+                <p className="mb-3 text-xs font-black uppercase tracking-[0.35em] text-red-500">
+                  Featured Film
+                </p>
 
-              <div className="absolute inset-0 bg-gradient-to-r from-black via-black/70 to-transparent" />
+                <h1 className="text-4xl font-black leading-none tracking-tight sm:text-6xl">
+                  Your World.
+                  <br />
+                  Your Stories.
+                  <br />
+                  <span className="text-red-600">
+                    Your Flix.
+                  </span>
+                </h1>
 
-              <div className="absolute inset-0 bg-gradient-to-t from-[#050505] via-transparent to-black/10" />
+                <p className="mt-5 max-w-xl text-sm leading-6 text-white/60 sm:text-base">
+                  Discover cinematic stories,
+                  unforgettable characters and
+                  premium entertainment on PMF
+                  Flix.
+                </p>
 
-              <div className="relative z-10 mx-auto w-full max-w-7xl px-4 pb-16 pt-28 sm:px-6 lg:px-8">
-                <div className="max-w-2xl">
-                  <div className="mb-5 flex items-center gap-3">
-                    <span className="rounded bg-red-600 px-3 py-1 text-xs font-black uppercase tracking-widest">
-                      PMF Original
-                    </span>
-
-                    <span className="text-sm text-white/60">
-                      Premium Entertainment
-                    </span>
-                  </div>
-
-                  <h1 className="text-5xl font-black leading-[0.95] tracking-tight sm:text-6xl lg:text-8xl">
-                    Your World.
-                    <br />
-                    Your Stories.
-                    <br />
-                    <span className="text-red-600">
-                      Your Flix.
-                    </span>
-                  </h1>
-
-                  <p className="mt-6 max-w-xl text-base leading-7 text-white/70 sm:text-lg">
-                    Discover movies, series, originals
-                    and stories worth watching — all
-                    brought together in the PMF cinematic
-                    experience.
-                  </p>
-
-                  <div className="mt-7 flex flex-wrap gap-3">
-                    {movies[0] && (
+                <div className="mt-7 flex flex-wrap gap-3">
+                  {trendingMovies[0] && (
+                    <>
                       <button
+                        type="button"
                         onClick={() =>
-                          openMovie(movies[0])
+                          startWatching(
+                            trendingMovies[0],
+                          )
                         }
-                        className="rounded-lg bg-white px-7 py-3 font-black text-black transition hover:scale-105"
+                        className="rounded-full bg-white px-6 py-3 text-sm font-black text-black transition hover:bg-white/90"
                       >
-                        ▶ Watch Now
+                        ▶ Play
                       </button>
-                    )}
 
-                    <button
-                      onClick={() =>
-                        document
-                          .getElementById('trending')
-                          ?.scrollIntoView({
-                            behavior: 'smooth',
-                          })
-                      }
-                      className="rounded-lg border border-white/20 bg-white/10 px-7 py-3 font-bold backdrop-blur-md transition hover:bg-white/20"
-                    >
-                      Explore PMF
-                    </button>
-                  </div>
+                      <button
+                        type="button"
+                        onClick={() =>
+                          openMovie(
+                            trendingMovies[0],
+                          )
+                        }
+                        className="rounded-full bg-white/10 px-6 py-3 text-sm font-black text-white backdrop-blur transition hover:bg-white/20"
+                      >
+                        More Info
+                      </button>
+                    </>
+                  )}
                 </div>
               </div>
-            </section>
-          )}
-
-        {/* LOADING */}
-
-        {moviesLoading && (
-          <section className="mx-auto max-w-7xl px-4 py-12 text-center sm:px-6 lg:px-8">
-            <div className="mx-auto h-10 w-10 animate-spin rounded-full border-4 border-white/20 border-t-red-600" />
-
-            <p className="mt-4 text-sm text-white/50">
-              Loading PMF catalogue...
-            </p>
+            </div>
           </section>
         )}
 
-        {/* ERROR */}
+      <main>
+        <div className="mx-auto max-w-7xl px-4 pt-8 sm:px-6 lg:px-8">
+          {searchQuery.trim() && (
+            <div className="mb-7">
+              <p className="text-[10px] font-black uppercase tracking-[0.3em] text-red-500">
+                PMF Search
+              </p>
 
-        {moviesError && !moviesLoading && (
-          <section className="mx-auto max-w-7xl px-4 py-10 sm:px-6 lg:px-8">
+              <h1 className="mt-2 text-2xl font-black">
+                Results for “
+                {searchQuery.trim()}
+                ”
+              </h1>
+            </div>
+          )}
+
+          {activeSection !== 'home' &&
+            !searchQuery.trim() && (
+              <div className="mb-8 pt-4">
+                <p className="text-[10px] font-black uppercase tracking-[0.3em] text-red-500">
+                  PMF Catalogue
+                </p>
+
+                <h1 className="mt-2 text-3xl font-black">
+                  {activeSection ===
+                  'my-list'
+                    ? 'My List'
+                    : activeSection ===
+                        'series'
+                      ? 'TV Series'
+                      : 'Movies'}
+                </h1>
+              </div>
+            )}
+
+          {(activeSection !== 'home' ||
+            searchQuery.trim()) && (
+            <div className="mb-5 flex items-center justify-between gap-3">
+              <p className="text-xs text-white/40">
+                {filteredMovies.length}{' '}
+                {filteredMovies.length ===
+                1
+                  ? 'title'
+                  : 'titles'}{' '}
+                found
+              </p>
+
+              <button
+                type="button"
+                onClick={() =>
+                  setShowFilters(
+                    (current) => !current,
+                  )
+                }
+                className="rounded-full border border-white/10 bg-white/[0.04] px-4 py-2 text-xs font-bold text-white/70 transition hover:border-red-500/40 hover:text-white"
+              >
+                {showFilters
+                  ? 'Hide Filters'
+                  : 'Filters'}
+              </button>
+            </div>
+          )}
+
+          {(activeSection !== 'home' ||
+            searchQuery.trim()) && (
+            <FilterPanel />
+          )}
+        </div>
+
+        {moviesLoading && (
+          <section className="mx-auto flex min-h-[45vh] max-w-7xl items-center justify-center px-4">
+            <div className="text-center">
+              <div className="mx-auto mb-4 h-10 w-10 animate-spin rounded-full border-2 border-white/10 border-t-red-600" />
+
+              <p className="text-sm font-semibold text-white/50">
+                Loading PMF catalogue...
+              </p>
+            </div>
+          </section>
+        )}
+
+        {!moviesLoading && moviesError && (
+          <section className="mx-auto max-w-7xl px-4 py-16 sm:px-6 lg:px-8">
             <div className="rounded-2xl border border-red-500/20 bg-red-500/5 p-8 text-center">
-              <p className="text-red-400">
+              <p className="text-sm font-bold text-red-400">
                 {moviesError}
               </p>
 
               <button
+                type="button"
                 onClick={() =>
                   window.location.reload()
                 }
-                className="mt-5 rounded-lg bg-white px-5 py-2.5 text-sm font-bold text-black"
+                className="mt-5 rounded-full bg-red-600 px-5 py-2 text-xs font-black text-white hover:bg-red-500"
               >
                 Try Again
               </button>
@@ -758,414 +1133,354 @@ function AuthenticatedApp({
           </section>
         )}
 
-        {/* SEARCH */}
-
-        {searchQuery.trim() ? (
-          <section className="mx-auto max-w-7xl px-4 pb-20 pt-12 sm:px-6 lg:px-8">
-            <p className="text-xs font-bold uppercase tracking-[0.25em] text-red-500">
-              PMF Search
-            </p>
-                        <h1 className="mt-2 text-3xl font-black sm:text-4xl">
-              Results for "{searchQuery}"
-            </h1>
-
-            {filteredMovies.length === 0 ? (
-              <div className="mt-10 rounded-2xl border border-white/10 bg-white/5 p-12 text-center">
-                <div className="text-4xl">
-                  🎬
+        {!moviesLoading &&
+          !moviesError &&
+          (activeSection !== 'home' ||
+            searchQuery.trim()) && (
+            <section className="mx-auto max-w-7xl px-4 pb-20 sm:px-6 lg:px-8">
+              {filteredMovies.length ? (
+                <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5">
+                  {filteredMovies.map(
+                    (movie) => (
+                      <MovieCard
+                        key={movie.id}
+                        movie={movie}
+                      />
+                    ),
+                  )}
                 </div>
+              ) : (
+                <div className="flex min-h-[35vh] items-center justify-center rounded-2xl border border-white/10 bg-white/[0.02] p-10 text-center">
+                  <div>
+                    <div className="text-4xl">
+                      🎬
+                    </div>
 
-                <h2 className="mt-4 text-xl font-bold">
-                  Nothing found
-                </h2>
+                    <h2 className="mt-4 text-lg font-black">
+                      Nothing found
+                    </h2>
 
-                <p className="mt-2 text-sm text-white/40">
-                  Try another title, category or genre.
-                </p>
-              </div>
-            ) : (
-              <div className="mt-8 grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-5">
-                {filteredMovies.map(renderMovieCard)}
-              </div>
-            )}
-          </section>
-        ) : activeSection !== 'home' ? (
-          <section className="mx-auto max-w-7xl px-4 pb-20 pt-12 sm:px-6 lg:px-8">
-            <p className="text-xs font-bold uppercase tracking-[0.25em] text-red-500">
-              PMF
-            </p>
+                    <p className="mt-2 text-sm text-white/40">
+                      Try another search or
+                      adjust your filters.
+                    </p>
 
-            <h1 className="mt-2 text-4xl font-black">
-              {activeSection === 'my-list'
-                ? 'My List'
-                : activeSection === 'movies'
-                  ? 'Movies'
-                  : 'TV Series'}
-            </h1>
-
-            {filteredMovies.length === 0 ? (
-              <div className="mt-10 rounded-2xl border border-white/10 bg-white/5 p-12 text-center">
-                <div className="text-4xl">
-                  ＋
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setSearchQuery('')
+                        resetFilters()
+                      }}
+                      className="mt-5 rounded-full bg-red-600 px-5 py-2 text-xs font-black"
+                    >
+                      Clear Discovery
+                    </button>
+                  </div>
                 </div>
-
-                <h2 className="mt-4 text-xl font-bold">
-                  Your list is empty
-                </h2>
-
-                <p className="mt-2 text-sm text-white/40">
-                  Open a movie and select "My List" to
-                  save it.
-                </p>
-              </div>
-            ) : (
-              <div className="mt-8 grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-5">
-                {filteredMovies.map(renderMovieCard)}
-              </div>
-            )}
-          </section>
-        ) : (
-          <>
-            <div id="trending">
-              {renderMovieRow(
-                'Trending Now',
-                '🔥 Popular',
-                trendingMovies.length > 0
-                  ? trendingMovies
-                  : movies.slice(0, 5),
               )}
+            </section>
+          )}
+
+        {!moviesLoading &&
+          !moviesError &&
+          activeSection === 'home' &&
+          !searchQuery.trim() && (
+            <div className="pb-16">
+              <MovieRow
+                title="Trending Now"
+                items={trendingMovies}
+              />
+
+              <MovieRow
+                title="Continue Watching"
+                items={continueMovies}
+              />
+
+              <MovieRow
+                title="Latest Releases"
+                items={latestMovies}
+              />
+
+              <MovieRow
+                title="Action"
+                items={actionMovies}
+              />
+
+              <MovieRow
+                title="Adventure"
+                items={adventureMovies}
+              />
+            </div>
+          )}
+      </main>
+            {selectedMovie && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/90 p-4 backdrop-blur-sm"
+          onClick={() =>
+            setSelectedMovie(null)
+          }
+        >
+          <div
+            className="max-h-[90vh] w-full max-w-3xl overflow-y-auto rounded-2xl border border-white/10 bg-zinc-950 shadow-2xl"
+            onClick={(event) =>
+              event.stopPropagation()
+            }
+          >
+            <div className="relative aspect-video overflow-hidden bg-black">
+              {selectedMovie.poster ? (
+                <img
+                  src={selectedMovie.poster}
+                  alt={selectedMovie.title}
+                  className="h-full w-full object-cover opacity-60"
+                />
+              ) : (
+                <div className="h-full w-full bg-gradient-to-br from-zinc-900 to-black" />
+              )}
+
+              <div className="absolute inset-0 bg-gradient-to-t from-zinc-950 via-transparent to-black/20" />
+
+              <button
+                type="button"
+                onClick={() =>
+                  setSelectedMovie(null)
+                }
+                className="absolute right-4 top-4 flex h-9 w-9 items-center justify-center rounded-full bg-black/70 text-white hover:bg-white/20"
+              >
+                ×
+              </button>
+
+              <div className="absolute bottom-5 left-5 right-5">
+                <p className="mb-2 text-[10px] font-black uppercase tracking-[0.3em] text-red-500">
+                  PMF Flix
+                </p>
+
+                <h2 className="text-3xl font-black sm:text-5xl">
+                  {selectedMovie.title}
+                </h2>
+              </div>
             </div>
 
-            {continueMovies.length > 0 &&
-              renderMovieRow(
-                'Continue Watching',
-                '▶ Pick Up Where You Left Off',
-                continueMovies,
-              )}
+            <div className="p-5 sm:p-7">
+              <div className="flex flex-wrap items-center gap-3 text-xs text-white/50">
+                <span>
+                  {selectedMovie.year}
+                </span>
 
-            {renderMovieRow(
-              'Latest Releases',
-              '✨ New',
-              latestMovies,
-            )}
-
-            {renderMovieRow(
-              'Action',
-              '⚡ High Intensity',
-              actionMovies,
-            )}
-
-            {renderMovieRow(
-              'Adventure',
-              '🌍 Explore',
-              adventureMovies,
-            )}
-          </>
-        )}
-      </main>
-
-      {/* MOVIE DETAILS MODAL */}
-
-      {selectedMovie && (
-        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/90 p-4 backdrop-blur-md">
-          <div className="relative max-h-[92vh] w-full max-w-5xl overflow-hidden rounded-2xl border border-white/10 bg-[#080808] shadow-2xl">
-            <button
-              onClick={() =>
-                setSelectedMovie(null)
-              }
-              className="absolute right-4 top-4 z-30 flex h-10 w-10 items-center justify-center rounded-full bg-black/70 text-xl hover:bg-white hover:text-black"
-            >
-              ×
-            </button>
-
-            <div className="max-h-[92vh] overflow-y-auto">
-              <div className="relative aspect-video w-full overflow-hidden bg-black">
-                {selectedMovie.poster && (
-                  <img
-                    src={selectedMovie.poster}
-                    alt={selectedMovie.title}
-                    className="h-full w-full object-cover opacity-70"
-                  />
+                {selectedMovie.type && (
+                  <span>
+                    {selectedMovie.type}
+                  </span>
                 )}
 
-                <div className="absolute inset-0 bg-gradient-to-t from-[#080808] via-black/20 to-transparent" />
+                {selectedMovie.category && (
+                  <span>
+                    {selectedMovie.category}
+                  </span>
+                )}
 
-                <div className="absolute bottom-6 left-6 right-6 sm:bottom-10 sm:left-10">
-                  <p className="text-xs font-bold uppercase tracking-[0.3em] text-red-500">
-                    PMF
-                  </p>
+                {selectedMovie.duration && (
+                  <span>
+                    {selectedMovie.duration}
+                  </span>
+                )}
 
-                  <h2 className="mt-2 text-3xl font-black sm:text-5xl">
-                    {selectedMovie.title}
-                  </h2>
-
-                  <div className="mt-3 flex flex-wrap gap-3 text-sm text-white/60">
-                    <span>
-                      {selectedMovie.year}
-                    </span>
-
-                    <span>•</span>
-
-                    <span>
-                      {selectedMovie.type}
-                    </span>
-
-                    <span>•</span>
-
-                    <span>
-                      {selectedMovie.category}
-                    </span>
-
-                    <span>•</span>
-
-                    <span>HD</span>
-                  </div>
-                </div>
+                {selectedMovie.rating && (
+                  <span>
+                    ★ {selectedMovie.rating}
+                  </span>
+                )}
               </div>
 
-              <div className="p-6 sm:p-10">
-                <div className="grid gap-8 lg:grid-cols-[1fr_240px]">
-                  <div>
-                    <p className="leading-7 text-white/65">
-                      {selectedMovie.description}
-                    </p>
+              {selectedMovie.description && (
+                <p className="mt-5 text-sm leading-7 text-white/60">
+                  {selectedMovie.description}
+                </p>
+              )}
 
-                    <div className="mt-7 flex flex-wrap gap-3">
-                      <button
-                        onClick={() =>
-                          startWatching(
-                            selectedMovie,
-                          )
-                        }
-                        className="rounded-lg bg-white px-7 py-3 font-black text-black hover:scale-105"
-                      >
-                        ▶ Play
-                      </button>
+              <div className="mt-7 flex flex-wrap gap-3">
+                <button
+                  type="button"
+                  onClick={() =>
+                    startWatching(
+                      selectedMovie,
+                    )
+                  }
+                  className="rounded-full bg-white px-6 py-3 text-sm font-black text-black transition hover:bg-white/90"
+                >
+                  ▶ Play
+                </button>
 
-                      <button
-                        onClick={() =>
-                          toggleMyList(
-                            selectedMovie.id,
-                          )
-                        }
-                        className="rounded-lg border border-white/20 bg-white/10 px-6 py-3 font-semibold hover:bg-white/20"
-                      >
-                        {myList.includes(
-                          selectedMovie.id,
-                        )
-                          ? '✓ In My List'
-                          : '＋ My List'}
-                      </button>
-                    </div>
-                  </div>
-
-                  <div className="rounded-xl border border-white/10 bg-white/5 p-5">
-                    <p className="text-xs font-bold uppercase tracking-widest text-white/40">
-                      Details
-                    </p>
-
-                    <div className="mt-4 space-y-3 text-sm">
-                      <div>
-                        <p className="text-white/40">
-                          Year
-                        </p>
-
-                        <p className="font-semibold">
-                          {selectedMovie.year}
-                        </p>
-                      </div>
-
-                      <div>
-                        <p className="text-white/40">
-                          Genre
-                        </p>
-
-                        <p className="font-semibold">
-                          {selectedMovie.category}
-                        </p>
-                      </div>
-
-                      <div>
-                        <p className="text-white/40">
-                          Type
-                        </p>
-
-                        <p className="font-semibold">
-                          {selectedMovie.type}
-                        </p>
-                      </div>
-                    </div>
-                  </div>
-                </div>
+                <button
+                  type="button"
+                  onClick={() =>
+                    toggleMyList(
+                      selectedMovie.id,
+                    )
+                  }
+                  className="rounded-full border border-white/10 bg-white/[0.06] px-6 py-3 text-sm font-black text-white transition hover:bg-white/10"
+                >
+                  {myList.includes(
+                    selectedMovie.id,
+                  )
+                    ? '✓ In My List'
+                    : '+ My List'}
+                </button>
               </div>
             </div>
           </div>
         </div>
       )}
 
-      {/* VIDEO PLAYER */}
-
       {watchingMovie && (
-        <div className="fixed inset-0 z-[200] overflow-y-auto bg-[#050505]">
-          <header className="sticky top-0 z-30 flex h-16 items-center justify-between border-b border-white/10 bg-black/90 px-4 backdrop-blur-xl sm:px-8">
+        <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black">
+          <div className="relative h-full w-full">
             <button
+              type="button"
               onClick={closeWatching}
-              className="flex items-center gap-2 text-sm font-semibold text-white/70 hover:text-white"
+              className="absolute right-4 top-4 z-10 rounded-full bg-black/70 px-4 py-2 text-sm font-bold text-white backdrop-blur transition hover:bg-white/20"
             >
-              <span className="text-xl">
-                ←
-              </span>
-
-              Back
+              Close
             </button>
 
-            <div className="text-xl font-black">
-              <span className="text-red-600">
-                PMF
-              </span>
+            {(() => {
+              const videoUrl =
+                getVideoUrl(
+                  watchingMovie,
+                )
 
-              <span> LIX</span>
-            </div>
+              if (!videoUrl) {
+                return (
+                  <div className="flex h-full items-center justify-center p-6">
+                    <div className="max-w-md text-center">
+                      <div className="text-5xl">
+                        🎬
+                      </div>
 
-            <button
-              onClick={() =>
-                toggleMyList(watchingMovie.id)
+                      <h2 className="mt-5 text-xl font-black">
+                        Video coming soon
+                      </h2>
+
+                      <p className="mt-3 text-sm leading-6 text-white/40">
+                        No licensed video source
+                        is currently available for
+                        this title.
+                      </p>
+
+                      <button
+                        type="button"
+                        onClick={
+                          closeWatching
+                        }
+                        className="mt-6 rounded-full bg-red-600 px-6 py-3 text-sm font-black"
+                      >
+                        Back to PMF
+                      </button>
+                    </div>
+                  </div>
+                )
               }
-              className="rounded-lg border border-white/10 bg-white/5 px-4 py-2 text-sm font-semibold"
-            >
-              {myList.includes(watchingMovie.id)
-                ? '✓ My List'
-                : '＋ My List'}
-            </button>
-          </header>
 
-          <section className="mx-auto max-w-7xl px-4 pb-16 pt-6 sm:px-8">
-            <div className="overflow-hidden rounded-2xl border border-white/10 bg-black shadow-2xl">
-              {getVideoUrl(watchingMovie) &&
-              !isYouTubeUrl(
-                getVideoUrl(watchingMovie),
-              ) ? (
-                <VideoPlayer
-                  videoUrl={getVideoUrl(
-                    watchingMovie,
-                  )}
-                  posterUrl={watchingMovie.poster}
-                  title={watchingMovie.title}
-                  autoPlay={false}
-                  onTimeUpdate={(currentTime) => {
-                    console.log(
-                      'PMF playback position:',
-                      currentTime,
+              if (isYouTubeUrl(videoUrl)) {
+                let embedUrl = videoUrl
+
+                try {
+                  const parsed =
+                    new URL(videoUrl)
+
+                  if (
+                    parsed.hostname.includes(
+                      'youtu.be',
                     )
-                  }}
-                  onEnded={() => {
-                    console.log(
-                      'PMF playback ended',
+                  ) {
+                    embedUrl = `https://www.youtube.com/embed/${parsed.pathname.replace('/', '')}`
+                  } else {
+                    const id =
+                      parsed.searchParams.get(
+                        'v',
+                      )
+
+                    if (id) {
+                      embedUrl = `https://www.youtube.com/embed/${id}`
+                    }
+                  }
+                } catch {
+                  // Keep original URL if parsing fails.
+                }
+
+                return (
+                  <iframe
+                    src={embedUrl}
+                    title={watchingMovie.title}
+                    className="h-full w-full"
+                    allow="autoplay; encrypted-media; fullscreen; picture-in-picture"
+                    allowFullScreen
+                  />
+                )
+              }
+
+              return (
+                <video
+                  key={videoUrl}
+                  src={videoUrl}
+                  controls
+                  autoPlay
+                  playsInline
+                  className="h-full w-full bg-black object-contain"
+                  onError={() => {
+                    console.error(
+                      'PMF video failed to load:',
+                      videoUrl,
                     )
                   }}
                 />
-              ) : (
-                <div
-                  className="relative flex aspect-video w-full items-center justify-center overflow-hidden bg-black"
-                  style={{
-                    backgroundImage:
-                      watchingMovie.poster
-                        ? `url(${watchingMovie.poster})`
-                        : undefined,
-                    backgroundSize: 'cover',
-                    backgroundPosition: 'center',
-                  }}
-                >
-                  <div className="absolute inset-0 bg-black/85 backdrop-blur-md" />
-
-                  <div className="relative z-10 max-w-xl px-6 text-center">
-                    <div className="mx-auto flex h-20 w-20 items-center justify-center rounded-full border border-white/20 bg-white/10 text-3xl">
-                      ▶
-                    </div>
-
-                    <p className="mt-6 text-xs font-bold uppercase tracking-[0.3em] text-red-500">
-                      PMF WATCH
-                    </p>
-
-                    <h1 className="mt-3 text-3xl font-black sm:text-5xl">
-                      {watchingMovie.title}
-                    </h1>
-
-                    <p className="mt-4 text-sm leading-6 text-white/50">
-                      {isYouTubeUrl(
-                        getVideoUrl(
-                          watchingMovie,
-                        ),
-                      )
-                        ? 'This title uses a YouTube video URL. YouTube playback will be connected separately.'
-                        : 'No video has been connected to this title yet.'}
-                    </p>
-                  </div>
-                </div>
-              )}
-            </div>
-
-            <div className="mt-8">
-              <p className="text-xs font-bold uppercase tracking-[0.3em] text-red-500">
-                Now Watching
-              </p>
-
-              <h1 className="mt-2 text-3xl font-black sm:text-4xl">
-                {watchingMovie.title}
-              </h1>
-
-              <div className="mt-3 flex flex-wrap gap-3 text-sm text-white/50">
-                <span>
-                  {watchingMovie.year}
-                </span>
-
-                <span>•</span>
-
-                <span>
-                  {watchingMovie.type}
-                </span>
-
-                <span>•</span>
-
-                <span>
-                  {watchingMovie.category}
-                </span>
-              </div>
-
-              <p className="mt-5 max-w-3xl leading-7 text-white/60">
-                {watchingMovie.description}
-              </p>
-            </div>
-          </section>
+              )
+            })()}
+          </div>
         </div>
       )}
 
-      {/* FOOTER */}
+      <footer className="border-t border-white/10 bg-black">
+        <div className="mx-auto max-w-7xl px-4 py-10 sm:px-6 lg:px-8">
+          <div className="flex flex-col gap-6 sm:flex-row sm:items-center sm:justify-between">
+            <div>
+              <button
+                type="button"
+                onClick={goHome}
+                className="text-xl font-black"
+              >
+                PMF
+                <span className="text-red-600">
+                  LIX
+                </span>
+              </button>
 
-      {!watchingMovie && (
-        <footer className="border-t border-white/10 bg-black px-4 py-10 text-center">
-          <div className="text-2xl font-black">
-            <span className="text-red-600">
-              PMF
-            </span>
+              <p className="mt-2 text-xs text-white/30">
+                Prince Mufasa Flix
+              </p>
+            </div>
 
-            <span> LIX</span>
+            <div className="text-xs text-white/25">
+              Signed in as{' '}
+              {session.user.email ??
+                'PMF member'}
+            </div>
           </div>
 
-          <p className="mt-3 text-sm text-white/30">
-            Prince Mufasa Flix
-          </p>
-
-          <p className="mt-2 text-xs text-white/20">
-            © 2026 PMF. All rights reserved.
-          </p>
-        </footer>
-      )}
+          <div className="mt-8 border-t border-white/5 pt-5 text-[10px] leading-5 text-white/20">
+            © {new Date().getFullYear()}{' '}
+            Prince Mufasa Flix. All rights
+            reserved. Content available on PMF
+            Flix must be properly licensed,
+            owned, or otherwise legally
+            authorized for streaming.
+          </div>
+        </div>
+      </footer>
     </div>
   )
 }
 
-function App() {
+export default function App() {
   const [session, setSession] =
     useState<Session | null>(null)
 
@@ -1175,23 +1490,30 @@ function App() {
   useEffect(() => {
     let mounted = true
 
-    supabase.auth.getSession().then(
-      ({ data: { session } }) => {
-        if (!mounted) return
+    const loadSession = async () => {
+      const {
+        data: { session: currentSession },
+      } = await supabase.auth.getSession()
 
-        setSession(session)
-        setAuthLoading(false)
-      },
-    )
+      if (!mounted) return
+
+      setSession(currentSession)
+      setAuthLoading(false)
+    }
+
+    void loadSession()
 
     const {
       data: { subscription },
-    } = supabase.auth.onAuthStateChange(
-      (_event, session) => {
-        setSession(session)
-        setAuthLoading(false)
-      },
-    )
+    } =
+      supabase.auth.onAuthStateChange(
+        (_event, currentSession) => {
+          if (!mounted) return
+
+          setSession(currentSession)
+          setAuthLoading(false)
+        },
+      )
 
     return () => {
       mounted = false
@@ -1201,19 +1523,20 @@ function App() {
 
   if (authLoading) {
     return (
-      <div className="flex min-h-screen items-center justify-center bg-[#050505] text-white">
+      <div className="flex min-h-screen items-center justify-center bg-black text-white">
         <div className="text-center">
-          <div className="text-4xl font-black">
+          <div className="text-3xl font-black">
+            PMF
             <span className="text-red-600">
-              PMF
+              LIX
             </span>
-            LIX
           </div>
 
-          <div className="mx-auto mt-6 h-10 w-10 animate-spin rounded-full border-4 border-white/10 border-t-red-600" />
+          <div className="mx-auto mt-5 h-8 w-8 animate-spin rounded-full border-2 border-white/10 border-t-red-600" />
 
-          <p className="mt-4 text-sm text-white/40">
-            Loading PMF Flix...
+          <p className="mt-4 text-xs text-white/30">
+            Preparing your cinematic
+            experience...
           </p>
         </div>
       </div>
@@ -1225,10 +1548,8 @@ function App() {
   }
 
   return (
-    <AuthenticatedApp session={session} />
+    <AuthenticatedApp
+      session={session}
+    />
   )
-}
-
-export default App
-
-            
+                    }
