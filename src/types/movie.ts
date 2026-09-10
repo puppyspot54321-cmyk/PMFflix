@@ -1,8 +1,5 @@
 import type { ContentType } from './content'
-import type {
-  CastMember,
-  Person,
-} from './person'
+import type { CastMember, Person } from './person'
 import type {
   AudioTrack,
   SubtitleTrack,
@@ -12,7 +9,6 @@ import type {
 
 export interface Movie {
   id: string
-
   title: string
   originalTitle?: string
   slug: string
@@ -25,9 +21,7 @@ export interface Movie {
   releaseYear?: number
   runtimeMinutes?: number
 
-  // Legacy compatibility fields.
-  // These allow the existing PMF Flix UI to continue working
-  // while the universal metadata system is being integrated.
+  // Compatibility fields used by the current PMF Flix UI
   duration?: string
   rating?: string | number
 
@@ -38,7 +32,6 @@ export interface Movie {
   countryIds: string[]
   regionIds: string[]
   industryIds: string[]
-
   languageIds: string[]
   originalLanguageId?: string
 
@@ -50,7 +43,6 @@ export interface Movie {
   posterUrl?: string
   backdropUrl?: string
   logoUrl?: string
-
   trailerUrl?: string
   videoUrl?: string
 
@@ -66,8 +58,8 @@ export interface Movie {
   }
 
   ratingCount?: number
-
   ageRating?: string
+
   videoQualities: VideoQuality[]
 
   collectionIds: string[]
