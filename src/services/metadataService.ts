@@ -11,9 +11,23 @@ import type {
   Tag,
 } from '../types'
 
-export async function getGenres(): Promise<Genre[]> {
+export interface MetadataCatalog {
+  genres: Genre[]
+  subgenres: Subgenre[]
+  regions: Region[]
+  countries: Country[]
+  industries: FilmIndustry[]
+  languages: Language[]
+  tags: Tag[]
+  collections: Collection[]
+  ageRatings: AgeRating[]
+}
+
+async function getTable<T>(
+  table: string,
+): Promise<T[]> {
   const { data, error } = await supabase
-    .from('genres')
+    .from(table)
     .select('*')
     .order('name')
 
@@ -21,98 +35,39 @@ export async function getGenres(): Promise<Genre[]> {
     throw error
   }
 
-  return data ?? []
+  return (data ?? []) as T[]
+}
+
+export async function getGenres(): Promise<Genre[]> {
+  return getTable<Genre>('genres')
 }
 
 export async function getSubgenres(): Promise<Subgenre[]> {
-  const { data, error } = await supabase
-    .from('subgenres')
-    .select('*')
-    .order('name')
-
-  if (error) {
-    throw error
-  }
-
-  return data ?? []
+  return getTable<Subgenre>('subgenres')
 }
 
 export async function getRegions(): Promise<Region[]> {
-  const { data, error } = await supabase
-    .from('regions')
-    .select('*')
-    .order('name')
-
-  if (error) {
-    throw error
-  }
-
-  return data ?? []
+  return getTable<Region>('regions')
 }
 
 export async function getCountries(): Promise<Country[]> {
-  const { data, error } = await supabase
-    .from('countries')
-    .select('*')
-    .order('name')
-
-  if (error) {
-    throw error
-  }
-
-  return data ?? []
+  return getTable<Country>('countries')
 }
 
 export async function getFilmIndustries(): Promise<FilmIndustry[]> {
-  const { data, error } = await supabase
-    .from('film_industries')
-    .select('*')
-    .order('name')
-
-  if (error) {
-    throw error
-  }
-
-  return data ?? []
+  return getTable<FilmIndustry>('film_industries')
 }
 
 export async function getLanguages(): Promise<Language[]> {
-  const { data, error } = await supabase
-    .from('languages')
-    .select('*')
-    .order('name')
-
-  if (error) {
-    throw error
-  }
-
-  return data ?? []
+  return getTable<Language>('languages')
 }
 
 export async function getTags(): Promise<Tag[]> {
-  const { data, error } = await supabase
-    .from('tags')
-    .select('*')
-    .order('name')
-
-  if (error) {
-    throw error
-  }
-
-  return data ?? []
+  return getTable<Tag>('tags')
 }
 
 export async function getCollections(): Promise<Collection[]> {
-  const { data, error } = await supabase
-    .from('collections')
-    .select('*')
-    .order('name')
-
-  if (error) {
-    throw error
-  }
-
-  return data ?? []
+  return getTable<Collection>('collections')
 }
 
 export async function getAgeRatings(): Promise<AgeRating[]> {
@@ -128,5 +83,41 @@ export async function getAgeRatings(): Promise<AgeRating[]> {
     throw error
   }
 
-  return data ?? []
-    }
+  return (data ?? []) as AgeRating[]
+}
+
+export async function getMetadataCatalog(): Promise<MetadataCatalog> {
+  const [
+    genres,
+    subgenres,
+    regions,
+    countries,
+    industries,
+    languages,
+    tags,
+    collections,
+    ageRatings,
+  ] = await Promise.all([
+    getGenres(),
+    getSubgenres(),
+    getRegions(),
+    getCountries(),
+    getFilmIndustries(),
+    getLanguages(),
+    getTags(),
+    getCollections(),
+    getAgeRatings(),
+  ])
+
+  return {
+    genres,
+    subgenres,
+    regions,
+    countries,
+    industries,
+    languages,
+    tags,
+    collections,
+    ageRatings,
+  }
+}
