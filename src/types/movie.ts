@@ -25,6 +25,12 @@ export interface Movie {
   releaseYear?: number
   runtimeMinutes?: number
 
+  // Legacy compatibility fields.
+  // These allow the existing PMF Flix UI to continue working
+  // while the universal metadata system is being integrated.
+  duration?: string
+  rating?: string | number
+
   genres: string[]
   subgenres: string[]
   tags: string[]
@@ -59,7 +65,6 @@ export interface Movie {
     qualities?: VideoQuality[]
   }
 
-  rating?: number
   ratingCount?: number
 
   ageRating?: string
@@ -78,4 +83,4 @@ export interface Movie {
 
   createdAt: string
   updatedAt: string
-  }
+}
