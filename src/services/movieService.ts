@@ -15,16 +15,6 @@ interface MetadataRelationRow {
   language_id?: string
   tag_id?: string
   collection_id?: string
-  person_id?: string
-  role?: string
-  character_name?: string | null
-  billing_order?: number | null
-}
-
-interface MetadataLookupRow {
-  id: string
-  name: string
-  slug?: string
 }
 
 async function getRelationshipRows(
@@ -36,8 +26,7 @@ async function getRelationshipRows(
     | 'movie_industries'
     | 'movie_languages'
     | 'movie_tags'
-    | 'movie_collections'
-    | 'movie_people',
+    | 'movie_collections',
 ): Promise<MetadataRelationRow[]> {
   const { data, error } = await supabase
     .from(table)
@@ -50,33 +39,8 @@ async function getRelationshipRows(
   return (data ?? []) as MetadataRelationRow[]
 }
 
-async function getLookupRows(
-  table:
-    | 'genres'
-    | 'subgenres'
-    | 'countries'
-    | 'regions'
-    | 'film_industries'
-    | 'languages'
-    | 'tags'
-    | 'collections'
-    | 'people',
-): Promise<MetadataLookupRow[]> {
-  const { data, error } = await supabase
-    .from(table)
-    .select('id, name, slug')
-
-  if (error) {
-    throw new Error(`Unable to load ${table}: ${error.message}`)
-  }
-
-  return (data ?? []) as MetadataLookupRow[]
-}
-
-function buildLookupMap(
-  rows: MetadataLookupRow[],
-): Map<string, MetadataLookupRow> {
-  return new Map(rows.map((row) => [row.id, row]))
+function uniqueStrings(values: string[]): string[] {
+  return [...new Set(values)]
 }
 
 function attachMetadata(
@@ -90,17 +54,6 @@ function attachMetadata(
     languages: MetadataRelationRow[]
     tags: MetadataRelationRow[]
     collections: MetadataRelationRow[]
-    people: MetadataRelationRow[]
-  },
-  lookups: {
-    genres: Map<string, MetadataLookupRow>
-    subgenres: Map<string, MetadataLookupRow>
-    countries: Map<string, MetadataLookupRow>
-    regions: Map<string, MetadataLookupRow>
-    industries: Map<string, MetadataLookupRow>
-    languages: Map<string, MetadataLookupRow>
-    tags: Map<string, MetadataLookupRow>
-    collections: Map<string, MetadataLookupRow>
   },
 ): Movie[] {
   return movies.map((movie) => {
@@ -138,33 +91,22 @@ function attachMetadata(
       .filter((row) => row.movie_id === movieId && row.collection_id)
       .map((row) => row.collection_id as string)
 
-    const originalLanguageId = movieLanguages[0]
-
     return {
       ...movie,
       genres: uniqueStrings(
         movieGenres.length > 0
           ? movieGenres
-          : [movie.genres[0]].filter(Boolean),
+          : movie.genres,
       ),
       subgenres: uniqueStrings(movieSubgenres),
       countryIds: uniqueStrings(movieCountries),
       regionIds: uniqueStrings(movieRegions),
       industryIds: uniqueStrings(movieIndustries),
       languageIds: uniqueStrings(movieLanguages),
-      originalLanguageId,
       tags: uniqueStrings(movieTags),
       collectionIds: uniqueStrings(movieCollections),
-      directors: movie.directors,
-      writers: movie.writers,
-      producers: movie.producers,
-      cast: movie.cast,
     }
   })
-}
-
-function uniqueStrings(values: string[]): string[] {
-  return [...new Set(values)]
 }
 
 export async function getMovies(): Promise<Movie[]> {
@@ -181,14 +123,6 @@ export async function getMovies(): Promise<Movie[]> {
   const movies = mapSupabaseMoviesToCanonical(rows)
 
   const [
-    genres,
-    subgenres,
-    countries,
-    regions,
-    industries,
-    languages,
-    tags,
-    collections,
     movieGenres,
     movieSubgenres,
     movieCountries,
@@ -198,14 +132,6 @@ export async function getMovies(): Promise<Movie[]> {
     movieTags,
     movieCollections,
   ] = await Promise.all([
-    getLookupRows('genres'),
-    getLookupRows('subgenres'),
-    getLookupRows('countries'),
-    getLookupRows('regions'),
-    getLookupRows('film_industries'),
-    getLookupRows('languages'),
-    getLookupRows('tags'),
-    getLookupRows('collections'),
     getRelationshipRows('movie_genres'),
     getRelationshipRows('movie_subgenres'),
     getRelationshipRows('movie_countries'),
@@ -216,30 +142,16 @@ export async function getMovies(): Promise<Movie[]> {
     getRelationshipRows('movie_collections'),
   ])
 
-  return attachMetadata(
-    movies,
-    {
-      genres: movieGenres,
-      subgenres: movieSubgenres,
-      countries: movieCountries,
-      regions: movieRegions,
-      industries: movieIndustries,
-      languages: movieLanguages,
-      tags: movieTags,
-      collections: movieCollections,
-      people: [],
-    },
-    {
-      genres: buildLookupMap(genres),
-      subgenres: buildLookupMap(subgenres),
-      countries: buildLookupMap(countries),
-      regions: buildLookupMap(regions),
-      industries: buildLookupMap(industries),
-      languages: buildLookupMap(languages),
-      tags: buildLookupMap(tags),
-      collections: buildLookupMap(collections),
-    },
-  )
+  return attachMetadata(movies, {
+    genres: movieGenres,
+    subgenres: movieSubgenres,
+    countries: movieCountries,
+    regions: movieRegions,
+    industries: movieIndustries,
+    languages: movieLanguages,
+    tags: movieTags,
+    collections: movieCollections,
+  })
 }
 
 export async function getMovieById(id: string): Promise<Movie | null> {
@@ -257,8 +169,9 @@ export async function getMovieById(id: string): Promise<Movie | null> {
     return null
   }
 
-  const rows = [data as LegacyMovieRow]
-  const movies = mapSupabaseMoviesToCanonical(rows)
+  const movies = mapSupabaseMoviesToCanonical([
+    data as LegacyMovieRow,
+  ])
 
   const [
     movieGenres,
@@ -280,30 +193,16 @@ export async function getMovieById(id: string): Promise<Movie | null> {
     getRelationshipRows('movie_collections'),
   ])
 
-  return (
-    attachMetadata(
-      movies,
-      {
-        genres: movieGenres,
-        subgenres: movieSubgenres,
-        countries: movieCountries,
-        regions: movieRegions,
-        industries: movieIndustries,
-        languages: movieLanguages,
-        tags: movieTags,
-        collections: movieCollections,
-        people: [],
-      },
-      {
-        genres: new Map(),
-        subgenres: new Map(),
-        countries: new Map(),
-        regions: new Map(),
-        industries: new Map(),
-        languages: new Map(),
-        tags: new Map(),
-        collections: new Map(),
-      },
-    )[0] ?? null
-  )
+  const result = attachMetadata(movies, {
+    genres: movieGenres,
+    subgenres: movieSubgenres,
+    countries: movieCountries,
+    regions: movieRegions,
+    industries: movieIndustries,
+    languages: movieLanguages,
+    tags: movieTags,
+    collections: movieCollections,
+  })
+
+  return result[0] ?? null
     }
