@@ -38,15 +38,23 @@ function matchesPeople(
   const normalized = searchTerm.toLowerCase()
 
   const castMatches = movie.cast.some((member) =>
-    member.personId.toLowerCase().includes(normalized),
+    member.personId
+      .toLowerCase()
+      .includes(normalized),
   )
 
-  const directorMatches = movie.directors.some((person) =>
-    person.name.toLowerCase().includes(normalized),
+  const directorMatches = movie.directors.some(
+    (person) =>
+      person.name
+        .toLowerCase()
+        .includes(normalized),
   )
 
-  const writerMatches = movie.writers.some((person) =>
-    person.name.toLowerCase().includes(normalized),
+  const writerMatches = movie.writers.some(
+    (person) =>
+      person.name
+        .toLowerCase()
+        .includes(normalized),
   )
 
   return (
@@ -54,6 +62,24 @@ function matchesPeople(
     directorMatches ||
     writerMatches
   )
+}
+
+function getNumericRating(
+  rating: string | number | undefined,
+): number | undefined {
+  if (rating === undefined) {
+    return undefined
+  }
+
+  if (typeof rating === 'number') {
+    return rating
+  }
+
+  const numericRating = Number.parseFloat(rating)
+
+  return Number.isFinite(numericRating)
+    ? numericRating
+    : undefined
 }
 
 export function filterMovies(
@@ -67,7 +93,9 @@ export function filterMovies(
         .toLowerCase()
 
       const titleMatches =
-        movie.title.toLowerCase().includes(searchTerm) ||
+        movie.title
+          .toLowerCase()
+          .includes(searchTerm) ||
         movie.originalTitle
           ?.toLowerCase()
           .includes(searchTerm)
@@ -83,7 +111,10 @@ export function filterMovies(
     }
 
     if (
-      !includesValue(movie.genres, filters.genreIds)
+      !includesValue(
+        movie.genres,
+        filters.genreIds,
+      )
     ) {
       return false
     }
@@ -158,12 +189,17 @@ export function filterMovies(
       return false
     }
 
-    if (
-      filters.minRating !== undefined &&
-      (movie.rating === undefined ||
-        movie.rating < filters.minRating)
-    ) {
-      return false
+    if (filters.minRating !== undefined) {
+      const numericRating = getNumericRating(
+        movie.rating,
+      )
+
+      if (
+        numericRating === undefined ||
+        numericRating < filters.minRating
+      ) {
+        return false
+      }
     }
 
     if (
@@ -174,14 +210,14 @@ export function filterMovies(
     }
 
     if (
-  filters.quality &&
-  !movie.videoQualities.includes(
-    filters.quality as Movie['videoQualities'][number],
-  )
-) {
-  return false
+      filters.quality &&
+      !movie.videoQualities.includes(
+        filters.quality as Movie['videoQualities'][number],
+      )
+    ) {
+      return false
     }
 
     return true
   })
-                                      }
+}
