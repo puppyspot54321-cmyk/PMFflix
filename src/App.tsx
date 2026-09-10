@@ -1565,7 +1565,7 @@ function AuthenticatedApp({
     </div>
   )}
 
-  {watchingMovie && (
+    {watchingMovie && (
     <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black p-0">
       <button
         type="button"
@@ -1579,9 +1579,7 @@ function AuthenticatedApp({
         <div className="overflow-hidden rounded-2xl border border-white/10 bg-black shadow-2xl">
           {(() => {
             const videoUrl =
-              getVideoUrl(
-                watchingMovie,
-              )
+              getVideoUrl(watchingMovie)
 
             if (!videoUrl) {
               return (
@@ -1599,29 +1597,22 @@ function AuthenticatedApp({
               )
             }
 
-            if (
-              isYouTubeUrl(
-                videoUrl,
-              )
-            ) {
-              const embedUrl =
-                videoUrl
-                  .replace(
-                    'watch?v=',
-                    'embed/',
-                  )
-                  .replace(
-                    'youtu.be/',
-                    'youtube.com/embed/',
-                  )
-                  .split('&')[0]
+            if (isYouTubeUrl(videoUrl)) {
+              const embedUrl = videoUrl
+                .replace(
+                  'watch?v=',
+                  'embed/',
+                )
+                .replace(
+                  'youtu.be/',
+                  'youtube.com/embed/',
+                )
+                .split('&')[0]
 
               return (
                 <iframe
                   src={embedUrl}
-                  title={
-                    watchingMovie.title
-                  }
+                  title={watchingMovie.title}
                   className="aspect-video w-full"
                   allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
                   allowFullScreen
@@ -1648,39 +1639,35 @@ function AuthenticatedApp({
           </h2>
 
           <p className="mt-1 text-sm text-white/40">
-            {watchingMovie.year} •{' '}
-            {watchingMovie.type}
+            {watchingMovie.year} • {watchingMovie.type}
           </p>
         </div>
       </div>
     </div>
   )}
 
-        function AuthenticatedAppFooter() {
-    return (
-      <footer className="border-t border-white/10 bg-black px-4 py-8 sm:px-6 lg:px-8">
-        <div className="mx-auto flex max-w-[1600px] flex-col gap-3 text-center text-xs text-white/35 sm:flex-row sm:items-center sm:justify-between sm:text-left">
-          <div>
-            <span className="font-bold text-white/60">
-              PMF FLIX
-            </span>
-            <span className="ml-2">
-              Your World. Your Stories. Your Flix.
-            </span>
-          </div>
+  </main>
+}
 
-          <span>
-            © {new Date().getFullYear()} PMF Flix
+function AuthenticatedAppFooter() {
+  return (
+    <footer className="border-t border-white/10 bg-black px-4 py-8 sm:px-6 lg:px-8">
+      <div className="mx-auto flex max-w-[1600px] flex-col gap-3 text-center text-xs text-white/35 sm:flex-row sm:items-center sm:justify-between sm:text-left">
+        <div>
+          <span className="font-bold text-white/60">
+            PMF FLIX
+          </span>
+
+          <span className="ml-2">
+            Your World. Your Stories. Your Flix.
           </span>
         </div>
-      </footer>
-    )
-  }
 
-  return (
-    <>
-      <AuthenticatedAppFooter />
-    </>
+        <span>
+          © {new Date().getFullYear()} PMF Flix
+        </span>
+      </div>
+    </footer>
   )
 }
 
@@ -1709,10 +1696,7 @@ export default function App() {
         )
       }
 
-      setSession(
-        data.session,
-      )
-
+      setSession(data.session)
       setAuthLoading(false)
     }
 
@@ -1727,10 +1711,7 @@ export default function App() {
         (_event, nextSession) => {
           if (!mounted) return
 
-          setSession(
-            nextSession,
-          )
-
+          setSession(nextSession)
           setAuthLoading(false)
         },
       )
@@ -1760,8 +1741,12 @@ export default function App() {
   }
 
   return (
-    <AuthenticatedApp
-      session={session}
-    />
+    <>
+      <AuthenticatedApp
+        session={session}
+      />
+
+      <AuthenticatedAppFooter />
+    </>
   )
-      }
+  }
