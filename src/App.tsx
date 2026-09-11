@@ -625,9 +625,9 @@ function AuthenticatedApp() {
             idSet.has(id),
           )
         })
-        .filter((movie) =>
-          movie.contentType !== 'Episode',
-        )
+       .filter((movie) => {
+  return movie.contentType !== 'episode'
+})
 
       const display = matches
         .map(mapCanonicalMovieToLegacy)
