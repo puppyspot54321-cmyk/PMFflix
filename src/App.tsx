@@ -1537,6 +1537,16 @@ function AuthenticatedApp() {
           />
         )}
 
+                {discoveryCollections.map(
+          (row) => (
+            <MovieRow
+              key={row.title}
+              title={row.title}
+              movies={row.movies}
+            />
+          ),
+        )}
+
         {movieOnlyMovies.length === 0 &&
           !loading && (
             <div className="rounded-2xl border border-white/10 bg-white/[0.02] px-6 py-16 text-center">
