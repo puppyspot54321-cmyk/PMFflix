@@ -581,26 +581,7 @@ function AuthenticatedApp() {
       }),
     )
   }
-
-      const toggleMyList = (movieId: number) => {
-    setMyListIds((current) => {
-      const next = current.includes(movieId)
-        ? current.filter((id) => id !== movieId)
-        : [...current, movieId]
-
-      try {
-        localStorage.setItem(
-          'pmf-my-list',
-          JSON.stringify(next),
-        )
-      } catch {
-        // Ignore localStorage failures.
-      }
-
-      return next
-    })
-  }
-
+     
   const openMovie = (movie: DisplayMovie) => {
     setSelectedMovie(movie)
   }
