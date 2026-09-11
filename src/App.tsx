@@ -1883,97 +1883,110 @@ function AuthenticatedApp() {
   }
 
   function renderWatching(): ReactNode {
-    if (!watchingMovie) {
-      return null
-    }
+  if (!watchingMovie) {
+    return null
+  }
 
-    const videoUrl =
-      getMovieVideoUrl(
-        watchingMovie,
-      )
+  const videoUrl = getMovieVideoUrl(
+    watchingMovie,
+  )
 
-    const isYouTube =
-      videoUrl.includes(
-        'youtube.com',
-      ) ||
-      videoUrl.includes('youtu.be')
+  const isYouTube =
+    videoUrl.includes('youtube.com') ||
+    videoUrl.includes('youtu.be')
 
-    const playableUrl = isYouTube
-      ? getYouTubeEmbedUrl(videoUrl)
-      : videoUrl
+  const playableUrl = isYouTube
+    ? getYouTubeEmbedUrl(videoUrl)
+    : videoUrl
 
-    return (
-      <div className="fixed inset-0 z-[90] flex items-center justify-center bg-black p-0 sm:p-4">
-        <div className="relative flex h-full w-full max-w-7xl flex-col overflow-hidden bg-black sm:h-auto sm:max-h-[95vh] sm:rounded-2xl sm:border sm:border-white/10">
-          <div className="flex items-center justify-between border-b border-white/10 bg-black/90 px-4 py-3">
-            <div className="min-w-0">
-              <p className="truncate text-sm font-bold text-white">
-                {watchingMovie.title}
-              </p>
+  const canonical = movies.find(
+    (movie) =>
+      String(movie.id) ===
+      String(watchingMovie.id),
+  )
 
-              <p className="text-[11px] text-white/35">
-                {watchingMovie.year} •{' '}
-                {watchingMovie.type}
+  return (
+    <div className="fixed inset-0 z-[90] flex items-center justify-center bg-black p-0 sm:p-4">
+      <div className="relative flex h-full w-full max-w-7xl flex-col overflow-hidden bg-black sm:h-auto sm:max-h-[95vh] sm:rounded-2xl sm:border sm:border-white/10">
+        <div className="flex items-center justify-between border-b border-white/10 bg-black/90 px-4 py-3">
+          <div className="min-w-0">
+            <p className="truncate text-sm font-bold text-white">
+              {watchingMovie.title}
+            </p>
+
+            <p className="text-[11px] text-white/35">
+              {watchingMovie.year} •{' '}
+              {watchingMovie.type}
+            </p>
+          </div>
+
+          <button
+            type="button"
+            onClick={closeWatching}
+            aria-label="Close player"
+            className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full border border-white/10 bg-white/5 text-white/70 transition hover:bg-white hover:text-black"
+          >
+            <X size={17} />
+          </button>
+        </div>
+
+        <div className="flex min-h-0 flex-1 items-center justify-center bg-black">
+          {playableUrl ? (
+            isYouTube ? (
+              <iframe
+                src={playableUrl}
+                title={watchingMovie.title}
+                className="aspect-video h-auto w-full"
+                allow="autoplay; encrypted-media; fullscreen; picture-in-picture"
+                allowFullScreen
+              />
+            ) : (
+              <VideoPlayer
+                videoUrl={playableUrl}
+                videoAssets={
+                  canonical?.videoAssets ?? []
+                }
+                subtitles={
+                  canonical?.subtitles ?? []
+                }
+                posterUrl={
+                  canonical?.posterUrl ||
+                  watchingMovie.poster
+                }
+                title={watchingMovie.title}
+                autoPlay
+                onTimeUpdate={() => {
+                  // Continue Watching tracking is
+                  // already handled when playback starts.
+                }}
+                onEnded={() => {
+                  setContinueWatchingIds(
+                    getContinueWatchingIds(),
+                  )
+                }}
+              />
+            )
+          ) : (
+            <div className="px-6 text-center">
+              <Film
+                size={44}
+                className="mx-auto text-white/15"
+              />
+
+              <h2 className="mt-4 text-lg font-bold text-white">
+                Video unavailable
+              </h2>
+
+              <p className="mt-2 text-sm text-white/35">
+                This title does not have a
+                playable video source yet.
               </p>
             </div>
-
-            <button
-              type="button"
-              onClick={closeWatching}
-              aria-label="Close player"
-              className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full border border-white/10 bg-white/5 text-white/70 transition hover:bg-white hover:text-black"
-            >
-              <X size={17} />
-            </button>
-          </div>
-
-          <div className="flex min-h-0 flex-1 items-center justify-center bg-black">
-            {playableUrl ? (
-              isYouTube ? (
-                <iframe
-                  src={playableUrl}
-                  title={
-                    watchingMovie.title
-                  }
-                  className="aspect-video h-auto w-full"
-                  allow="autoplay; encrypted-media; fullscreen; picture-in-picture"
-                  allowFullScreen
-                />
-              ) : (
-                <video
-                  src={playableUrl}
-                  controls
-                  autoPlay
-                  playsInline
-                  className="max-h-[calc(100vh-70px)] w-full bg-black object-contain"
-                  onEnded={() =>
-                    setContinueWatchingIds(
-                      getContinueWatchingIds(),
-                    )
-                  }
-                />
-              )
-            ) : (
-              <div className="px-6 text-center">
-                <Film
-                  size={44}
-                  className="mx-auto text-white/15"
-                />
-
-                <h2 className="mt-4 text-lg font-bold text-white">
-                  Video unavailable
-                </h2>
-
-                <p className="mt-2 text-sm text-white/35">
-                  This title does not have
-                  a playable video source yet.
-                </p>
-              </div>
-            )}
-          </div>
+          )}
         </div>
       </div>
-    )
+    </div>
+  )
   }
 
   if (loading) {
