@@ -421,9 +421,30 @@ function removeContinueWatching(
     // Ignore localStorage failures.
   }
 }
-  
+
+function getMyListIds(): number[] {
+  try {
+    const saved = localStorage.getItem(
+      'pmf-my-list',
+    )
+
+    if (!saved) {
+      return []
+    }
+
+    const parsed: unknown =
+      JSON.parse(saved)
+
+    if (!Array.isArray(parsed)) {
+      return []
+    }
+
+    return parsed.filter(
+      (value): value is number =>
+        typeof value === 'number',
+    )
   } catch {
-    // Ignore localStorage failures.
+    return []
   }
 }
 
