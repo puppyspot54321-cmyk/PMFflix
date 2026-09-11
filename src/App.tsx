@@ -2075,24 +2075,92 @@ function AuthenticatedApp() {
     )
   }
 
+  
+
+    return (
+      <div className="fixed inset-0 z-[90] flex items-center justify-center bg-black p-0 sm:p-4">
+        <div className="relative flex h-full w-full max-w-7xl flex-col overflow-hidden bg-black sm:h-auto sm:max-h-[95vh] sm:rounded-2xl sm:border sm:border-white/10">
+          <div className="flex items-center justify-between border-b border-white/10 bg-black/90 px-4 py-3">
+            <div className="min-w-0">
+              <p className="truncate text-sm font-bold text-white">
+                {watchingMovie.title}
+              </p>
+
+              <p className="text-[11px] text-white/35">
+                {watchingMovie.year} •{' '}
+                {watchingMovie.type}
+              </p>
+            </div>
+
+            <button
+              type="button"
+              onClick={closeWatching}
+              aria-label="Close player"
+              className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full border border-white/10 bg-white/5 text-white/70 transition hover:bg-white hover:text-black"
+            >
+              <X size={17} />
+            </button>
+          </div>
+
   function renderWatching(): ReactNode {
-  if (!watchingMovie) {
-    return null
-  }
+    if (!watchingMovie) {
+      return null
+    }
 
-  const videoUrl = getMovieVideoUrl(
-    watchingMovie,
-  )
+    const videoUrl =
+      getMovieVideoUrl(watchingMovie)
 
-  const isYouTube =
-    videoUrl.includes('youtube.com') ||
-    videoUrl.includes('youtu.be')
+    const isYouTube =
+      videoUrl.includes('youtube.com') ||
+      videoUrl.includes('youtu.be')
 
-  const playableUrl = isYouTube
-    ? getYouTubeEmbedUrl(videoUrl)
-    : videoUrl
+    const numericId = Number(
+      watchingMovie.id,
+    )
 
-      const canonical = movies.find(
+    const continueEntry =
+      Number.isFinite(numericId)
+        ? getContinueWatchingEntry(
+            numericId,
+          )
+        : null
+
+    const resumeTime =
+      continueEntry?.position ?? 0
+
+    const getYouTubeResumeUrl = (
+      url: string,
+      startTime: number,
+    ): string => {
+      const baseUrl =
+        getYouTubeEmbedUrl(url)
+
+      if (startTime <= 0) {
+        return baseUrl
+      }
+
+      try {
+        const parsed = new URL(baseUrl)
+
+        parsed.searchParams.set(
+          'start',
+          String(Math.floor(startTime)),
+        )
+
+        return parsed.toString()
+      } catch {
+        return baseUrl
+      }
+    }
+
+    const playableUrl = isYouTube
+      ? getYouTubeResumeUrl(
+          videoUrl,
+          resumeTime,
+        )
+      : videoUrl
+
+    const canonical = movies.find(
       (movie) =>
         String(movie.id) ===
         String(watchingMovie.id),
@@ -2121,15 +2189,17 @@ function AuthenticatedApp() {
     }
 
     const handlePlaybackEnded = (): void => {
-      if (Number.isFinite(numericId)) {
-        removeContinueWatching(
-          numericId,
-        )
-
-        setContinueWatchingIds(
-          getContinueWatchingIds(),
-        )
+      if (!Number.isFinite(numericId)) {
+        return
       }
+
+      removeContinueWatching(
+        numericId,
+      )
+
+      setContinueWatchingIds(
+        getContinueWatchingIds(),
+      )
     }
 
     return (
@@ -2212,7 +2282,7 @@ function AuthenticatedApp() {
         </div>
       </div>
     )
-  }
+          }
 
   if (loading) {
     return (
