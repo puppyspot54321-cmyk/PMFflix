@@ -28,6 +28,7 @@ import type { Movie as CanonicalMovie } from './types/movie'
 import type { MetadataCatalog } from './services'
 import { mapCanonicalMovieToLegacy } from './utils/movieMapper'
 import { filterMovies } from './utils/movieFilters'
+import VideoPlayer from './components/VideoPlayer'
 
 type Section =
   | 'home'
