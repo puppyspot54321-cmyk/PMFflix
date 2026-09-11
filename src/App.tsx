@@ -229,6 +229,15 @@ function metadataName(
 }
 
 function getContinueWatchingIds(): number[] {
+
+type ContinueWatchingEntry = {
+  id: number
+  position: number
+  duration: number
+  updatedAt: number
+}
+
+function getContinueWatchingEntries(): ContinueWatchingEntry[] {
   try {
     const saved = localStorage.getItem(
       'pmf-continue-watching',
@@ -238,38 +247,114 @@ function getContinueWatchingIds(): number[] {
       return []
     }
 
-    const parsed: unknown =
-      JSON.parse(saved)
+    const parsed: unknown = JSON.parse(saved)
 
     if (!Array.isArray(parsed)) {
       return []
     }
 
+    // Support the old PMF format: number[]
+    if (
+      parsed.every(
+        (value): value is number =>
+          typeof value === 'number',
+      )
+    ) {
+      return parsed.map((id) => ({
+        id,
+        position: 0,
+        duration: 0,
+        updatedAt: 0,
+      }))
+    }
+
     return parsed.filter(
-      (value): value is number =>
-        typeof value === 'number',
+      (value): value is ContinueWatchingEntry =>
+        typeof value === 'object' &&
+        value !== null &&
+        typeof (value as ContinueWatchingEntry).id ===
+          'number' &&
+        typeof (value as ContinueWatchingEntry).position ===
+          'number' &&
+        typeof (value as ContinueWatchingEntry).duration ===
+          'number' &&
+        typeof (value as ContinueWatchingEntry).updatedAt ===
+          'number',
     )
   } catch {
     return []
   }
 }
 
+function getContinueWatchingIds(): number[] {
+  return getContinueWatchingEntries().map(
+    (entry) => entry.id,
+  )
+}
+
+function getContinueWatchingEntry(
+  id: number,
+): ContinueWatchingEntry | null {
+  const entry =
+    getContinueWatchingEntries().find(
+      (item) => item.id === id,
+    )
+
+  return entry ?? null
+}
+
 function saveContinueWatching(
+  id: number,
+  position = 0,
+  duration = 0,
+): void {
+  try {
+    const current =
+      getContinueWatchingEntries()
+
+    const nextEntry: ContinueWatchingEntry = {
+      id,
+      position: Math.max(0, position),
+      duration: Math.max(0, duration),
+      updatedAt: Date.now(),
+    }
+
+    const next = [
+      ...current.filter(
+        (entry) => entry.id !== id,
+      ),
+      nextEntry,
+    ]
+
+    localStorage.setItem(
+      'pmf-continue-watching',
+      JSON.stringify(next),
+    )
+  } catch {
+    // Ignore localStorage failures.
+  }
+}
+
+function removeContinueWatching(
   id: number,
 ): void {
   try {
     const current =
-      getContinueWatchingIds()
+      getContinueWatchingEntries()
 
-    if (!current.includes(id)) {
-      localStorage.setItem(
-        'pmf-continue-watching',
-        JSON.stringify([
-          ...current,
-          id,
-        ]),
-      )
-    }
+    const next = current.filter(
+      (entry) => entry.id !== id,
+    )
+
+    localStorage.setItem(
+      'pmf-continue-watching',
+      JSON.stringify(next),
+    )
+  } catch {
+    // Ignore localStorage failures.
+  }
+}
+  
   } catch {
     // Ignore localStorage failures.
   }
