@@ -800,9 +800,29 @@ function AuthenticatedApp() {
     }))
   }
 
-  function openMovie(
-    movie: DisplayMovie,
-  ): void {
+  function startWatching(
+  movie: DisplayMovie,
+): void {
+  setSelectedMovie(null)
+  setWatchingMovie(movie)
+
+  const numericId = Number(movie.id)
+
+  if (Number.isFinite(numericId)) {
+    const existing =
+      getContinueWatchingEntry(numericId)
+
+    saveContinueWatching(
+      numericId,
+      existing?.position ?? 0,
+      existing?.duration ?? 0,
+    )
+
+    setContinueWatchingIds(
+      getContinueWatchingIds(),
+    )
+  }
+  }
     setSelectedMovie(movie)
   }
 
