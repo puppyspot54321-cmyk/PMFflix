@@ -573,6 +573,135 @@ function AuthenticatedApp() {
     movieOnlyMovies[0] ??
     null
 
+    const discoveryCollections = useMemo(() => {
+    if (!metadataCatalog) {
+      return []
+    }
+
+    const getIds = (
+      items: Array<{
+        id: string
+        name: string
+      }>,
+      names: string[],
+    ): string[] => {
+      const wanted = names.map(normalizeText)
+
+      return items
+        .filter((item) => {
+          const name = normalizeText(item.name)
+          const id = normalizeText(item.id)
+
+          return (
+            wanted.includes(name) ||
+            wanted.includes(id)
+          )
+        })
+        .map((item) => item.id)
+    }
+
+    const buildRow = (
+      title: string,
+      ids: string[],
+      field:
+        | 'collectionIds'
+        | 'industryIds'
+        | 'regionIds',
+    ): {
+      title: string
+      movies: DisplayMovie[]
+    } | null => {
+      if (ids.length === 0) {
+        return null
+      }
+
+      const idSet = new Set(ids)
+
+      const matches = movies
+        .filter((movie) => {
+          const values = movie[field]
+
+          return values.some((id) =>
+            idSet.has(id),
+          )
+        })
+        .filter((movie) =>
+          movie.contentType !== 'Episode',
+        )
+
+      const display = matches
+        .map(mapCanonicalMovieToLegacy)
+        .filter((movie) =>
+          movie.type !== 'Series',
+        )
+
+      if (display.length === 0) {
+        return null
+      }
+
+      return {
+        title,
+        movies: sortDisplayMovies(
+          display,
+          'popular',
+        ).slice(0, 12),
+      }
+    }
+
+    const africanCinema = buildRow(
+      'African Cinema',
+      getIds(
+        metadataCatalog.collections,
+        ['African Cinema', 'african-cinema'],
+      ),
+      'collectionIds',
+    )
+
+    const nollywood = buildRow(
+      'Nollywood',
+      getIds(
+        metadataCatalog.industries,
+        ['Nollywood', 'nollywood'],
+      ),
+      'industryIds',
+    )
+
+    const hollywood = buildRow(
+      'Hollywood',
+      getIds(
+        metadataCatalog.industries,
+        ['Hollywood', 'hollywood'],
+      ),
+      'industryIds',
+    )
+
+    const africanRegion = buildRow(
+      'African Cinema',
+      getIds(
+        metadataCatalog.regions,
+        ['Africa', 'africa'],
+      ),
+      'regionIds',
+    )
+
+    return [
+      africanCinema,
+      nollywood,
+      hollywood,
+      africanRegion,
+    ].filter(
+      (
+        row,
+      ): row is {
+        title: string
+        movies: DisplayMovie[]
+      } => row !== null,
+    )
+  }, [
+    metadataCatalog,
+    movies,
+  ])
+
   function updateFilter<
     K extends keyof DiscoveryFilters
   >(
