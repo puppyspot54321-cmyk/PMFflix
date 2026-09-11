@@ -353,101 +353,6 @@ function removeContinueWatching(
   }
 }
 
-function getContinueWatchingIds(): number[] {
-  return getContinueWatchingEntries().map(
-    (entry) => entry.id,
-  )
-}
-
-function getContinueWatchingEntry(
-  id: number,
-): ContinueWatchingEntry | null {
-  const entry =
-    getContinueWatchingEntries().find(
-      (item) => item.id === id,
-    )
-
-  return entry ?? null
-}
-
-function saveContinueWatching(
-  id: number,
-  position = 0,
-  duration = 0,
-): void {
-  try {
-    const current =
-      getContinueWatchingEntries()
-
-    const nextEntry: ContinueWatchingEntry = {
-      id,
-      position: Math.max(0, position),
-      duration: Math.max(0, duration),
-      updatedAt: Date.now(),
-    }
-
-    const next = [
-      ...current.filter(
-        (entry) => entry.id !== id,
-      ),
-      nextEntry,
-    ]
-
-    localStorage.setItem(
-      'pmf-continue-watching',
-      JSON.stringify(next),
-    )
-  } catch {
-    // Ignore localStorage failures.
-  }
-}
-
-function removeContinueWatching(
-  id: number,
-): void {
-  try {
-    const current =
-      getContinueWatchingEntries()
-
-    const next = current.filter(
-      (entry) => entry.id !== id,
-    )
-
-    localStorage.setItem(
-      'pmf-continue-watching',
-      JSON.stringify(next),
-    )
-  } catch {
-    // Ignore localStorage failures.
-  }
-}
-
-function getMyListIds(): number[] {
-  try {
-    const saved = localStorage.getItem(
-      'pmf-my-list',
-    )
-
-    if (!saved) {
-      return []
-    }
-
-    const parsed: unknown =
-      JSON.parse(saved)
-
-    if (!Array.isArray(parsed)) {
-      return []
-    }
-
-    return parsed.filter(
-      (value): value is number =>
-        typeof value === 'number',
-    )
-  } catch {
-    return []
-  }
-}
-
 function getMyListIds(): number[] {
   try {
     const saved = localStorage.getItem(
@@ -747,7 +652,7 @@ function AuthenticatedApp() {
     movieOnlyMovies[0] ??
     null
 
-    const discoveryCollections = useMemo(() => {
+  const discoveryCollections = useMemo(() => {
     if (!metadataCatalog) {
       return []
     }
@@ -759,11 +664,15 @@ function AuthenticatedApp() {
       }>,
       names: string[],
     ): string[] => {
-      const wanted = names.map(normalizeText)
+      const wanted = names.map(
+        normalizeText,
+      )
 
       return items
         .filter((item) => {
-          const name = normalizeText(item.name)
+          const name = normalizeText(
+            item.name,
+          )
           const id = normalizeText(item.id)
 
           return (
@@ -799,14 +708,17 @@ function AuthenticatedApp() {
             idSet.has(id),
           )
         })
-       .filter((movie) => {
-  return movie.contentType !== 'episode'
-})
+        .filter(
+          (movie) =>
+            movie.contentType !==
+            'episode',
+        )
 
       const display = matches
         .map(mapCanonicalMovieToLegacy)
-        .filter((movie) =>
-          movie.type !== 'Series',
+        .filter(
+          (movie) =>
+            movie.type !== 'Series',
         )
 
       if (display.length === 0) {
@@ -826,7 +738,10 @@ function AuthenticatedApp() {
       'African Cinema',
       getIds(
         metadataCatalog.collections,
-        ['African Cinema', 'african-cinema'],
+        [
+          'African Cinema',
+          'african-cinema',
+        ],
       ),
       'collectionIds',
     )
@@ -888,29 +803,9 @@ function AuthenticatedApp() {
     }))
   }
 
-  function startWatching(
-  movie: DisplayMovie,
-): void {
-  setSelectedMovie(null)
-  setWatchingMovie(movie)
-
-  const numericId = Number(movie.id)
-
-  if (Number.isFinite(numericId)) {
-    const existing =
-      getContinueWatchingEntry(numericId)
-
-    saveContinueWatching(
-      numericId,
-      existing?.position ?? 0,
-      existing?.duration ?? 0,
-    )
-
-    setContinueWatchingIds(
-      getContinueWatchingIds(),
-    )
-  }
-  }
+  function openMovie(
+    movie: DisplayMovie,
+  ): void {
     setSelectedMovie(movie)
   }
 
@@ -927,7 +822,16 @@ function AuthenticatedApp() {
     const numericId = Number(movie.id)
 
     if (Number.isFinite(numericId)) {
-      saveContinueWatching(numericId)
+      const existing =
+        getContinueWatchingEntry(
+          numericId,
+        )
+
+      saveContinueWatching(
+        numericId,
+        existing?.position ?? 0,
+        existing?.duration ?? 0,
+      )
 
       setContinueWatchingIds(
         getContinueWatchingIds(),
@@ -989,6 +893,7 @@ function AuthenticatedApp() {
   ): void {
     setFilters((current) => {
       const values = current[key]
+
       const next = values.includes(id)
         ? values.filter(
             (value) => value !== id,
@@ -1007,9 +912,10 @@ function AuthenticatedApp() {
   }: {
     movie: DisplayMovie
   }) {
-    const isInList = myListIds.includes(
-      Number(movie.id),
-    )
+    const isInList =
+      myListIds.includes(
+        Number(movie.id),
+      )
 
     return (
       <article className="group min-w-0">
@@ -1046,6 +952,7 @@ function AuthenticatedApp() {
             }
             onClick={(event) => {
               event.stopPropagation()
+
               toggleMyList(
                 Number(movie.id),
               )
@@ -1252,12 +1159,15 @@ function AuthenticatedApp() {
             <option value="popular">
               Popular
             </option>
+
             <option value="newest">
               Newest
             </option>
+
             <option value="rating">
               Highest Rated
             </option>
+
             <option value="title">
               A-Z
             </option>
@@ -1364,18 +1274,23 @@ function AuthenticatedApp() {
                 <option value="">
                   All content types
                 </option>
+
                 <option value="Movie">
                   Movie
                 </option>
+
                 <option value="Series">
                   Series
                 </option>
+
                 <option value="TV Series">
                   TV Series
                 </option>
+
                 <option value="Episode">
                   Episode
                 </option>
+
                 <option value="Documentary">
                   Documentary
                 </option>
@@ -1395,18 +1310,23 @@ function AuthenticatedApp() {
                 <option value="">
                   Any video quality
                 </option>
+
                 <option value="480p">
                   480p
                 </option>
+
                 <option value="720p">
                   720p
                 </option>
+
                 <option value="1080p">
                   1080p
                 </option>
+
                 <option value="1440p">
                   1440p
                 </option>
+
                 <option value="4k">
                   4K
                 </option>
@@ -1607,6 +1527,7 @@ function AuthenticatedApp() {
               {featuredMovie.duration && (
                 <>
                   <span>•</span>
+
                   <span>
                     {featuredMovie.duration}
                   </span>
@@ -1616,6 +1537,7 @@ function AuthenticatedApp() {
               {featuredMovie.rating && (
                 <>
                   <span>•</span>
+
                   <span className="flex items-center gap-1">
                     <Star size={12} />
                     {featuredMovie.rating}
@@ -1642,6 +1564,7 @@ function AuthenticatedApp() {
                   size={17}
                   fill="currentColor"
                 />
+
                 Play
               </button>
 
@@ -1731,10 +1654,12 @@ function AuthenticatedApp() {
           />
         )}
 
-                {discoveryCollections.map(
+        {discoveryCollections.map(
           (row) => (
             <MovieRow
-              key={row.title}
+              key={`${row.title}-${row.movies
+                .map((movie) => movie.id)
+                .join('-')}`}
               title={row.title}
               movies={row.movies}
             />
@@ -2004,6 +1929,7 @@ function AuthenticatedApp() {
                     size={17}
                     fill="currentColor"
                   />
+
                   Play
                 </button>
 
@@ -2075,33 +2001,6 @@ function AuthenticatedApp() {
     )
   }
 
-  
-
-    return (
-      <div className="fixed inset-0 z-[90] flex items-center justify-center bg-black p-0 sm:p-4">
-        <div className="relative flex h-full w-full max-w-7xl flex-col overflow-hidden bg-black sm:h-auto sm:max-h-[95vh] sm:rounded-2xl sm:border sm:border-white/10">
-          <div className="flex items-center justify-between border-b border-white/10 bg-black/90 px-4 py-3">
-            <div className="min-w-0">
-              <p className="truncate text-sm font-bold text-white">
-                {watchingMovie.title}
-              </p>
-
-              <p className="text-[11px] text-white/35">
-                {watchingMovie.year} •{' '}
-                {watchingMovie.type}
-              </p>
-            </div>
-
-            <button
-              type="button"
-              onClick={closeWatching}
-              aria-label="Close player"
-              className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full border border-white/10 bg-white/5 text-white/70 transition hover:bg-white hover:text-black"
-            >
-              <X size={17} />
-            </button>
-          </div>
-
   function renderWatching(): ReactNode {
     if (!watchingMovie) {
       return null
@@ -2111,8 +2010,12 @@ function AuthenticatedApp() {
       getMovieVideoUrl(watchingMovie)
 
     const isYouTube =
-      videoUrl.includes('youtube.com') ||
-      videoUrl.includes('youtu.be')
+      videoUrl
+        .toLowerCase()
+        .includes('youtube.com') ||
+      videoUrl
+        .toLowerCase()
+        .includes('youtu.be')
 
     const numericId = Number(
       watchingMovie.id,
@@ -2140,11 +2043,15 @@ function AuthenticatedApp() {
       }
 
       try {
-        const parsed = new URL(baseUrl)
+        const parsed = new URL(
+          baseUrl,
+        )
 
         parsed.searchParams.set(
           'start',
-          String(Math.floor(startTime)),
+          String(
+            Math.floor(startTime),
+          ),
         )
 
         return parsed.toString()
@@ -2250,9 +2157,13 @@ function AuthenticatedApp() {
                     canonical?.posterUrl ||
                     watchingMovie.poster
                   }
-                  title={watchingMovie.title}
+                  title={
+                    watchingMovie.title
+                  }
                   autoPlay
-                  initialTime={resumeTime}
+                  initialTime={
+                    resumeTime
+                  }
                   onTimeUpdate={
                     handlePlaybackUpdate
                   }
@@ -2282,7 +2193,7 @@ function AuthenticatedApp() {
         </div>
       </div>
     )
-          }
+  }
 
   if (loading) {
     return (
@@ -2318,7 +2229,7 @@ function AuthenticatedApp() {
             </div>
           </div>
 
-          <nav className="flex items-center gap-1">
+          <nav className="flex items-center gap-1 overflow-x-auto">
             <button
               type="button"
               onClick={() =>
@@ -2327,7 +2238,7 @@ function AuthenticatedApp() {
               className={
                 section === 'home'
                   ? 'rounded-lg bg-white px-3 py-1.5 text-[11px] font-black text-black'
-                  : 'rounded-lg px-3 py-1.5 text-[11px] font-bold text-white/40'
+                  : 'rounded-lg px-3 py-1.5 text-[11px] font-bold text-white/40 transition hover:text-white'
               }
             >
               Home
@@ -2341,74 +2252,86 @@ function AuthenticatedApp() {
               className={
                 section === 'movies'
                   ? 'rounded-lg bg-white px-3 py-1.5 text-[11px] font-black text-black'
-                  : 'rounded-lg px-3 py-1.5 text-[11px] font-bold text-white/40'
+                  : 'rounded-lg px-3 py-1.5 text-[11px] font-bold text-white/40 transition hover:text-white'
               }
             >
               Movies
             </button>
 
-                      <button
-            type="button"
-            onClick={() =>
-              setSection('tv')
-            }
-            className={
-              section === 'tv'
-                ? 'rounded-lg bg-white px-3 py-1.5 text-[11px] font-black text-black'
-                : 'rounded-lg px-3 py-1.5 text-[11px] font-bold text-white/40'
-            }
-          >
-            TV
-          </button>
+            <button
+              type="button"
+              onClick={() =>
+                setSection('tv')
+              }
+              className={
+                section === 'tv'
+                  ? 'rounded-lg bg-white px-3 py-1.5 text-[11px] font-black text-black'
+                  : 'rounded-lg px-3 py-1.5 text-[11px] font-bold text-white/40 transition hover:text-white'
+              }
+            >
+              TV
+            </button>
+
+            <button
+              type="button"
+              onClick={() =>
+                setSection('my-list')
+              }
+              className={
+                section === 'my-list'
+                  ? 'rounded-lg bg-white px-3 py-1.5 text-[11px] font-black text-black'
+                  : 'rounded-lg px-3 py-1.5 text-[11px] font-bold text-white/40 transition hover:text-white'
+              }
+            >
+              My List
+            </button>
+          </nav>
 
           <button
             type="button"
-            onClick={() =>
-              setSection('my-list')
-            }
-            className={
-              section === 'my-list'
-                ? 'rounded-lg bg-white px-3 py-1.5 text-[11px] font-black text-black'
-                : 'rounded-lg px-3 py-1.5 text-[11px] font-bold text-white/40'
-            }
+            onClick={() => {
+              void handleSignOut()
+            }}
+            aria-label="Sign out"
+            className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full border border-white/10 bg-white/5 text-white/45 transition hover:bg-white hover:text-black"
           >
-            My List
+            <LogOut size={16} />
           </button>
-        </nav>
-      </div>
-    </header>
-
-    {errorMessage && (
-      <div className="mx-auto mt-4 max-w-[1600px] px-4 sm:px-6 lg:px-8">
-        <div className="rounded-xl border border-red-500/20 bg-red-500/5 px-4 py-3 text-sm text-red-300">
-          {errorMessage}
         </div>
-      </div>
-    )}
+      </header>
 
-    <main className="mx-auto max-w-[1600px] px-4 py-8 sm:px-6 lg:px-8">
-      {section === 'home' &&
-        renderHomeSection()}
+      {errorMessage && (
+        <div className="mx-auto mt-4 max-w-[1600px] px-4 sm:px-6 lg:px-8">
+          <div className="rounded-xl border border-red-500/20 bg-red-500/5 px-4 py-3 text-sm text-red-300">
+            {errorMessage}
+          </div>
+        </div>
+      )}
 
-      {section === 'movies' &&
-        renderMoviesSection()}
+      <main className="mx-auto max-w-[1600px] px-4 py-8 sm:px-6 lg:px-8">
+        {section === 'home' &&
+          renderHomeSection()}
 
-      {section === 'tv' &&
-        renderTVSection()}
+        {section === 'movies' &&
+          renderMoviesSection()}
 
-      {section === 'my-list' &&
-        renderMyListSection()}
-    </main>
+        {section === 'tv' &&
+          renderTVSection()}
 
-    <footer className="border-t border-white/5 px-4 py-8 text-center text-[11px] text-white/20">
-      © {new Date().getFullYear()}{' '}
-      Prince Mufasa Flix. All rights
-      reserved.
-    </footer>
+        {section === 'my-list' &&
+          renderMyListSection()}
+      </main>
 
-        {renderMovieDetails()}
-    {renderWatching()}
-  </div>
+      <footer className="border-t border-white/5 px-4 py-8 text-center text-[11px] text-white/20">
+        © {new Date().getFullYear()}{' '}
+        Prince Mufasa Flix. All rights
+        reserved.
+      </footer>
+
+      {renderMovieDetails()}
+
+      {renderWatching()}
+    </div>
   )
 }
 
@@ -2485,7 +2408,3 @@ export default function App() {
 
   return <AuthenticatedApp />
 }
-  
-
-      
-                
