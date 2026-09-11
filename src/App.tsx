@@ -2092,213 +2092,137 @@ function AuthenticatedApp() {
     ? getYouTubeEmbedUrl(videoUrl)
     : videoUrl
 
-  const canonical = movies.find(
-    (movie) =>
-      String(movie.id) ===
-      String(watchingMovie.id),
-  )
+      const canonical = movies.find(
+      (movie) =>
+        String(movie.id) ===
+        String(watchingMovie.id),
+    )
 
-  return (
-    <div className="fixed inset-0 z-[90] flex items-center justify-center bg-black p-0 sm:p-4">
-      <div className="relative flex h-full w-full max-w-7xl flex-col overflow-hidden bg-black sm:h-auto sm:max-h-[95vh] sm:rounded-2xl sm:border sm:border-white/10">
-        <div className="flex items-center justify-between border-b border-white/10 bg-black/90 px-4 py-3">
-          <div className="min-w-0">
-            <p className="truncate text-sm font-bold text-white">
-              {watchingMovie.title}
-function renderWatching(): ReactNode {
-  if (!watchingMovie) {
-    return null
-  }
+    const handlePlaybackUpdate = (
+      currentTime: number,
+    ): void => {
+      if (
+        !Number.isFinite(numericId) ||
+        currentTime <= 0
+      ) {
+        return
+      }
 
-  const videoUrl = getMovieVideoUrl(
-    watchingMovie,
-  )
-
-  const isYouTube =
-    videoUrl.includes('youtube.com') ||
-    videoUrl.includes('youtu.be')
-
-  const numericId = Number(
-    watchingMovie.id,
-  )
-
-  const continueEntry =
-    Number.isFinite(numericId)
-      ? getContinueWatchingEntry(
+      const currentEntry =
+        getContinueWatchingEntry(
           numericId,
         )
-      : null
 
-  const resumeTime =
-    continueEntry?.position ?? 0
-
-  const getYouTubeResumeUrl = (
-    url: string,
-    startTime: number,
-  ): string => {
-    const baseUrl =
-      getYouTubeEmbedUrl(url)
-
-    if (startTime <= 0) {
-      return baseUrl
-    }
-
-    try {
-      const parsed = new URL(baseUrl)
-
-      parsed.searchParams.set(
-        'start',
-        String(
-          Math.floor(startTime),
-        ),
-      )
-
-      return parsed.toString()
-    } catch {
-      return baseUrl
-    }
-  }
-
-  const playableUrl = isYouTube
-    ? getYouTubeResumeUrl(
-        videoUrl,
-        resumeTime,
-      )
-    : videoUrl
-
-  const canonical = movies.find(
-    (movie) =>
-      String(movie.id) ===
-      String(watchingMovie.id),
-  )
-
-  const handlePlaybackUpdate = (
-    currentTime: number,
-  ): void => {
-    if (
-      !Number.isFinite(numericId) ||
-      currentTime <= 0
-    ) {
-      return
-    }
-
-    const currentEntry =
-      getContinueWatchingEntry(
+      saveContinueWatching(
         numericId,
+        currentTime,
+        currentEntry?.duration ?? 0,
       )
+    }
 
-    saveContinueWatching(
-      numericId,
-      currentTime,
-      currentEntry?.duration ?? 0,
+    const handlePlaybackEnded = (): void => {
+      if (Number.isFinite(numericId)) {
+        removeContinueWatching(
+          numericId,
+        )
+
+        setContinueWatchingIds(
+          getContinueWatchingIds(),
+        )
+      }
+    }
+
+    return (
+      <div className="fixed inset-0 z-[90] flex items-center justify-center bg-black p-0 sm:p-4">
+        <div className="relative flex h-full w-full max-w-7xl flex-col overflow-hidden bg-black sm:h-auto sm:max-h-[95vh] sm:rounded-2xl sm:border sm:border-white/10">
+          <div className="flex items-center justify-between border-b border-white/10 bg-black/90 px-4 py-3">
+            <div className="min-w-0">
+              <p className="truncate text-sm font-bold text-white">
+                {watchingMovie.title}
+              </p>
+
+              <p className="text-[11px] text-white/35">
+                {watchingMovie.year} •{' '}
+                {watchingMovie.type}
+              </p>
+            </div>
+
+            <button
+              type="button"
+              onClick={closeWatching}
+              aria-label="Close player"
+              className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full border border-white/10 bg-white/5 text-white/70 transition hover:bg-white hover:text-black"
+            >
+              <X size={17} />
+            </button>
+          </div>
+
+          <div className="flex min-h-0 flex-1 items-center justify-center bg-black">
+            {playableUrl ? (
+              isYouTube ? (
+                <iframe
+                  src={playableUrl}
+                  title={watchingMovie.title}
+                  className="aspect-video h-auto w-full"
+                  allow="autoplay; encrypted-media; fullscreen; picture-in-picture"
+                  allowFullScreen
+                />
+              ) : (
+                <VideoPlayer
+                  videoUrl={playableUrl}
+                  videoAssets={
+                    canonical?.videoAssets ?? []
+                  }
+                  subtitles={
+                    canonical?.subtitles ?? []
+                  }
+                  posterUrl={
+                    canonical?.posterUrl ||
+                    watchingMovie.poster
+                  }
+                  title={watchingMovie.title}
+                  autoPlay
+                  initialTime={resumeTime}
+                  onTimeUpdate={
+                    handlePlaybackUpdate
+                  }
+                  onEnded={
+                    handlePlaybackEnded
+                  }
+                />
+              )
+            ) : (
+              <div className="px-6 text-center">
+                <Film
+                  size={44}
+                  className="mx-auto text-white/15"
+                />
+
+                <h2 className="mt-4 text-lg font-bold text-white">
+                  Video unavailable
+                </h2>
+
+                <p className="mt-2 text-sm text-white/35">
+                  This title does not have a
+                  playable video source yet.
+                </p>
+              </div>
+            )}
+          </div>
+        </div>
+      </div>
     )
   }
 
-  const handlePlaybackEnded = (): void => {
-    if (Number.isFinite(numericId)) {
-      removeContinueWatching(
-        numericId,
-      )
-
-      setContinueWatchingIds(
-        getContinueWatchingIds(),
-      )
-    }
-  }
-
-  return (
-    <div className="fixed inset-0 z-[90] flex items-center justify-center bg-black p-0 sm:p-4">
-      <div className="relative flex h-full w-full max-w-7xl flex-col overflow-hidden bg-black sm:h-auto sm:max-h-[95vh] sm:rounded-2xl sm:border sm:border-white/10">
-        <div className="flex items-center justify-between border-b border-white/10 bg-black/90 px-4 py-3">
-          <div className="min-w-0">
-            <p className="truncate text-sm font-bold text-white">
-              {watchingMovie.title}
-            </p>
-
-            <p className="text-[11px] text-white/35">
-              {watchingMovie.year} •{' '}
-              {watchingMovie.type}
-            </p>
-          </div>
-
-          <button
-            type="button"
-            onClick={closeWatching}
-            aria-label="Close player"
-            className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full border border-white/10 bg-white/5 text-white/70 transition hover:bg-white hover:text-black"
-          >
-            <X size={17} />
-          </button>
-        </div>
-
-        <div className="flex min-h-0 flex-1 items-center justify-center bg-black">
-          {playableUrl ? (
-            isYouTube ? (
-              <iframe
-                src={playableUrl}
-                title={watchingMovie.title}
-                className="aspect-video h-auto w-full"
-                allow="autoplay; encrypted-media; fullscreen; picture-in-picture"
-                allowFullScreen
-              />
-            ) : (
-              <VideoPlayer
-                videoUrl={playableUrl}
-                videoAssets={
-                  canonical?.videoAssets ?? []
-                }
-                subtitles={
-                  canonical?.subtitles ?? []
-                }
-                posterUrl={
-                  canonical?.posterUrl ||
-                  watchingMovie.poster
-                }
-                title={watchingMovie.title}
-                autoPlay
-                initialTime={resumeTime}
-                onTimeUpdate={
-                  handlePlaybackUpdate
-                }
-                onEnded={
-                  handlePlaybackEnded
-                }
-              />
-            )
-          ) : (
-            <div className="px-6 text-center">
-              <Film
-                size={44}
-                className="mx-auto text-white/15"
-              />
-
-              <h2 className="mt-4 text-lg font-bold text-white">
-                Video unavailable
-              </h2>
-
-              <p className="mt-2 text-sm text-white/35">
-                This title does not have a
-                playable video source yet.
-              </p>
-            </div>
-          )}
-        </div>
-      </div>
-    </div>
-  )
-        }
-
   if (loading) {
     return (
-      <div className="min-h-screen bg-[#050505] text-white">
-        <div className="flex min-h-screen items-center justify-center">
-          <div className="text-center">
-            <div className="mx-auto h-10 w-10 animate-spin rounded-full border-2 border-white/10 border-t-white" />
+      <div className="flex min-h-screen items-center justify-center bg-[#050505]">
+        <div className="text-center">
+          <div className="mx-auto h-10 w-10 animate-spin rounded-full border-2 border-white/10 border-t-white" />
 
-            <p className="mt-4 text-sm text-white/40">
-              Loading PMF...
-            </p>
-          </div>
+          <p className="mt-4 text-sm text-white/40">
+            Loading PMF...
+          </p>
         </div>
       </div>
     )
@@ -2306,29 +2230,25 @@ function renderWatching(): ReactNode {
 
   return (
     <div className="min-h-screen bg-[#050505] text-white">
-      <header className="sticky top-0 z-50 border-b border-white/5 bg-[#050505]/90 backdrop-blur-xl">
-        <div className="mx-auto flex h-16 max-w-[1600px] items-center gap-4 px-4 sm:px-6 lg:px-8">
-          <button
-            type="button"
-            onClick={() =>
-              setSection('home')
-            }
-            className="shrink-0 text-left"
-          >
-            <div className="text-lg font-black tracking-tight text-white">
+      <header className="sticky top-0 z-40 border-b border-white/5 bg-black/90 backdrop-blur-xl">
+        <div className="mx-auto flex max-w-[1600px] items-center justify-between gap-4 px-4 py-3 sm:px-6 lg:px-8">
+          <div className="flex items-center gap-3">
+            <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-white text-xs font-black text-black">
               PMF
-              <span className="text-white/35">
-                -FLIX
-              </span>
             </div>
 
-            <div className="hidden text-[8px] font-bold uppercase tracking-[0.22em] text-white/25 sm:block">
-              Your World. Your Stories.
-              Your Flix.
-            </div>
-          </button>
+            <div className="hidden sm:block">
+              <p className="text-sm font-black tracking-tight">
+                Prince Mufasa Flix
+              </p>
 
-          <nav className="hidden items-center gap-1 md:flex">
+              <p className="text-[10px] text-white/30">
+                Your World. Your Stories. Your Flix.
+              </p>
+            </div>
+          </div>
+
+          <nav className="flex items-center gap-1">
             <button
               type="button"
               onClick={() =>
@@ -2336,8 +2256,8 @@ function renderWatching(): ReactNode {
               }
               className={
                 section === 'home'
-                  ? 'rounded-lg bg-white/10 px-3 py-2 text-xs font-bold text-white'
-                  : 'rounded-lg px-3 py-2 text-xs font-semibold text-white/40 transition hover:bg-white/5 hover:text-white'
+                  ? 'rounded-lg bg-white px-3 py-1.5 text-[11px] font-black text-black'
+                  : 'rounded-lg px-3 py-1.5 text-[11px] font-bold text-white/40'
               }
             >
               Home
@@ -2350,8 +2270,8 @@ function renderWatching(): ReactNode {
               }
               className={
                 section === 'movies'
-                  ? 'rounded-lg bg-white/10 px-3 py-2 text-xs font-bold text-white'
-                  : 'rounded-lg px-3 py-2 text-xs font-semibold text-white/40 transition hover:bg-white/5 hover:text-white'
+                  ? 'rounded-lg bg-white px-3 py-1.5 text-[11px] font-black text-black'
+                  : 'rounded-lg px-3 py-1.5 text-[11px] font-bold text-white/40'
               }
             >
               Movies
@@ -2364,11 +2284,11 @@ function renderWatching(): ReactNode {
               }
               className={
                 section === 'tv'
-                  ? 'rounded-lg bg-white/10 px-3 py-2 text-xs font-bold text-white'
-                  : 'rounded-lg px-3 py-2 text-xs font-semibold text-white/40 transition hover:bg-white/5 hover:text-white'
+                  ? 'rounded-lg bg-white px-3 py-1.5 text-[11px] font-black text-black'
+                  : 'rounded-lg px-3 py-1.5 text-[11px] font-bold text-white/40'
               }
             >
-              TV Series
+              TV
             </button>
 
             <button
@@ -2378,95 +2298,13 @@ function renderWatching(): ReactNode {
               }
               className={
                 section === 'my-list'
-                  ? 'rounded-lg bg-white/10 px-3 py-2 text-xs font-bold text-white'
-                  : 'rounded-lg px-3 py-2 text-xs font-semibold text-white/40 transition hover:bg-white/5 hover:text-white'
+                  ? 'rounded-lg bg-white px-3 py-1.5 text-[11px] font-black text-black'
+                  : 'rounded-lg px-3 py-1.5 text-[11px] font-bold text-white/40'
               }
             >
               My List
             </button>
           </nav>
-
-          <div className="ml-auto flex items-center gap-2">
-            <button
-              type="button"
-              onClick={() =>
-                setSection('my-list')
-              }
-              className="flex h-9 w-9 items-center justify-center rounded-full border border-white/10 bg-white/5 text-white/55 transition hover:bg-white/10 hover:text-white md:hidden"
-              aria-label="My List"
-            >
-              <Bookmark size={16} />
-            </button>
-
-            <button
-              type="button"
-              onClick={handleSignOut}
-              className="flex h-9 items-center gap-2 rounded-full border border-white/10 bg-white/5 px-3 text-xs font-bold text-white/55 transition hover:bg-white hover:text-black"
-            >
-              <LogOut size={15} />
-              <span className="hidden sm:inline">
-                Sign out
-              </span>
-            </button>
-          </div>
-        </div>
-
-        <div className="flex gap-1 overflow-x-auto border-t border-white/5 px-4 py-2 md:hidden">
-          <button
-            type="button"
-            onClick={() =>
-              setSection('home')
-            }
-            className={
-              section === 'home'
-                ? 'rounded-lg bg-white px-3 py-1.5 text-[11px] font-black text-black'
-                : 'rounded-lg px-3 py-1.5 text-[11px] font-bold text-white/40'
-            }
-          >
-            Home
-          </button>
-
-          <button
-            type="button"
-            onClick={() =>
-              setSection('movies')
-            }
-            className={
-              section === 'movies'
-                ? 'rounded-lg bg-white px-3 py-1.5 text-[11px] font-black text-black'
-                : 'rounded-lg px-3 py-1.5 text-[11px] font-bold text-white/40'
-            }
-          >
-            Movies
-          </button>
-
-          <button
-            type="button"
-            onClick={() =>
-              setSection('tv')
-            }
-            className={
-              section === 'tv'
-                ? 'rounded-lg bg-white px-3 py-1.5 text-[11px] font-black text-black'
-                : 'rounded-lg px-3 py-1.5 text-[11px] font-bold text-white/40'
-            }
-          >
-            TV
-          </button>
-
-          <button
-            type="button"
-            onClick={() =>
-              setSection('my-list')
-            }
-            className={
-              section === 'my-list'
-                ? 'rounded-lg bg-white px-3 py-1.5 text-[11px] font-black text-black'
-                : 'rounded-lg px-3 py-1.5 text-[11px] font-bold text-white/40'
-            }
-          >
-            My List
-          </button>
         </div>
       </header>
 
@@ -2576,4 +2414,9 @@ export default function App() {
   }
 
   return <AuthenticatedApp />
-}
+        }
+
+  
+
+      
+                
