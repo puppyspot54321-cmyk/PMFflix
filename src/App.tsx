@@ -2277,68 +2277,68 @@ function AuthenticatedApp() {
               Movies
             </button>
 
-            <button
-              type="button"
-              onClick={() =>
-                setSection('tv')
-              }
-              className={
-                section === 'tv'
-                  ? 'rounded-lg bg-white px-3 py-1.5 text-[11px] font-black text-black'
-                  : 'rounded-lg px-3 py-1.5 text-[11px] font-bold text-white/40'
-              }
-            >
-              TV
-            </button>
+                      <button
+            type="button"
+            onClick={() =>
+              setSection('tv')
+            }
+            className={
+              section === 'tv'
+                ? 'rounded-lg bg-white px-3 py-1.5 text-[11px] font-black text-black'
+                : 'rounded-lg px-3 py-1.5 text-[11px] font-bold text-white/40'
+            }
+          >
+            TV
+          </button>
 
-            <button
-              type="button"
-              onClick={() =>
-                setSection('my-list')
-              }
-              className={
-                section === 'my-list'
-                  ? 'rounded-lg bg-white px-3 py-1.5 text-[11px] font-black text-black'
-                  : 'rounded-lg px-3 py-1.5 text-[11px] font-bold text-white/40'
-              }
-            >
-              My List
-            </button>
-          </nav>
+          <button
+            type="button"
+            onClick={() =>
+              setSection('my-list')
+            }
+            className={
+              section === 'my-list'
+                ? 'rounded-lg bg-white px-3 py-1.5 text-[11px] font-black text-black'
+                : 'rounded-lg px-3 py-1.5 text-[11px] font-bold text-white/40'
+            }
+          >
+            My List
+          </button>
+        </nav>
+      </div>
+    </header>
+
+    {errorMessage && (
+      <div className="mx-auto mt-4 max-w-[1600px] px-4 sm:px-6 lg:px-8">
+        <div className="rounded-xl border border-red-500/20 bg-red-500/5 px-4 py-3 text-sm text-red-300">
+          {errorMessage}
         </div>
-      </header>
+      </div>
+    )}
 
-      {errorMessage && (
-        <div className="mx-auto mt-4 max-w-[1600px] px-4 sm:px-6 lg:px-8">
-          <div className="rounded-xl border border-red-500/20 bg-red-500/5 px-4 py-3 text-sm text-red-300">
-            {errorMessage}
-          </div>
-        </div>
-      )}
+    <main className="mx-auto max-w-[1600px] px-4 py-8 sm:px-6 lg:px-8">
+      {section === 'home' &&
+        renderHomeSection()}
 
-      <main className="mx-auto max-w-[1600px] px-4 py-8 sm:px-6 lg:px-8">
-        {section === 'home' &&
-          renderHomeSection()}
+      {section === 'movies' &&
+        renderMoviesSection()}
 
-        {section === 'movies' &&
-          renderMoviesSection()}
+      {section === 'tv' &&
+        renderTVSection()}
 
-        {section === 'tv' &&
-          renderTVSection()}
+      {section === 'my-list' &&
+        renderMyListSection()}
+    </main>
 
-        {section === 'my-list' &&
-          renderMyListSection()}
-      </main>
+    <footer className="border-t border-white/5 px-4 py-8 text-center text-[11px] text-white/20">
+      © {new Date().getFullYear()}{' '}
+      Prince Mufasa Flix. All rights
+      reserved.
+    </footer>
 
-      <footer className="border-t border-white/5 px-4 py-8 text-center text-[11px] text-white/20">
-        © {new Date().getFullYear()}{' '}
-        Prince Mufasa Flix. All rights
-        reserved.
-      </footer>
-
-      {renderMovieDetails()}
-      {renderWatching()}
-    </div>
+    {renderMovieDetails()}
+    {renderWatching()}
+  </div>
   )
 }
 
@@ -2415,7 +2415,6 @@ export default function App() {
 
   return <AuthenticatedApp />
         }
-
   
 
       
