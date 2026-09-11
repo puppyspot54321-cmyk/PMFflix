@@ -2336,7 +2336,7 @@ function AuthenticatedApp() {
       reserved.
     </footer>
 
-    {renderMovieDetails()}
+        {renderMovieDetails()}
     {renderWatching()}
   </div>
   )
@@ -2414,7 +2414,7 @@ export default function App() {
   }
 
   return <AuthenticatedApp />
-        }
+}
   
 
       
