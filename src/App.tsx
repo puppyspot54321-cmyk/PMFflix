@@ -2017,6 +2017,114 @@ function AuthenticatedApp() {
           <div className="min-w-0">
             <p className="truncate text-sm font-bold text-white">
               {watchingMovie.title}
+function renderWatching(): ReactNode {
+  if (!watchingMovie) {
+    return null
+  }
+
+  const videoUrl = getMovieVideoUrl(
+    watchingMovie,
+  )
+
+  const isYouTube =
+    videoUrl.includes('youtube.com') ||
+    videoUrl.includes('youtu.be')
+
+  const numericId = Number(
+    watchingMovie.id,
+  )
+
+  const continueEntry =
+    Number.isFinite(numericId)
+      ? getContinueWatchingEntry(
+          numericId,
+        )
+      : null
+
+  const resumeTime =
+    continueEntry?.position ?? 0
+
+  const getYouTubeResumeUrl = (
+    url: string,
+    startTime: number,
+  ): string => {
+    const baseUrl =
+      getYouTubeEmbedUrl(url)
+
+    if (startTime <= 0) {
+      return baseUrl
+    }
+
+    try {
+      const parsed = new URL(baseUrl)
+
+      parsed.searchParams.set(
+        'start',
+        String(
+          Math.floor(startTime),
+        ),
+      )
+
+      return parsed.toString()
+    } catch {
+      return baseUrl
+    }
+  }
+
+  const playableUrl = isYouTube
+    ? getYouTubeResumeUrl(
+        videoUrl,
+        resumeTime,
+      )
+    : videoUrl
+
+  const canonical = movies.find(
+    (movie) =>
+      String(movie.id) ===
+      String(watchingMovie.id),
+  )
+
+  const handlePlaybackUpdate = (
+    currentTime: number,
+  ): void => {
+    if (
+      !Number.isFinite(numericId) ||
+      currentTime <= 0
+    ) {
+      return
+    }
+
+    const currentEntry =
+      getContinueWatchingEntry(
+        numericId,
+      )
+
+    saveContinueWatching(
+      numericId,
+      currentTime,
+      currentEntry?.duration ?? 0,
+    )
+  }
+
+  const handlePlaybackEnded = (): void => {
+    if (Number.isFinite(numericId)) {
+      removeContinueWatching(
+        numericId,
+      )
+
+      setContinueWatchingIds(
+        getContinueWatchingIds(),
+      )
+    }
+  }
+
+  return (
+    <div className="fixed inset-0 z-[90] flex items-center justify-center bg-black p-0 sm:p-4">
+      <div className="relative flex h-full w-full max-w-7xl flex-col overflow-hidden bg-black sm:h-auto sm:max-h-[95vh] sm:rounded-2xl sm:border sm:border-white/10">
+        <div className="flex items-center justify-between border-b border-white/10 bg-black/90 px-4 py-3">
+          <div className="min-w-0">
+            <p className="truncate text-sm font-bold text-white">
+              {watchingMovie.title}
             </p>
 
             <p className="text-[11px] text-white/35">
@@ -2060,15 +2168,13 @@ function AuthenticatedApp() {
                 }
                 title={watchingMovie.title}
                 autoPlay
-                onTimeUpdate={() => {
-                  // Continue Watching tracking is
-                  // already handled when playback starts.
-                }}
-                onEnded={() => {
-                  setContinueWatchingIds(
-                    getContinueWatchingIds(),
-                  )
-                }}
+                initialTime={resumeTime}
+                onTimeUpdate={
+                  handlePlaybackUpdate
+                }
+                onEnded={
+                  handlePlaybackEnded
+                }
               />
             )
           ) : (
@@ -2092,7 +2198,7 @@ function AuthenticatedApp() {
       </div>
     </div>
   )
-  }
+        }
 
   if (loading) {
     return (
