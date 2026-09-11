@@ -228,8 +228,6 @@ function metadataName(
   return id
 }
 
-function getContinueWatchingIds(): number[] {
-
 type ContinueWatchingEntry = {
   id: number
   position: number
