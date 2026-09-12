@@ -3026,10 +3026,10 @@ function toggleMetadataFilter(
     const youtube =
       isYouTubeUrl(videoUrl)
 
-    const handleTimeUpdate = (
-      currentTime: number,
-      duration: number,
-    ) => {
+ const handleTimeUpdate = (
+  currentTime: number,
+) => {
+  
       if (
         !Number.isFinite(
           currentTime,
