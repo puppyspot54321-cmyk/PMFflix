@@ -8,8 +8,7 @@ import {
   Check,
   X,
   LogOut,
-  SlidersHorizontal,
-  ChevronDown,
+  SlidersHorizontal, 
   Film,
   Bookmark,
   Star,
@@ -21,7 +20,6 @@ import {
   Menu,
   Home,
   Tv,
-  UserRound,
   Info,
   ArrowRight,
   RotateCcw,
@@ -826,7 +824,6 @@ function AuthenticatedApp() {
     movieOnlyMovies[0] ??
     null
 
-  const featuredCanonical =
     featuredMovie
       ? movies.find(
           (movie) =>
@@ -1460,10 +1457,7 @@ function HeroSection({
   }
 
   const backdrop =
-    movie.backdrop ||
-    canonical?.backdropUrl ||
-    movie.poster ||
-    heroImage
+    canonical?.backdropUrl || movie.poster || heroImage
 
   const rating =
     safeNumber(canonical?.rating)
