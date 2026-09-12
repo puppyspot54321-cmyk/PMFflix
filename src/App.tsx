@@ -3139,46 +3139,155 @@ function toggleMetadataFilter(
                     }
                     subtitles={
                       canonical?.subtitles ??
-                      []
-                    }
-                    initialTime={
-                      resumeTime
-                    }
-                    autoPlay
-                    onTimeUpdate={
-                      handleTimeUpdate
-                    }
-                    onEnded={
-                      handleEnded
-                    }
-                  />
-                </div>
-              )
-            ) : (
-              <div className="flex min-h-[50vh] flex-col items-center justify-center px-6 text-center">
-                <div className="flex h-16 w-16 items-center justify-center rounded-2xl border border-white/10 bg-white/[0.04]">
-                  <Film
-                    size={24}
-                    className="text-white/25"
-                  />
-                </div>
 
-                <h3 className="mt-5 text-lg font-black text-white">
-                  Video unavailable
-                </h3>
+                      const handleTimeUpdate = (
+  currentTime: number,
+  duration: number,
+) => {
+  if (
+    !Number.isFinite(
+      currentTime,
+    )
+  ) {
+    return
+  }
 
-                <p className="mt-2 max-w-md text-sm leading-6 text-white/35">
-                  There is currently no licensed
-                  playback source connected to this
-                  title.
-                </p>
-              </div>
-            )}
-          </div>
-        </div>
-      </div>
+  if (
+    Number.isFinite(
+      duration,
+    ) &&
+    duration > 0
+  ) {
+    saveContinueWatching(
+      numericId,
+      currentTime,
+      duration,
     )
   }
+
+  setContinueWatchingIds(
+    getContinueWatchingIds(),
+  )
+}
+
+const handleEnded = () => {
+  removeContinueWatching(
+    numericId,
+  )
+
+  setContinueWatchingIds(
+    getContinueWatchingIds(),
+  )
+}
+
+return (
+  <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/95 p-0 sm:p-5">
+    <div className="relative flex h-full w-full max-w-7xl flex-col overflow-hidden bg-black sm:h-auto sm:max-h-[94vh] sm:rounded-2xl sm:border sm:border-white/10">
+      <div className="flex h-14 shrink-0 items-center justify-between border-b border-white/[0.06] bg-black/80 px-4">
+        <div className="min-w-0">
+          <div className="truncate text-sm font-bold text-white">
+            {watchingMovie.title}
+          </div>
+
+          {resumeTime > 0 && (
+            <div className="text-[9px] text-white/30">
+              Resuming from{' '}
+              {Math.floor(
+                resumeTime / 60,
+              )}
+              :
+              {String(
+                Math.floor(
+                  resumeTime % 60,
+                ),
+              ).padStart(
+                2,
+                '0',
+              )}
+            </div>
+          )}
+        </div>
+
+        <button
+          type="button"
+          onClick={
+            closeWatching
+          }
+          className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full border border-white/10 bg-white/[0.05] text-white/60 transition hover:bg-white hover:text-black"
+          aria-label="Close player"
+        >
+          <X size={17} />
+        </button>
+      </div>
+
+      <div className="relative flex min-h-0 flex-1 items-center justify-center bg-black">
+        {videoUrl ? (
+          youtube ? (
+            <div className="aspect-video w-full">
+              <iframe
+                src={`${getYouTubeEmbedUrl(
+                  videoUrl,
+                )}&start=${Math.floor(
+                  resumeTime,
+                )}`}
+                title={
+                  watchingMovie.title
+                }
+                className="h-full w-full border-0"
+                allow="autoplay; encrypted-media; fullscreen; picture-in-picture"
+                allowFullScreen
+              />
+            </div>
+          ) : (
+            <div className="h-full w-full">
+              <VideoPlayer
+                source={videoUrl}
+                poster={
+                  canonical?.posterUrl ||
+                  watchingMovie.poster
+                }
+                subtitles={
+                  canonical?.subtitles ??
+                  []
+                }
+                initialTime={
+                  resumeTime
+                }
+                autoPlay
+                onTimeUpdate={
+                  handleTimeUpdate
+                }
+                onEnded={
+                  handleEnded
+                }
+              />
+            </div>
+          )
+        ) : (
+          <div className="flex min-h-[50vh] flex-col items-center justify-center px-6 text-center">
+            <div className="flex h-16 w-16 items-center justify-center rounded-2xl border border-white/10 bg-white/[0.04]">
+              <Film
+                size={24}
+                className="text-white/25"
+              />
+            </div>
+
+            <h3 className="mt-5 text-lg font-black text-white">
+              Video unavailable
+            </h3>
+
+            <p className="mt-2 max-w-md text-sm leading-6 text-white/35">
+              There is currently no licensed
+              playback source connected to this
+              title.
+            </p>
+          </div>
+        )}
+      </div>
+    </div>
+  </div>
+ )                 
+
 
   /*
    * ─────────────────────────────────────────────
