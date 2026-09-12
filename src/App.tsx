@@ -5,9 +5,9 @@ import {
   useState,
 } from 'react'
 import type { ReactNode } from 'react'
+import type { LucideIcon } from 'lucide-react'
 
 import {
-  ArrowRight,
   Bookmark,
   Check,
   ChevronLeft,
@@ -25,7 +25,6 @@ import {
   Plus,
   Search,
   SlidersHorizontal,
-  Sparkles,
   Star,
   Tv,
   X,
@@ -46,10 +45,6 @@ import {
   mapCanonicalMovieToLegacy,
 } from './utils/movieMapper'
 
-import {
-  filterMovies,
-} from './utils/movieFilters'
-
 import VideoPlayer from './components/VideoPlayer'
 
 type Section =
@@ -64,24 +59,6 @@ type SortMode =
   | 'rating'
   | 'title'
 
-type DiscoveryFilters = {
-  title: string
-  actor: string
-  director: string
-  genreIds: string[]
-  subgenreIds: string[]
-  countryIds: string[]
-  regionIds: string[]
-  industryIds: string[]
-  languageIds: string[]
-  collectionIds: string[]
-  tags: string[]
-  year: string
-  minRating: string
-  contentType: '' | CanonicalMovie['contentType']
-  quality: '' | CanonicalMovie['videoQualities'][number]
-}
-
 type DisplayMovie =
   ReturnType<typeof mapCanonicalMovieToLegacy>
 
@@ -92,27 +69,38 @@ type ContinueWatchingEntry = {
   updatedAt: number
 }
 
-const EMPTY_FILTERS: DiscoveryFilters = {
-  title: '',
-  actor: '',
-  director: '',
-  genreIds: [],
-  subgenreIds: [],
-  countryIds: [],
-  regionIds: [],
-  industryIds: [],
-  languageIds: [],
-  collectionIds: [],
-  tags: [],
-  year: '',
-  minRating: '',
-  contentType: '',
-  quality: '',
+type NavItem = {
+  value: Section
+  label: string
+  icon: LucideIcon
 }
 
 const MY_LIST_STORAGE_KEY = 'pmf-my-list'
 const CONTINUE_WATCHING_STORAGE_KEY =
   'pmf-continue-watching'
+
+const NAV_ITEMS: NavItem[] = [
+  {
+    value: 'home',
+    label: 'Home',
+    icon: Home,
+  },
+  {
+    value: 'movies',
+    label: 'Movies',
+    icon: Film,
+  },
+  {
+    value: 'tv',
+    label: 'TV Series',
+    icon: Tv,
+  },
+  {
+    value: 'my-list',
+    label: 'My List',
+    icon: Bookmark,
+  },
+]
 
 function normalizeText(value: string): string {
   return value.trim().toLowerCase()
@@ -120,15 +108,13 @@ function normalizeText(value: string): string {
 
 function safeNumber(value: unknown): number {
   const number = Number(value)
-
   return Number.isFinite(number) ? number : 0
 }
 
 function getMovieVideoUrl(
   movie: DisplayMovie,
 ): string {
-  const directUrl =
-    movie.videoUrl?.trim()
+  const directUrl = movie.videoUrl?.trim()
 
   if (directUrl) {
     return directUrl
@@ -151,12 +137,8 @@ function isYouTubeUrl(
     const parsed = new URL(value)
 
     return (
-      parsed.hostname.includes(
-        'youtube.com',
-      ) ||
-      parsed.hostname.includes(
-        'youtu.be',
-      )
+      parsed.hostname.includes('youtube.com') ||
+      parsed.hostname.includes('youtu.be')
     )
   } catch {
     return false
@@ -170,9 +152,7 @@ function getYouTubeEmbedUrl(
     const parsed = new URL(value)
 
     if (
-      parsed.hostname.includes(
-        'youtu.be',
-      )
+      parsed.hostname.includes('youtu.be')
     ) {
       const id = parsed.pathname
         .replace('/', '')
@@ -194,6 +174,42 @@ function getYouTubeEmbedUrl(
   }
 }
 
+function getMyListIds(): number[] {
+  try {
+    const saved = localStorage.getItem(
+      MY_LIST_STORAGE_KEY,
+    )
+
+    if (!saved) return []
+
+    const parsed: unknown =
+      JSON.parse(saved)
+
+    if (!Array.isArray(parsed)) return []
+
+    return parsed.filter(
+      (value): value is number =>
+        typeof value === 'number' &&
+        Number.isFinite(value),
+    )
+  } catch {
+    return []
+  }
+}
+
+function saveMyListIds(
+  ids: number[],
+): void {
+  try {
+    localStorage.setItem(
+      MY_LIST_STORAGE_KEY,
+      JSON.stringify(ids),
+    )
+  } catch {
+    // Local storage may be unavailable.
+  }
+}
+
 function getContinueWatchingEntries():
   ContinueWatchingEntry[] {
   try {
@@ -201,16 +217,12 @@ function getContinueWatchingEntries():
       CONTINUE_WATCHING_STORAGE_KEY,
     )
 
-    if (!saved) {
-      return []
-    }
+    if (!saved) return []
 
     const parsed: unknown =
       JSON.parse(saved)
 
-    if (!Array.isArray(parsed)) {
-      return []
-    }
+    if (!Array.isArray(parsed)) return []
 
     return parsed.filter(
       (
@@ -242,29 +254,6 @@ function getContinueWatchingEntries():
   }
 }
 
-function getContinueWatchingIds(): number[] {
-  return getContinueWatchingEntries()
-    .sort(
-      (a, b) =>
-        b.updatedAt -
-        a.updatedAt,
-    )
-    .map(
-      (entry) => entry.id,
-    )
-}
-
-function getContinueWatchingEntry(
-  id: number,
-): ContinueWatchingEntry | null {
-  return (
-    getContinueWatchingEntries().find(
-      (entry) =>
-        entry.id === id,
-    ) ?? null
-  )
-}
-
 function saveContinueWatching(
   id: number,
   position: number,
@@ -276,28 +265,20 @@ function saveContinueWatching(
 
     const nextEntry: ContinueWatchingEntry = {
       id,
-      position: Math.max(
-        0,
-        position,
-      ),
-      duration: Math.max(
-        0,
-        duration,
-      ),
+      position: Math.max(0, position),
+      duration: Math.max(0, duration),
       updatedAt: Date.now(),
     }
 
     const next = [
       ...current.filter(
-        (entry) =>
-          entry.id !== id,
+        (entry) => entry.id !== id,
       ),
       nextEntry,
     ]
       .sort(
         (a, b) =>
-          b.updatedAt -
-          a.updatedAt,
+          b.updatedAt - a.updatedAt,
       )
       .slice(0, 30)
 
@@ -306,7 +287,7 @@ function saveContinueWatching(
       JSON.stringify(next),
     )
   } catch {
-    // Ignore localStorage failures.
+    // Ignore storage failures.
   }
 }
 
@@ -315,93 +296,17 @@ function removeContinueWatching(
 ): void {
   try {
     const next =
-      getContinueWatchingEntries()
-        .filter(
-          (entry) =>
-            entry.id !== id,
-        )
+      getContinueWatchingEntries().filter(
+        (entry) => entry.id !== id,
+      )
 
     localStorage.setItem(
       CONTINUE_WATCHING_STORAGE_KEY,
       JSON.stringify(next),
     )
   } catch {
-    // Ignore localStorage failures.
+    // Ignore storage failures.
   }
-}
-
-function getMyListIds(): number[] {
-  try {
-    const saved = localStorage.getItem(
-      MY_LIST_STORAGE_KEY,
-    )
-
-    if (!saved) {
-      return []
-    }
-
-    const parsed: unknown =
-      JSON.parse(saved)
-
-    if (!Array.isArray(parsed)) {
-      return []
-    }
-
-    return parsed.filter(
-      (
-        value,
-      ): value is number =>
-        typeof value === 'number' &&
-        Number.isFinite(value),
-    )
-  } catch {
-    return []
-  }
-}
-
-function saveMyListIds(
-  ids: number[],
-): void {
-  try {
-    localStorage.setItem(
-      MY_LIST_STORAGE_KEY,
-      JSON.stringify(ids),
-    )
-  } catch {
-    // Ignore localStorage failures.
-  }
-}
-
-function formatRuntime(
-  movie: CanonicalMovie | undefined,
-): string {
-  if (!movie) {
-    return ''
-  }
-
-  if (
-    movie.runtimeMinutes !==
-    undefined
-  ) {
-    const hours =
-      Math.floor(
-        movie.runtimeMinutes /
-          60,
-      )
-
-    const minutes =
-      movie.runtimeMinutes % 60
-
-    if (hours > 0) {
-      return minutes > 0
-        ? `${hours}h ${minutes}m`
-        : `${hours}h`
-    }
-
-    return `${minutes}m`
-  }
-
-  return movie.duration ?? ''
 }
 
 function getProgressPercent(
@@ -425,13 +330,37 @@ function getProgressPercent(
   )
 }
 
+function formatRuntime(
+  movie: CanonicalMovie,
+): string {
+  if (
+    movie.runtimeMinutes !== undefined &&
+    movie.runtimeMinutes > 0
+  ) {
+    const hours = Math.floor(
+      movie.runtimeMinutes / 60,
+    )
+
+    const minutes =
+      movie.runtimeMinutes % 60
+
+    if (hours > 0) {
+      return minutes > 0
+        ? `${hours}h ${minutes}m`
+        : `${hours}h`
+    }
+
+    return `${minutes}m`
+  }
+
+  return movie.duration ?? ''
+}
+
 function metadataName(
   catalog: MetadataCatalog | null,
   id: string,
 ): string {
-  if (!catalog) {
-    return id
-  }
+  if (!catalog) return id
 
   const groups = [
     catalog.genres,
@@ -446,25 +375,21 @@ function metadataName(
   ]
 
   for (const group of groups) {
-    const item =
-      group.find(
-        (value) =>
-          value.id === id,
-      )
+    const item = group.find(
+      (value) => value.id === id,
+    )
 
-    if (item) {
-      return item.name
-    }
+    if (item) return item.name
   }
 
   return id
 }
 
 function sortMovies(
-  values: CanonicalMovie[],
+  movies: CanonicalMovie[],
   mode: SortMode,
 ): CanonicalMovie[] {
-  return [...values].sort(
+  return [...movies].sort(
     (a, b) => {
       if (mode === 'title') {
         return a.title.localeCompare(
@@ -474,12 +399,8 @@ function sortMovies(
 
       if (mode === 'newest') {
         return (
-          safeNumber(
-            b.releaseYear,
-          ) -
-          safeNumber(
-            a.releaseYear,
-          )
+          safeNumber(b.releaseYear) -
+          safeNumber(a.releaseYear)
         )
       }
 
@@ -495,12 +416,8 @@ function sortMovies(
           safeNumber(a.viewCount) ||
         safeNumber(b.rating) -
           safeNumber(a.rating) ||
-        safeNumber(
-          b.releaseYear,
-        ) -
-          safeNumber(
-            a.releaseYear,
-          )
+        safeNumber(b.releaseYear) -
+          safeNumber(a.releaseYear)
       )
     },
   )
@@ -511,23 +428,16 @@ function matchesSection(
   section: Section,
 ): boolean {
   if (section === 'movies') {
-    return (
-      movie.contentType ===
-        'movie' ||
-      movie.contentType ===
-        'documentary' ||
-      movie.contentType ===
-        'short_film' ||
-      movie.contentType ===
-        'special'
-    )
+    return [
+      'movie',
+      'documentary',
+      'short_film',
+      'special',
+    ].includes(movie.contentType)
   }
 
   if (section === 'tv') {
-    return (
-      movie.contentType ===
-      'tv_show'
-    )
+    return movie.contentType === 'tv_show'
   }
 
   return true
@@ -613,10 +523,8 @@ function MovieCard({
     <article className="group relative w-[150px] shrink-0 sm:w-[185px] lg:w-[205px]">
       <button
         type="button"
-        onClick={() =>
-          onOpen(movie)
-        }
-        className="relative block w-full overflow-hidden rounded-2xl border border-white/10 bg-white/[0.04] text-left shadow-xl transition duration-300 hover:-translate-y-1 hover:border-white/25 hover:shadow-red-950/30"
+        onClick={() => onOpen(movie)}
+        className="relative block w-full overflow-hidden rounded-2xl border border-white/10 bg-white/[0.04] text-left shadow-xl transition duration-300 hover:-translate-y-1 hover:border-white/25"
       >
         <div className="aspect-[2/3] overflow-hidden bg-white/5">
           {movie.poster ? (
@@ -632,10 +540,10 @@ function MovieCard({
             </div>
           )}
 
-          <div className="absolute inset-0 bg-gradient-to-t from-black via-transparent to-black/10 opacity-70" />
+          <div className="absolute inset-0 bg-gradient-to-t from-black via-transparent to-black/10 opacity-75" />
 
           <div className="absolute inset-x-0 bottom-0 p-3">
-            <div className="flex items-center gap-1.5 text-[10px] font-bold text-white/70">
+            <div className="flex items-center gap-2 text-[10px] font-bold text-white/70">
               {canonical.rating !== undefined && (
                 <span className="flex items-center gap-1">
                   <Star className="h-3 w-3 fill-current text-yellow-400" />
@@ -662,7 +570,7 @@ function MovieCard({
           )}
 
           {canonical.isPremium && (
-            <div className="absolute right-2 top-2 rounded-full border border-yellow-400/30 bg-black/70 px-2 py-1 text-[8px] font-black uppercase tracking-wider text-yellow-300">
+            <div className="absolute right-2 top-2 rounded-full border border-yellow-400/30 bg-black/75 px-2 py-1 text-[8px] font-black uppercase tracking-wider text-yellow-300">
               Premium
             </div>
           )}
@@ -680,12 +588,10 @@ function MovieCard({
         </div>
       )}
 
-      <div className="mt-2 flex items-center gap-1">
+      <div className="mt-2 flex gap-1">
         <button
           type="button"
-          onClick={() =>
-            onPlay(movie)
-          }
+          onClick={() => onPlay(movie)}
           className="flex h-9 flex-1 items-center justify-center gap-1.5 rounded-lg bg-white text-xs font-black text-black transition hover:bg-red-600 hover:text-white"
         >
           <Play className="h-3.5 w-3.5 fill-current" />
@@ -717,7 +623,7 @@ function MovieCard({
       </div>
     </article>
   )
-}
+ }
 
 function MovieRail({
   title,
@@ -762,14 +668,14 @@ function MovieRail({
           <div className="hidden items-center gap-1 sm:flex">
             <button
               type="button"
-              className="flex h-8 w-8 items-center justify-center rounded-full border border-white/10 bg-white/[0.04] text-white/50 transition hover:text-white"
+              className="flex h-8 w-8 items-center justify-center rounded-full border border-white/10 bg-white/[0.04] text-white/50"
             >
               <ChevronLeft className="h-4 w-4" />
             </button>
 
             <button
               type="button"
-              className="flex h-8 w-8 items-center justify-center rounded-full border border-white/10 bg-white/[0.04] text-white/50 transition hover:text-white"
+              className="flex h-8 w-8 items-center justify-center rounded-full border border-white/10 bg-white/[0.04] text-white/50"
             >
               <ChevronRight className="h-4 w-4" />
             </button>
@@ -854,16 +760,7 @@ function AuthenticatedApp() {
   )
 
   const [myListIds, setMyListIds] =
-    useState<number[]>(
-      getMyListIds,
-    )
-
-  const [
-    continueWatchingIds,
-    setContinueWatchingIds,
-  ] = useState<number[]>(
-    getContinueWatchingIds,
-  )
+    useState<number[]>(getMyListIds)
 
   const [
     continueWatchingEntries,
@@ -874,67 +771,80 @@ function AuthenticatedApp() {
     getContinueWatchingEntries,
   )
 
-  const [
-    filters,
-    setFilters,
-  ] = useState<DiscoveryFilters>(
-    EMPTY_FILTERS,
-  )
-
-  const [
-    showFilters,
-    setShowFilters,
-  ] = useState(false)
-
-  const [
-    sortMode,
-    setSortMode,
-  ] = useState<SortMode>(
-    'popular',
-  )
-
   const [searchQuery, setSearchQuery] =
     useState('')
+
+  const [sortMode, setSortMode] =
+    useState<SortMode>('popular')
+
+  const [showFilters, setShowFilters] =
+    useState(false)
 
   const [mobileMenuOpen, setMobileMenuOpen] =
     useState(false)
 
-  useEffect(() => {
-    let active = true
+  const [genreFilter, setGenreFilter] =
+    useState('')
 
-    const loadCatalog = async () => {
+  const [yearFilter, setYearFilter] =
+    useState('')
+
+  const [minRating, setMinRating] =
+    useState('')
+
+  const [contentTypeFilter, setContentTypeFilter] =
+    useState('')
+
+  const navigate = (
+    nextSection: Section,
+  ) => {
+    setSection(nextSection)
+    setMobileMenuOpen(false)
+    window.scrollTo({
+      top: 0,
+      behavior: 'smooth',
+    })
+  }
+
+  const refreshLocalState = () => {
+    setMyListIds(getMyListIds())
+    setContinueWatchingEntries(
+      getContinueWatchingEntries(),
+    )
+  }
+
+  useEffect(() => {
+    let mounted = true
+
+    async function loadCatalog() {
       setLoading(true)
       setErrorMessage('')
 
       try {
         const [
           movieData,
-          metadata,
+          metadataData,
         ] = await Promise.all([
           getMovies(),
           getMetadataCatalog(),
         ])
 
-        if (!active) {
-          return
-        }
+        if (!mounted) return
 
         setMovies(movieData)
         setMetadataCatalog(
-          metadata,
+          metadataData,
         )
       } catch (error) {
-        if (!active) {
-          return
-        }
+        if (!mounted) return
 
         setErrorMessage(
           error instanceof Error
             ? error.message
-            : 'Unable to load the PMF catalog.',
+            : 'Unable to load PMF Flix.',
         )
       } finally {
-        if (active) {
+        if (mounted) {
           setLoading(false)
         }
       }
@@ -942,22 +852,33 @@ function AuthenticatedApp() {
 
     void loadCatalog()
 
+    const channel =
+      supabase
+        .channel('pmf-movies-live')
+        .on(
+          'postgres_changes',
+          {
+            event: '*',
+            schema: 'public',
+            table: 'movies',
+          },
+          () => {
+            void loadCatalog()
+          },
+        )
+        .subscribe()
+
     return () => {
-      active = false
+      mounted = false
+      void supabase.removeChannel(
+        channel,
+      )
     }
   }, [])
 
   useEffect(() => {
     const handleStorage = () => {
-      setMyListIds(
-        getMyListIds(),
-      )
-      setContinueWatchingIds(
-        getContinueWatchingIds(),
-      )
-      setContinueWatchingEntries(
-        getContinueWatchingEntries(),
-      )
+      refreshLocalState()
     }
 
     window.addEventListener(
@@ -965,178 +886,200 @@ function AuthenticatedApp() {
       handleStorage,
     )
 
-    return () =>
+    return () => {
       window.removeEventListener(
         'storage',
         handleStorage,
       )
+    }
   }, [])
 
-  const displayMovies =
-    useMemo(
-      () =>
-        movies.map(
-          mapCanonicalMovieToLegacy,
+  const movieMap = useMemo(() => {
+    const map = new Map<
+      number,
+      DisplayMovie
+    >()
+
+    movies.forEach((movie) => {
+      map.set(
+        Number(movie.id),
+        mapCanonicalMovieToLegacy(
+          movie,
         ),
-      [movies],
-    )
-
-  const movieMap =
-    useMemo(() => {
-      const map = new Map<
-        number,
-        DisplayMovie
-      >()
-
-      for (const movie of displayMovies) {
-        map.set(
-          Number(movie.id),
-          movie,
-        )
-      }
-
-      return map
-    }, [displayMovies])
-
-  const canonicalMap =
-    useMemo(() => {
-      const map = new Map<
-        number,
-        CanonicalMovie
-      >()
-
-      for (const movie of movies) {
-        map.set(
-          Number(movie.id),
-          movie,
-        )
-      }
-
-      return map
-    }, [movies])
-
-  
-    const filteredMovies =
-    useMemo(() => {
-      let result =
-        filterMovies(
-          movies,
-          {
-            title:
-              filters.title,
-            actor:
-              filters.actor,
-            director:
-              filters.director,
-            genreIds:
-              filters.genreIds,
-            subgenreIds:
-              filters.subgenreIds,
-            countryIds:
-              filters.countryIds,
-            regionIds:
-              filters.regionIds,
-            industryIds:
-              filters.industryIds,
-            languageIds:
-              filters.languageIds,
-            collectionIds:
-              filters.collectionIds,
-            tags:
-              filters.tags,
-            year: filters.year
-              ? Number(
-                  filters.year,
-                )
-              : undefined,
-            minRating:
-              filters.minRating
-                ? Number(
-                    filters.minRating,
-                  )
-                : undefined,
-            contentType:
-              filters.contentType ||
-              undefined,
-            quality:
-              filters.quality ||
-              undefined,
-          },
-        )
-
-      if (
-        searchQuery.trim()
-      ) {
-        const query =
-          normalizeText(
-            searchQuery,
-          )
-
-        result =
-          result.filter(
-            (movie) => {
-              const people =
-                [
-                  ...movie.directors,
-                  ...movie.writers,
-                ]
-                  .map(
-                    (person) =>
-                      person.name,
-                  )
-                  .join(' ')
-
-              const searchable =
-                [
-                  movie.title,
-                  movie.originalTitle ??
-                    '',
-                  movie.slug,
-                  movie.synopsis,
-                  movie.genres.join(
-                    ' ',
-                  ),
-                  movie.tags.join(
-                    ' ',
-                  ),
-                  people,
-                ]
-                  .join(' ')
-                  .toLowerCase()
-
-              return searchable.includes(
-                query,
-              )
-            },
-          )
-      }
-
-      return sortMovies(
-        result,
-        sortMode,
       )
+    })
+
+    return map
+  }, [movies])
+
+  const continueWatchingMovies =
+    useMemo(() => {
+      const entries = [
+        ...continueWatchingEntries,
+      ].sort(
+        (a, b) =>
+          b.updatedAt -
+          a.updatedAt,
+      )
+
+      return entries
+        .map((entry) =>
+          movies.find(
+            (movie) =>
+              Number(movie.id) ===
+              entry.id,
+          ),
+        )
+        .filter(
+          (
+            movie,
+          ): movie is CanonicalMovie =>
+            Boolean(movie),
+        )
     }, [
+      continueWatchingEntries,
       movies,
-      filters,
-      searchQuery,
-      sortMode,
     ])
 
-  const sectionMovies =
-    useMemo(
-      () =>
-        filteredMovies.filter(
-          (movie) =>
-            matchesSection(
-              movie,
-              section,
-            ),
+  const myListMovies = useMemo(
+    () =>
+      movies.filter((movie) =>
+        myListIds.includes(
+          Number(movie.id),
         ),
-      [
-        filteredMovies,
-        section,
-      ],
+      ),
+    [movies, myListIds],
+  )
+
+  const filteredMovies = useMemo(() => {
+    const query =
+      normalizeText(searchQuery)
+
+    const genre =
+      normalizeText(genreFilter)
+
+    const year =
+      Number(yearFilter)
+
+    const rating =
+      Number(minRating)
+
+    const type =
+      normalizeText(contentTypeFilter)
+
+    const result = movies.filter(
+      (movie) => {
+        if (
+          section !== 'home' &&
+          section !== 'my-list' &&
+          !matchesSection(
+            movie,
+            section,
+          )
+        ) {
+          return false
+        }
+
+        if (
+          section === 'my-list' &&
+          !myListIds.includes(
+            Number(movie.id),
+          )
+        ) {
+          return false
+        }
+
+        if (query) {
+          const searchable = [
+            movie.title,
+            movie.originalTitle ?? '',
+            movie.slug,
+            movie.tagline ?? '',
+            movie.synopsis,
+            ...movie.genres,
+            ...movie.tags,
+            ...movie.directors.map(
+              (person) =>
+                person.name,
+            ),
+            ...movie.writers.map(
+              (person) =>
+                person.name,
+            ),
+          ]
+            .join(' ')
+            .toLowerCase()
+
+          if (
+            !searchable.includes(query)
+          ) {
+            return false
+          }
+        }
+
+        if (genre) {
+          const genreNames =
+            movie.genres.map(
+              (id) =>
+                metadataName(
+                  metadataCatalog,
+                  id,
+                ).toLowerCase(),
+            )
+
+          if (
+            !genreNames.some(
+              (name) =>
+                name.includes(genre),
+            )
+          ) {
+            return false
+          }
+        }
+
+        if (
+          year &&
+          movie.releaseYear !==
+            year
+        ) {
+          return false
+        }
+
+        if (
+          rating &&
+          safeNumber(movie.rating) <
+            rating
+        ) {
+          return false
+        }
+
+        if (
+          type &&
+          movie.contentType !== type
+        ) {
+          return false
+        }
+
+        return true
+      },
     )
+
+    return sortMovies(
+      result,
+      sortMode,
+    )
+  }, [
+    movies,
+    section,
+    myListIds,
+    searchQuery,
+    genreFilter,
+    yearFilter,
+    minRating,
+    contentTypeFilter,
+    metadataCatalog,
+    sortMode,
+  ])
 
   const featuredMovie =
     useMemo(
@@ -1152,42 +1095,6 @@ function AuthenticatedApp() {
         movies[0] ??
         null,
       [movies],
-    )
-
-  const continueWatchingMovies =
-    useMemo(() => {
-      return continueWatchingIds
-        .map((id) =>
-          canonicalMap.get(id),
-        )
-        .filter(
-          (
-            movie,
-          ): movie is CanonicalMovie =>
-            Boolean(movie),
-        )
-    }, [
-      continueWatchingIds,
-      canonicalMap,
-    ])
-
-  const myListMovies =
-    useMemo(
-      () =>
-        myListIds
-          .map((id) =>
-            canonicalMap.get(id),
-          )
-          .filter(
-            (
-              movie,
-            ): movie is CanonicalMovie =>
-              Boolean(movie),
-          ),
-      [
-        myListIds,
-        canonicalMap,
-      ],
     )
 
   const trendingMovies =
@@ -1216,15 +1123,16 @@ function AuthenticatedApp() {
       [movies],
     )
 
-  const pmfOriginalMovies =
+  const pmfOriginals =
     useMemo(
       () =>
-        movies
-          .filter(
+        sortMovies(
+          movies.filter(
             (movie) =>
               movie.isPmfOriginal,
-          )
-          .slice(0, 12),
+          ),
+          'popular',
+        ).slice(0, 12),
       [movies],
     )
 
@@ -1238,48 +1146,37 @@ function AuthenticatedApp() {
       [movies],
     )
 
-  const recommendedMovies =
-    useMemo(() => {
-      const preferredGenres =
-        new Set(
-          myListMovies.flatMap(
-            (movie) =>
-              movie.genres,
-          ),
-        )
+  const featuredDisplay =
+    featuredMovie
+      ? movieMap.get(
+          Number(featuredMovie.id),
+        ) ?? null
+      : null
 
-      if (
-        preferredGenres.size ===
-        0
-      ) {
-        return popularMovies.slice(
-          0,
-          10,
-        )
-      }
+  const toggleMyList = (
+    id: number,
+  ) => {
+    setMyListIds((current) => {
+      const next = current.includes(id)
+        ? current.filter(
+            (value) => value !== id,
+          )
+        : [...current, id]
 
-      return sortMovies(
-        movies.filter(
-          (movie) =>
-            movie.genres.some(
-              (genre) =>
-                preferredGenres.has(
-                  genre,
-                ),
-            ),
-        ),
-        'rating',
-      ).slice(0, 10)
-    }, [
-      movies,
-      myListMovies,
-      popularMovies,
-    ])
+      saveMyListIds(next)
+
+      return next
+    })
+  }
 
   const openMovie = (
     movie: DisplayMovie,
   ) => {
     setSelectedMovie(movie)
+  }
+
+  const closeMovie = () => {
+    setSelectedMovie(null)
   }
 
   const playMovie = (
@@ -1289,102 +1186,81 @@ function AuthenticatedApp() {
     setWatchingMovie(movie)
   }
 
-  const toggleMyList = (
-    id: number,
-  ) => {
-    setMyListIds((current) => {
-      const exists =
-        current.includes(id)
-
-      const next = exists
-        ? current.filter(
-            (item) =>
-              item !== id,
-          )
-        : [
-            ...current,
-            id,
-          ]
-
-      saveMyListIds(next)
-
-      return next
-    })
+  const closePlayer = () => {
+    setWatchingMovie(null)
+    refreshLocalState()
   }
 
-  const navigate = (
-    nextSection: Section,
+  const continueEntry = watchingMovie
+    ? getContinueWatchingEntries().find(
+        (entry) =>
+          entry.id ===
+          Number(watchingMovie.id),
+      ) ?? null
+    : null
+
+  const handleTimeUpdate = (
+    currentTime: number,
   ) => {
-    setSection(nextSection)
-    setMobileMenuOpen(false)
-    window.scrollTo({
-      top: 0,
-      behavior: 'smooth',
-    })
+    if (!watchingMovie) return
+
+    const movie =
+      movies.find(
+        (item) =>
+          Number(item.id) ===
+          Number(watchingMovie.id),
+      )
+
+    if (!movie) return
+
+    const estimatedDuration =
+      movie.runtimeMinutes
+        ? movie.runtimeMinutes * 60
+        : 0
+
+    saveContinueWatching(
+      Number(watchingMovie.id),
+      currentTime,
+      estimatedDuration,
+    )
+
+    setContinueWatchingEntries(
+      getContinueWatchingEntries(),
+    )
+  }
+
+  const handleEnded = () => {
+    if (!watchingMovie) return
+
+    removeContinueWatching(
+      Number(watchingMovie.id),
+    )
+
+    setContinueWatchingEntries(
+      getContinueWatchingEntries(),
+    )
   }
 
   const resetFilters = () => {
-    setFilters(
-      EMPTY_FILTERS,
-    )
-    setSearchQuery('')
+    setGenreFilter('')
+    setYearFilter('')
+    setMinRating('')
+    setContentTypeFilter('')
     setSortMode('popular')
   }
 
-  const updateFilter = <
-    K extends keyof DiscoveryFilters,
-  >(
-    key: K,
-    value: DiscoveryFilters[K],
-  ) => {
-    setFilters((current) => ({
-      ...current,
-      [key]: value,
-    }))
-   }
-
-      const renderMovieRail = (
-    title: string,
-    values: CanonicalMovie[],
-    eyebrow?: string,
-  ) => (
-    <MovieRail
-      title={title}
-      eyebrow={eyebrow}
-      movies={values}
-      movieMap={movieMap}
-      myListIds={myListIds}
-      continueWatchingEntries={
-        continueWatchingEntries
-      }
-      onOpen={openMovie}
-      onToggleMyList={
-        toggleMyList
-      }
-      onPlay={playMovie}
-    />
-  )
-
-  const heroCanonical =
-    featuredMovie
-
-  const heroDisplay =
-    heroCanonical
-      ? movieMap.get(
-          Number(
-            heroCanonical.id,
-          ),
-        )
-      : undefined
-
-  const heroBackdrop =
-    heroCanonical?.backdropUrl ||
-    heroCanonical?.posterUrl ||
-    heroImage
+  const canonicalWatchingMovie =
+    watchingMovie
+      ? movies.find(
+          (movie) =>
+            Number(movie.id) ===
+            Number(watchingMovie.id),
+        ) ?? null
+      : null
 
   return (
     <AppShell>
-      <header className="fixed inset-x-0 top-0 z-50 border-b border-white/[0.06] bg-black/70 backdrop-blur-2xl">
+      <header className="fixed inset-x-0 top-0 z-50 border-b border-white/[0.06] bg-black/75 backdrop-blur-2xl">
         <div className="mx-auto flex h-16 max-w-[1600px] items-center gap-5 px-4 sm:px-6 lg:px-10">
           <button
             type="button"
@@ -1393,7 +1269,7 @@ function AuthenticatedApp() {
             }
             className="shrink-0 text-left"
           >
-            <div className="text-xl font-black tracking-tight sm:text-2xl">
+            <div className="text-2xl font-black tracking-tight sm:text-3xl">
               <span className="text-red-600">
                 PMF
               </span>
@@ -1406,22 +1282,19 @@ function AuthenticatedApp() {
           </button>
 
           <nav className="hidden items-center gap-1 lg:flex">
-            {[
-              ['home', 'Home'],
-              ['movies', 'Movies'],
-              ['tv', 'TV Series'],
-              ['my-list', 'My List'],
-            ].map(
-              ([value, label]) => (
+            {NAV_ITEMS.map(
+              ({
+                value,
+                label,
+                icon: Icon,
+              }) => (
                 <button
                   key={value}
                   type="button"
                   onClick={() =>
-                    navigate(
-                      value as Section,
-                    )
+                    navigate(value)
                   }
-                  className={`rounded-lg px-3 py-2 text-sm font-bold transition ${
+                  className={`rounded-lg px-3 py-2 text-xs font-bold transition ${
                     section === value
                       ? 'bg-white/10 text-white'
                       : 'text-white/45 hover:bg-white/5 hover:text-white'
@@ -1434,48 +1307,33 @@ function AuthenticatedApp() {
           </nav>
 
           <div className="ml-auto flex items-center gap-2">
-            <div className="hidden w-[220px] items-center gap-2 rounded-full border border-white/10 bg-white/[0.04] px-3 md:flex">
+            <div className="hidden w-56 items-center gap-2 rounded-full border border-white/10 bg-white/[0.04] px-3 md:flex">
               <Search className="h-4 w-4 text-white/35" />
 
               <input
-                value={
-                  searchQuery
-                }
-                onChange={(
-                  event,
-                ) =>
+                value={searchQuery}
+                onChange={(event) =>
                   setSearchQuery(
                     event.target.value,
                   )
                 }
                 placeholder="Search PMF..."
-                className="w-full bg-transparent py-2 text-xs text-white outline-none placeholder:text-white/25"
+                className="w-full bg-transparent py-2.5 text-xs outline-none placeholder:text-white/25"
               />
-
-              {searchQuery && (
-                <button
-                  type="button"
-                  onClick={() =>
-                    setSearchQuery(
-                      '',
-                    )
-                  }
-                  className="text-white/35 hover:text-white"
-                >
-                  <X className="h-3.5 w-3.5" />
-                </button>
-              )}
             </div>
 
             <button
               type="button"
               onClick={() =>
                 setShowFilters(
-                  (value) =>
-                    !value,
+                  (value) => !value,
                 )
               }
-              className="hidden h-9 w-9 items-center justify-center rounded-full border border-white/10 bg-white/[0.04] text-white/50 transition hover:text-white sm:flex"
+              className={`flex h-9 w-9 items-center justify-center rounded-full border ${
+                showFilters
+                  ? 'border-red-600/40 bg-red-600/10 text-red-400'
+                  : 'border-white/10 bg-white/[0.04] text-white/60'
+              }`}
               aria-label="Filters"
             >
               <SlidersHorizontal className="h-4 w-4" />
@@ -1485,8 +1343,7 @@ function AuthenticatedApp() {
               type="button"
               onClick={() =>
                 setMobileMenuOpen(
-                  (value) =>
-                    !value,
+                  (value) => !value,
                 )
               }
               className="flex h-9 w-9 items-center justify-center rounded-full border border-white/10 bg-white/[0.04] text-white/60 lg:hidden"
@@ -1514,12 +1371,8 @@ function AuthenticatedApp() {
               <Search className="h-4 w-4 text-white/35" />
 
               <input
-                value={
-                  searchQuery
-                }
-                onChange={(
-                  event,
-                ) =>
+                value={searchQuery}
+                onChange={(event) =>
                   setSearchQuery(
                     event.target.value,
                   )
@@ -1530,44 +1383,20 @@ function AuthenticatedApp() {
             </div>
 
             <div className="grid grid-cols-2 gap-2">
-              {[
-                [
-                  'home',
-                  'Home',
-                  Home,
-                ],
-                [
-                  'movies',
-                  'Movies',
-                  Film,
-                ],
-                [
-                  'tv',
-                  'TV Series',
-                  Tv,
-                ],
-                [
-                  'my-list',
-                  'My List',
-                  Bookmark,
-                ],
-              ].map(
-                ([
+              {NAV_ITEMS.map(
+                ({
                   value,
                   label,
-                  Icon,
-                ]) => (
+                  icon: Icon,
+                }) => (
                   <button
                     key={value}
                     type="button"
                     onClick={() =>
-                      navigate(
-                        value as Section,
-                      )
+                      navigate(value)
                     }
                     className={`flex items-center gap-2 rounded-xl border px-3 py-3 text-left text-sm font-bold ${
-                      section ===
-                      value
+                      section === value
                         ? 'border-red-600/40 bg-red-600/10 text-white'
                         : 'border-white/10 bg-white/[0.03] text-white/50'
                     }`}
@@ -1595,41 +1424,40 @@ function AuthenticatedApp() {
 
       <main className="pt-16">
         {loading ? (
-          <div className="min-h-[80vh]">
-            <div className="relative h-[65vh] overflow-hidden bg-white/[0.03]">
-              <div className="absolute inset-0 animate-pulse bg-white/[0.03]" />
-
-              <div className="absolute bottom-16 left-5 max-w-2xl px-0 sm:left-10 lg:left-16">
+          <div className="min-h-[85vh]">
+            <div className="relative h-[65vh] animate-pulse bg-white/[0.03]">
+              <div className="absolute bottom-16 left-5 sm:left-10 lg:left-16">
                 <div className="h-3 w-32 rounded bg-white/10" />
                 <div className="mt-4 h-12 w-72 rounded bg-white/10 sm:w-[480px]" />
-                <div className="mt-4 h-4 w-full max-w-xl rounded bg-white/10" />
-                <div className="mt-2 h-4 w-4/5 max-w-lg rounded bg-white/10" />
+                <div className="mt-4 h-4 w-80 rounded bg-white/10 sm:w-[600px]" />
               </div>
             </div>
 
-            <div className="px-5 py-10 sm:px-10 lg:px-16">
-              <div className="mb-5 h-8 w-52 animate-pulse rounded bg-white/10" />
+            <div className="space-y-8 px-4 py-10 sm:px-6 lg:px-10">
+              {[1, 2, 3].map(
+                (row) => (
+                  <div key={row}>
+                    <div className="mb-5 h-7 w-48 rounded bg-white/10" />
 
-              <div className="flex gap-4 overflow-hidden">
-                {Array.from({
-                  length: 6,
-                }).map(
-                  (_, index) => (
-                    <div
-                      key={index}
-                      className="aspect-[2/3] w-[160px] shrink-0 animate-pulse rounded-2xl bg-white/[0.05]"
-                    />
-                  ),
-                )}
-              </div>
+                    <div className="flex gap-4 overflow-hidden">
+                      {[1, 2, 3, 4, 5].map(
+                        (item) => (
+                          <div
+                            key={item}
+                            className="h-64 w-44 shrink-0 animate-pulse rounded-2xl bg-white/[0.04]"
+                          />
+                        ),
+                      )}
+                    </div>
+                  </div>
+                ),
+              )}
             </div>
           </div>
         ) : errorMessage ? (
-          <div className="flex min-h-[75vh] items-center justify-center px-5">
-            <div className="max-w-lg rounded-3xl border border-red-500/20 bg-red-500/[0.05] p-8 text-center">
-              <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl bg-red-600/10 text-red-500">
-                <Info className="h-7 w-7" />
-              </div>
+          <div className="flex min-h-[80vh] items-center justify-center px-6">
+            <div className="max-w-lg rounded-2xl border border-red-500/20 bg-red-500/5 p-8 text-center">
+              <X className="mx-auto h-10 w-10 text-red-400" />
 
               <h1 className="mt-5 text-2xl font-black">
                 PMF could not load
@@ -1644,94 +1472,94 @@ function AuthenticatedApp() {
                 onClick={() =>
                   window.location.reload()
                 }
-                className="mt-6 rounded-xl bg-white px-5 py-3 text-sm font-black text-black transition hover:bg-red-600 hover:text-white"
+                className="mt-6 rounded-xl bg-white px-5 py-3 text-sm font-black text-black"
               >
                 Reload PMF
               </button>
             </div>
           </div>
-        ) : section === 'home' ? (
+        ) : (
           <>
-            <section className="relative min-h-[620px] overflow-hidden sm:min-h-[680px]">
-              <img
-                src={heroBackdrop}
-                alt=""
-                className="absolute inset-0 h-full w-full object-cover"
-              />
+            {section === 'home' &&
+              featuredDisplay &&
+              featuredMovie && (
+                <section className="relative min-h-[72vh] overflow-hidden">
+                  <div className="absolute inset-0">
+                    <img
+                      src={
+                        featuredMovie.backdropUrl ||
+                        featuredMovie.posterUrl ||
+                        heroImage
+                      }
+                      alt=""
+                      className="h-full w-full object-cover opacity-65"
+                    />
 
-              <div className="absolute inset-0 bg-gradient-to-r from-black via-black/70 to-black/10" />
-              <div className="absolute inset-0 bg-gradient-to-t from-[#030303] via-transparent to-black/30" />
-              <div className="absolute inset-0 bg-black/10" />
-
-              <div className="relative mx-auto flex min-h-[620px] max-w-[1600px] items-end px-5 pb-20 sm:min-h-[680px] sm:px-10 lg:px-16">
-                <div className="max-w-2xl">
-                  <div className="mb-4 flex flex-wrap items-center gap-2 text-[10px] font-black uppercase tracking-[0.25em]">
-                    <span className="rounded-full bg-red-600 px-3 py-1.5 text-white">
-                      Featured Film
-                    </span>
-
-                    {heroCanonical?.isPmfOriginal && (
-                      <span className="rounded-full border border-white/20 bg-black/40 px-3 py-1.5 text-white/70">
-                        PMF Original
-                      </span>
-                    )}
+                    <div className="absolute inset-0 bg-gradient-to-r from-black via-black/75 to-transparent" />
+                    <div className="absolute inset-0 bg-gradient-to-t from-[#030303] via-transparent to-black/30" />
                   </div>
 
-                  <h1 className="text-5xl font-black tracking-[-0.04em] sm:text-6xl lg:text-8xl">
-                    {heroCanonical?.title ||
-                      'Prince Mufasa Flix'}
-                  </h1>
+                  <div className="relative mx-auto flex min-h-[72vh] max-w-[1600px] items-end px-5 pb-16 sm:px-10 lg:px-16">
+                    <div className="max-w-2xl">
+                      <div className="mb-4 flex flex-wrap items-center gap-2 text-[10px] font-black uppercase tracking-[0.22em]">
+                        <span className="rounded-full bg-red-600 px-3 py-1">
+                          Featured Film
+                        </span>
 
-                  <div className="mt-5 flex flex-wrap items-center gap-3 text-sm font-bold text-white/65">
-                    {heroCanonical?.releaseYear && (
-                      <span>
-                        {
-                          heroCanonical.releaseYear
-                        }
-                      </span>
-                    )}
-
-                    {heroCanonical?.rating !==
-                      undefined && (
-                      <span className="flex items-center gap-1">
-                        <Star className="h-4 w-4 fill-current text-yellow-400" />
-                        {
-                          heroCanonical.rating
-                        }
-                      </span>
-                    )}
-
-                    {heroCanonical && (
-                      <span>
-                        {formatRuntime(
-                          heroCanonical,
+                        {featuredMovie.isPmfOriginal && (
+                          <span className="rounded-full border border-white/20 bg-black/30 px-3 py-1 text-white/70">
+                            PMF Original
+                          </span>
                         )}
-                      </span>
-                    )}
+                      </div>
 
-                    {heroCanonical?.ageRating && (
-                      <span className="rounded border border-white/20 px-2 py-0.5 text-[10px]">
-                        {
-                          heroCanonical.ageRating
-                        }
-                      </span>
-                    )}
-                  </div>
+                      <h1 className="max-w-3xl text-5xl font-black tracking-[-0.04em] sm:text-6xl lg:text-8xl">
+                        {featuredMovie.title}
+                      </h1>
 
-                  <p className="mt-5 max-w-xl text-sm leading-7 text-white/60 sm:text-base">
-                    {heroCanonical?.tagline ||
-                      heroCanonical?.synopsis ||
-                      'Your world. Your stories. Your flix.'}
-                  </p>
+                      {featuredMovie.tagline && (
+                        <p className="mt-4 text-lg font-bold text-white/80 sm:text-xl">
+                          {featuredMovie.tagline}
+                        </p>
+                      )}
 
-                  <div className="mt-7 flex flex-wrap gap-3">
-                    {heroDisplay && (
-                      <>
+                      <p className="mt-4 line-clamp-3 max-w-xl text-sm leading-6 text-white/50 sm:text-base">
+                        {featuredMovie.synopsis}
+                      </p>
+
+                      <div className="mt-6 flex flex-wrap items-center gap-3 text-xs font-bold text-white/55">
+                        {featuredMovie.releaseYear && (
+                          <span>
+                            {featuredMovie.releaseYear}
+                          </span>
+                        )}
+
+                        {featuredMovie.rating !==
+                          undefined && (
+                          <span className="flex items-center gap-1">
+                            <Star className="h-3.5 w-3.5 fill-current text-yellow-400" />
+                            {featuredMovie.rating}
+                          </span>
+                        )}
+
+                        {formatRuntime(
+                          featuredMovie,
+                        ) && (
+                          <span className="flex items-center gap-1">
+                            <Clock3 className="h-3.5 w-3.5" />
+                            {formatRuntime(
+                              featuredMovie,
+                            )}
+                          </span>
+                        )}
+                      </div>
+
+                      <div className="mt-7 flex flex-wrap gap-3">
                         <button
                           type="button"
                           onClick={() =>
                             playMovie(
-                              heroDisplay,
+                              featuredDisplay,
                             )
                           }
                           className="flex items-center gap-2 rounded-xl bg-white px-6 py-3.5 text-sm font-black text-black transition hover:bg-red-600 hover:text-white"
@@ -1744,1260 +1572,751 @@ function AuthenticatedApp() {
                           type="button"
                           onClick={() =>
                             openMovie(
-                              heroDisplay,
+                              featuredDisplay,
                             )
                           }
-                          className="flex items-center gap-2 rounded-xl bg-white/10 px-6 py-3.5 text-sm font-black backdrop-blur-md transition hover:bg-white/20"
+                          className="flex items-center gap-2 rounded-xl border border-white/15 bg-white/[0.07] px-6 py-3.5 text-sm font-black backdrop-blur-xl transition hover:bg-white/15"
                         >
                           <Info className="h-4 w-4" />
                           More Info
                         </button>
-                      </>
-                    )}
-                  </div>
-
-                  <div className="mt-7 flex flex-wrap gap-2">
-                    {heroCanonical?.genres
-                      .slice(0, 4)
-                      .map(
-                        (genreId) => (
-                          <span
-                            key={
-                              genreId
-                            }
-                            className="text-xs text-white/35"
-                          >
-                            {metadataName(
-                              metadataCatalog,
-                              genreId,
-                            )}
-                          </span>
-                        ),
-                      )}
-                  </div>
-                </div>
-              </div>
-            </section>
-
-            <div className="mx-auto max-w-[1600px] px-5 py-12 sm:px-10 lg:px-16">
-              {continueWatchingMovies.length >
-                0 &&
-                renderMovieRail(
-                  'Continue Watching',
-                  continueWatchingMovies,
-                  'Pick up where you left off',
-                )}
-
-              {trendingMovies.length >
-                0 &&
-                renderMovieRail(
-                  'Trending Now',
-                  trendingMovies,
-                  'What everyone is watching',
-                )}
-
-              {newReleaseMovies.length >
-                0 &&
-                renderMovieRail(
-                  'New Releases',
-                  newReleaseMovies,
-                  'Fresh on PMF',
-                )}
-
-              {pmfOriginalMovies.length >
-                0 &&
-                renderMovieRail(
-                  'PMF Originals',
-                  pmfOriginalMovies,
-                  'Original stories',
-                )}
-
-              {recommendedMovies.length >
-                0 &&
-                renderMovieRail(
-                  'Recommended For You',
-                  recommendedMovies,
-                  'Selected from your taste',
-                )}
-
-              {popularMovies.length >
-                0 &&
-                renderMovieRail(
-                  'Popular on PMF',
-                  popularMovies,
-                  'The PMF audience favourites',
-                )}
-
-              {movies.length ===
-                0 && (
-                <div className="rounded-3xl border border-white/10 bg-white/[0.03] p-10 text-center">
-                  <Film className="mx-auto h-10 w-10 text-white/20" />
-
-                  <h2 className="mt-4 text-xl font-black">
-                    Your PMF catalog is ready for content
-                  </h2>
-
-                  <p className="mx-auto mt-2 max-w-md text-sm leading-6 text-white/40">
-                    Add licensed or public-domain movie records to Supabase and they will appear here automatically.
-                  </p>
-                </div>
-              )}
-            </div>
-          </>
-        ) : (
-          <div className="mx-auto max-w-[1600px] px-5 py-10 sm:px-10 lg:px-16">
-            <div className="mb-8 flex flex-col gap-5 lg:flex-row lg:items-end lg:justify-between">
-              <div>
-                <p className="mb-2 text-[10px] font-black uppercase tracking-[0.3em] text-red-500">
-                  PMF Discovery
-                </p>
-
-                <h1 className="text-4xl font-black tracking-tight sm:text-5xl">
-                  {section === 'movies'
-                    ? 'Movies'
-                    : section === 'tv'
-                      ? 'TV Series'
-                      : 'My List'}
-                </h1>
-
-                <p className="mt-2 max-w-2xl text-sm text-white/40">
-                  {section ===
-                  'my-list'
-                    ? 'Your personal collection of movies and shows.'
-                    : 'Explore the PMF catalog your way.'}
-                </p>
-              </div>
-
-              {section !==
-                'my-list' && (
-                <div className="flex flex-wrap gap-2">
-                  <button
-                    type="button"
-                    onClick={() =>
-                      setShowFilters(
-                        (value) =>
-                          !value,
-                      )
-                    }
-                    className={`flex items-center gap-2 rounded-xl border px-4 py-2.5 text-xs font-black transition ${
-                      showFilters
-                        ? 'border-red-600/40 bg-red-600/10 text-white'
-                        : 'border-white/10 bg-white/[0.04] text-white/60'
-                    }`}
-                  >
-                    <SlidersHorizontal className="h-4 w-4" />
-                    Filters
-                  </button>
-
-                  <select
-                    value={
-                      sortMode
-                    }
-                    onChange={(
-                      event,
-                    ) =>
-                      setSortMode(
-                        event.target
-                          .value as SortMode,
-                      )
-                    }
-                    className="rounded-xl border border-white/10 bg-[#0b0b0b] px-4 py-2.5 text-xs font-bold text-white outline-none"
-                  >
-                    <option value="popular">
-                      Most Popular
-                    </option>
-                    <option value="newest">
-                      Newest
-                    </option>
-                    <option value="rating">
-                      Highest Rated
-                    </option>
-                    <option value="title">
-                      A-Z
-                         </option>
-                  </select>
-                </div>
-              )}
-            </div>
-
-            {showFilters &&
-              section !==
-                'my-list' && (
-                <div className="mb-8 rounded-3xl border border-white/10 bg-white/[0.03] p-5 sm:p-6">
-                  <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-                    <div className="lg:col-span-2">
-                      <label className="mb-2 block text-[10px] font-black uppercase tracking-wider text-white/40">
-                        Search
-                      </label>
-
-                      <input
-                        value={
-                          filters.title
-                        }
-                        onChange={(
-                          event,
-                        ) =>
-                          updateFilter(
-                            'title',
-                            event.target
-                              .value,
-                          )
-                        }
-                        placeholder="Title, actor, director..."
-                        className="w-full rounded-xl border border-white/10 bg-black/30 px-4 py-3 text-sm outline-none focus:border-red-600/60"
-                      />
-                    </div>
-
-                    <div>
-                      <label className="mb-2 block text-[10px] font-black uppercase tracking-wider text-white/40">
-                        Year
-                      </label>
-
-                      <input
-                        value={
-                          filters.year
-                        }
-                        onChange={(
-                          event,
-                        ) =>
-                          updateFilter(
-                            'year',
-                            event.target
-                              .value,
-                          )
-                        }
-                        placeholder="2026"
-                        inputMode="numeric"
-                        className="w-full rounded-xl border border-white/10 bg-black/30 px-4 py-3 text-sm outline-none focus:border-red-600/60"
-                      />
-                    </div>
-
-                    <div>
-                      <label className="mb-2 block text-[10px] font-black uppercase tracking-wider text-white/40">
-                        Minimum Rating
-                      </label>
-
-                      <select
-                        value={
-                          filters.minRating
-                        }
-                        onChange={(
-                          event,
-                        ) =>
-                          updateFilter(
-                            'minRating',
-                            event.target
-                              .value,
-                          )
-                        }
-                        className="w-full rounded-xl border border-white/10 bg-[#080808] px-4 py-3 text-sm outline-none"
-                      >
-                        <option value="">
-                          Any rating
-                        </option>
-                        <option value="9">
-                          9+
-                        </option>
-                        <option value="8">
-                          8+
-                        </option>
-                        <option value="7">
-                          7+
-                        </option>
-                        <option value="6">
-                          6+
-                        </option>
-                        <option value="5">
-                          5+
-                        </option>
-                      </select>
-                    </div>
-
-                    <div>
-                      <label className="mb-2 block text-[10px] font-black uppercase tracking-wider text-white/40">
-                        Content Type
-                      </label>
-
-                      <select
-                        value={
-                          filters.contentType
-                        }
-                        onChange={(
-                          event,
-                        ) =>
-                          updateFilter(
-                            'contentType',
-                            event.target
-                              .value as DiscoveryFilters['contentType'],
-                          )
-                        }
-                        className="w-full rounded-xl border border-white/10 bg-[#080808] px-4 py-3 text-sm outline-none"
-                      >
-                        <option value="">
-                          All types
-                        </option>
-                        <option value="movie">
-                          Movies
-                        </option>
-                        <option value="tv_show">
-                          TV Shows
-                        </option>
-                        <option value="documentary">
-                          Documentaries
-                        </option>
-                        <option value="short_film">
-                          Short Films
-                        </option>
-                        <option value="special">
-                          Specials
-                        </option>
-                      </select>
-                    </div>
-
-                    <div>
-                      <label className="mb-2 block text-[10px] font-black uppercase tracking-wider text-white/40">
-                        Quality
-                      </label>
-
-                      <select
-                        value={
-                          filters.quality
-                        }
-                        onChange={(
-                          event,
-                        ) =>
-                          updateFilter(
-                            'quality',
-                            event.target
-                              .value as DiscoveryFilters['quality'],
-                          )
-                        }
-                        className="w-full rounded-xl border border-white/10 bg-[#080808] px-4 py-3 text-sm outline-none"
-                      >
-                        <option value="">
-                          Any quality
-                        </option>
-                        <option value="480p">
-                          480p
-                        </option>
-                        <option value="720p">
-                          720p
-                        </option>
-                        <option value="1080p">
-                          1080p
-                        </option>
-                        <option value="1440p">
-                          1440p
-                        </option>
-                        <option value="4k">
-                          4K
-                        </option>
-                      </select>
-                    </div>
-
-                    <div className="flex items-end">
-                      <button
-                        type="button"
-                        onClick={
-                          resetFilters
-                        }
-                        className="w-full rounded-xl border border-white/10 bg-white/[0.04] px-4 py-3 text-xs font-black text-white/60 transition hover:bg-white/10 hover:text-white"
-                      >
-                        Reset All Filters
-                      </button>
+                      </div>
                     </div>
                   </div>
-                </div>
+                </section>
               )}
 
-            {section ===
-              'my-list' ? (
-              myListMovies.length >
-              0 ? (
-                <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6">
-                  {myListMovies.map(
-                    (canonical) => {
-                      const movie =
-                        movieMap.get(
-                          Number(
-                            canonical.id,
+            <div className="mx-auto max-w-[1600px] px-4 py-10 sm:px-6 lg:px-10">
+              {showFilters && (
+                <section className="mb-10 rounded-2xl border border-white/10 bg-white/[0.035] p-4 sm:p-5">
+                  <div className="flex flex-col gap-4">
+                    <div className="flex flex-col gap-4 lg:flex-row lg:items-end">
+                      <div className="flex-1">
+                        <label className="mb-2 block text-[10px] font-black uppercase tracking-widest text-white/35">
+                          Genre
+                        </label>
+
+                        <input
+                          value={genreFilter}
+                          onChange={(event) =>
+                            setGenreFilter(
+                              event.target.value,
+                            )
+                          }
+                          placeholder="e.g. Action, Drama..."
+                          className="w-full rounded-xl border border-white/10 bg-black/30 px-4 py-3 text-sm outline-none focus:border-red-600/50"
+                        />
+                      </div>
+
+                      <div className="w-full lg:w-40">
+                        <label className="mb-2 block text-[10px] font-black uppercase tracking-widest text-white/35">
+                          Year
+                        </label>
+
+                        <input
+                          value={yearFilter}
+                          onChange={(event) =>
+                            setYearFilter(
+                              event.target.value,
+                            )
+                          }
+                          placeholder="2026"
+                          inputMode="numeric"
+                          className="w-full rounded-xl border border-white/10 bg-black/30 px-4 py-3 text-sm outline-none focus:border-red-600/50"
+                        />
+                      </div>
+
+                      <div className="w-full lg:w-40">
+                        <label className="mb-2 block text-[10px] font-black uppercase tracking-widest text-white/35">
+                          Min Rating
+                        </label>
+
+                        <input
+                          value={minRating}
+                          onChange={(event) =>
+                            setMinRating(
+                              event.target.value,
+                            )
+                          }
+                          placeholder="7"
+                          inputMode="decimal"
+                          className="w-full rounded-xl border border-white/10 bg-black/30 px-4 py-3 text-sm outline-none focus:border-red-600/50"
+                        />
+                      </div>
+
+                      <div className="w-full lg:w-44">
+                        <label className="mb-2 block text-[10px] font-black uppercase tracking-widest text-white/35">
+                          Content
+                        </label>
+
+                        <select
+                          value={
+                            contentTypeFilter
+                          }
+                          onChange={(event) =>
+                            setContentTypeFilter(
+                              event.target.value,
+                            )
+                          }
+                          className="w-full rounded-xl border border-white/10 bg-[#111] px-4 py-3 text-sm outline-none"
+                        >
+                          <option value="">
+                            All Types
+                          </option>
+                          <option value="movie">
+                            Movies
+                          </option>
+                          <option value="tv_show">
+                            TV Series
+                          </option>
+                          <option value="documentary">
+                            Documentaries
+                          </option>
+                          <option value="short_film">
+                            Short Films
+                          </option>
+                        </select>
+                      </div>
+                    </div>
+
+                    <div className="flex flex-wrap items-center justify-between gap-3">
+                      <div className="flex items-center gap-2 text-xs text-white/40">
+                        <SlidersHorizontal className="h-4 w-4" />
+                        Discovery controls
+                      </div>
+
+                      <div className="flex flex-wrap gap-2">
+                        {(
+                          [
+                            [
+                              'popular',
+                              'Popular',
+                            ],
+                            [
+                              'newest',
+                              'Newest',
+                            ],
+                            [
+                              'rating',
+                              'Top Rated',
+                            ],
+                            [
+                              'title',
+                              'A–Z',
+                            ],
+                          ] as const
+                        ).map(
+                          ([value, label]) => (
+                            <button
+                              key={value}
+                              type="button"
+                              onClick={() =>
+                                setSortMode(
+                                  value,
+                                )
+                              }
+                              className={`rounded-lg px-3 py-2 text-xs font-bold ${
+                                sortMode ===
+                                value
+                                  ? 'bg-red-600 text-white'
+                                  : 'bg-white/5 text-white/45'
+                              }`}
+                            >
+                              {label}
+                            </button>
                           ),
-                        )
+                        )}
 
-                      if (!movie) {
-                        return null
+                        <button
+                          type="button"
+                          onClick={resetFilters}
+                          className="rounded-lg border border-white/10 px-3 py-2 text-xs font-bold text-white/50"
+                        >
+                          Reset
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                </section>
+              )}
+
+              {section === 'home' ? (
+                <>
+                  {continueWatchingMovies.length >
+                    0 && (
+                    <MovieRail
+                      eyebrow="Pick up where you left off"
+                      title="Continue Watching"
+                      movies={
+                        continueWatchingMovies
                       }
+                      movieMap={movieMap}
+                      myListIds={
+                        myListIds
+                      }
+                      continueWatchingEntries={
+                        continueWatchingEntries
+                      }
+                      onOpen={openMovie}
+                      onToggleMyList={
+                        toggleMyList
+                      }
+                      onPlay={playMovie}
+                    />
+                  )}
 
-                      return (
-                        <MovieCard
-                          key={
-                            canonical.id
-                          }
-                          movie={
-                            movie
-                          }
-                          canonical={
-                            canonical
-                          }
-                          myList
-                          continueEntry={
-                            getContinueWatchingEntry(
+                  <MovieRail
+                    eyebrow="What's hot"
+                    title="Trending Now"
+                    movies={trendingMovies}
+                    movieMap={movieMap}
+                    myListIds={myListIds}
+                    continueWatchingEntries={
+                      continueWatchingEntries
+                    }
+                    onOpen={openMovie}
+                    onToggleMyList={
+                      toggleMyList
+                    }
+                    onPlay={playMovie}
+                  />
+
+                  <MovieRail
+                    eyebrow="Fresh on PMF"
+                    title="New Releases"
+                    movies={newReleaseMovies}
+                    movieMap={movieMap}
+                    myListIds={myListIds}
+                    continueWatchingEntries={
+                      continueWatchingEntries
+                    }
+                    onOpen={openMovie}
+                    onToggleMyList={
+                      toggleMyList
+                    }
+                    onPlay={playMovie}
+                  />
+
+                  <MovieRail
+                    eyebrow="Made by PMF"
+                    title="PMF Originals"
+                    movies={pmfOriginals}
+                    movieMap={movieMap}
+                    myListIds={myListIds}
+                    continueWatchingEntries={
+                      continueWatchingEntries
+                    }
+                    onOpen={openMovie}
+                    onToggleMyList={
+                      toggleMyList
+                    }
+                    onPlay={playMovie}
+                  />
+
+                  <MovieRail
+                    eyebrow="The audience is watching"
+                    title="Popular on PMF"
+                    movies={popularMovies}
+                    movieMap={movieMap}
+                    myListIds={myListIds}
+                    continueWatchingEntries={
+                      continueWatchingEntries
+                    }
+                    onOpen={openMovie}
+                    onToggleMyList={
+                      toggleMyList
+                    }
+                    onPlay={playMovie}
+                  />
+                </>
+              ) : (
+                <>
+                  <SectionTitle
+                    eyebrow={
+                      section ===
+                      'my-list'
+                        ? 'Your collection'
+                        : section ===
+                            'tv'
+                          ? 'Series'
+                          : 'Cinema'
+                    }
+                    title={
+                      section ===
+                      'my-list'
+                        ? 'My List'
+                        : section ===
+                            'tv'
+                          ? 'TV Series'
+                          : 'Movies'
+                    }
+                    description={
+                      searchQuery
+                        ? `Showing results for “${searchQuery}”`
+                        : `${filteredMovies.length} titles available`
+                    }
+                  />
+
+                  {filteredMovies.length >
+                  0 ? (
+                    <div className="grid grid-cols-2 gap-x-3 gap-y-8 sm:grid-cols-3 sm:gap-x-4 lg:grid-cols-5 xl:grid-cols-6">
+                      {filteredMovies.map(
+                        (canonical) => {
+                          const movie =
+                            movieMap.get(
                               Number(
                                 canonical.id,
                               ),
                             )
+
+                          if (!movie) {
+                            return null
                           }
-                          onOpen={
-                            openMovie
-                          }
-                          onToggleMyList={
-                            toggleMyList
-                          }
-                          onPlay={
-                            playMovie
-                          }
-                        />
-                      )
-                    },
-                  )}
-                </div>
-              ) : (
-                <div className="rounded-3xl border border-white/10 bg-white/[0.03] p-12 text-center">
-                  <Bookmark className="mx-auto h-12 w-12 text-white/15" />
 
-                  <h2 className="mt-5 text-2xl font-black">
-                    Your My List is empty
-                  </h2>
+                          const entry =
+                            continueWatchingEntries.find(
+                              (item) =>
+                                item.id ===
+                                Number(
+                                  canonical.id,
+                                ),
+                            ) ?? null
 
-                  <p className="mx-auto mt-2 max-w-md text-sm leading-6 text-white/40">
-                    Save movies and shows you want to watch later. They will appear here instantly.
-                  </p>
-
-                  <button
-                    type="button"
-                    onClick={() =>
-                      navigate(
-                        'home',
-                      )
-                    }
-                    className="mt-6 rounded-xl bg-white px-5 py-3 text-sm font-black text-black"
-                  >
-                    Discover PMF
-                  </button>
-                </div>
-              )
-            ) : sectionMovies.length >
-              0 ? (
-              <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6">
-                {sectionMovies.map(
-                  (canonical) => {
-                    const movie =
-                      movieMap.get(
-                        Number(
-                          canonical.id,
-                        ),
-                      )
-
-                    if (!movie) {
-                      return null
-                    }
-
-                    return (
-                      <MovieCard
-                        key={
-                          canonical.id
-                        }
-                        movie={
-                          movie
-                        }
-                        canonical={
-                          canonical
-                        }
-                        myList={myListIds.includes(
-                          Number(
-                            canonical.id,
-                          ),
-                        )}
-                        continueEntry={
-                          getContinueWatchingEntry(
-                            Number(
-                              canonical.id,
-                            ),
+                          return (
+                            <MovieCard
+                              key={
+                                canonical.id
+                              }
+                              movie={
+                                movie
+                              }
+                              canonical={
+                                canonical
+                              }
+                              myList={myListIds.includes(
+                                Number(
+                                  canonical.id,
+                                ),
+                              )}
+                              continueEntry={
+                                entry
+                              }
+                              onOpen={
+                                openMovie
+                              }
+                              onToggleMyList={
+                                toggleMyList
+                              }
+                              onPlay={
+                                playMovie
+                              }
+                            />
                           )
-                        }
-                        onOpen={
-                          openMovie
-                        }
-                        onToggleMyList={
-                          toggleMyList
-                        }
-                        onPlay={
-                          playMovie
-                        }
-                      />
-                    )
-                  },
-                )}
-              </div>
-            ) : (
-              <div className="rounded-3xl border border-white/10 bg-white/[0.03] p-12 text-center">
-                <Search className="mx-auto h-12 w-12 text-white/15" />
+                        },
+                      )}
+                    </div>
+                  ) : (
+                    <div className="rounded-2xl border border-white/10 bg-white/[0.03] px-6 py-20 text-center">
+                      <Search className="mx-auto h-10 w-10 text-white/20" />
 
-                <h2 className="mt-5 text-2xl font-black">
-                  Nothing found
-                </h2>
+                      <h3 className="mt-5 text-xl font-black">
+                        Nothing found
+                      </h3>
 
-                <p className="mx-auto mt-2 max-w-md text-sm leading-6 text-white/40">
-                  Try another search, remove a filter, or explore another PMF section.
-                </p>
+                      <p className="mx-auto mt-2 max-w-md text-sm leading-6 text-white/40">
+                        Try another title, genre,
+                        year, rating or content
+                        type.
+                      </p>
 
-                <button
-                  type="button"
-                  onClick={
-                    resetFilters
-                  }
-                  className="mt-6 rounded-xl bg-white px-5 py-3 text-sm font-black text-black"
-                >
-                  Clear Search
-                </button>
-              </div>
-            )}
-          </div>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setSearchQuery('')
+                          resetFilters()
+                        }}
+                        className="mt-6 rounded-xl bg-white px-5 py-3 text-sm font-black text-black"
+                      >
+                        Clear Discovery
+                      </button>
+                    </div>
+                  )}
+                </>
+              )}
+            </div>
+          </>
         )}
       </main>
 
             {selectedMovie && (
-        <MovieDetailsModal
-          movie={
-            selectedMovie
-          }
-          canonical={
-            canonicalMap.get(
-              Number(
-                selectedMovie.id,
-              ),
-            ) ?? null
-          }
-          metadataCatalog={
-            metadataCatalog
-          }
-          myListIds={
-            myListIds
-          }
-          onClose={() =>
-            setSelectedMovie(
-              null,
-            )
-          }
-          onPlay={() =>
-            playMovie(
-              selectedMovie,
-            )
-          }
-          onToggleMyList={
-            toggleMyList
-          }
-        />
+        <div className="fixed inset-0 z-[70] flex items-center justify-center overflow-y-auto bg-black/85 p-4 backdrop-blur-md sm:p-8">
+          <div className="relative my-auto w-full max-w-5xl overflow-hidden rounded-3xl border border-white/10 bg-[#0b0b0b] shadow-2xl">
+            <button
+              type="button"
+              onClick={closeMovie}
+              className="absolute right-4 top-4 z-20 flex h-10 w-10 items-center justify-center rounded-full bg-black/70 text-white/70 backdrop-blur transition hover:bg-white hover:text-black"
+              aria-label="Close movie details"
+            >
+              <X className="h-5 w-5" />
+            </button>
+
+            {(() => {
+              const canonical =
+                movies.find(
+                  (movie) =>
+                    Number(movie.id) ===
+                    Number(
+                      selectedMovie.id,
+                    ),
+                )
+
+              if (!canonical) {
+                return (
+                  <div className="p-10">
+                    Movie unavailable.
+                  </div>
+                )
+              }
+
+              return (
+                <>
+                  <div className="relative aspect-[16/8] min-h-[260px] overflow-hidden">
+                    <img
+                      src={
+                        canonical.backdropUrl ||
+                        canonical.posterUrl ||
+                        heroImage
+                      }
+                      alt={canonical.title}
+                      className="h-full w-full object-cover"
+                    />
+
+                    <div className="absolute inset-0 bg-gradient-to-t from-[#0b0b0b] via-black/30 to-transparent" />
+
+                    <div className="absolute bottom-0 left-0 right-0 p-5 sm:p-8">
+                      <div className="flex flex-wrap gap-2">
+                        {canonical.isPmfOriginal && (
+                          <span className="rounded-full bg-red-600 px-3 py-1 text-[9px] font-black uppercase tracking-widest">
+                            PMF Original
+                          </span>
+                        )}
+
+                        {canonical.isPremium && (
+                          <span className="rounded-full border border-yellow-400/30 bg-black/60 px-3 py-1 text-[9px] font-black uppercase tracking-widest text-yellow-300">
+                            Premium
+                          </span>
+                        )}
+                      </div>
+
+                      <h2 className="mt-3 text-3xl font-black sm:text-5xl">
+                        {canonical.title}
+                      </h2>
+                    </div>
+                  </div>
+
+                  <div className="p-5 sm:p-8">
+                    <div className="flex flex-wrap items-center gap-3 text-xs font-bold text-white/50">
+                      {canonical.releaseYear && (
+                        <span>
+                          {canonical.releaseYear}
+                        </span>
+                      )}
+
+                      {canonical.rating !==
+                        undefined && (
+                        <span className="flex items-center gap-1 text-white">
+                          <Star className="h-3.5 w-3.5 fill-current text-yellow-400" />
+                          {canonical.rating}
+                        </span>
+                      )}
+
+                      {formatRuntime(
+                        canonical,
+                      ) && (
+                        <span className="flex items-center gap-1">
+                          <Clock3 className="h-3.5 w-3.5" />
+                          {formatRuntime(
+                            canonical,
+                          )}
+                        </span>
+                      )}
+
+                      <span className="flex items-center gap-1">
+                        <Globe2 className="h-3.5 w-3.5" />
+                        {canonical.languageIds
+                          .slice(0, 2)
+                          .map((id) =>
+                            metadataName(
+                              metadataCatalog,
+                              id,
+                            ),
+                          )
+                          .join(', ') ||
+                          'Global'}
+                      </span>
+                    </div>
+
+                    {canonical.tagline && (
+                      <p className="mt-5 text-lg font-bold text-white/80">
+                        {canonical.tagline}
+                      </p>
+                    )}
+
+                    <p className="mt-4 max-w-3xl text-sm leading-7 text-white/50">
+                      {canonical.synopsis}
+                    </p>
+
+                    <div className="mt-5 flex flex-wrap gap-2">
+                      {canonical.genres
+                        .slice(0, 6)
+                        .map((id) => (
+                          <span
+                            key={id}
+                            className="rounded-full border border-white/10 bg-white/[0.04] px-3 py-1.5 text-[10px] font-bold text-white/55"
+                          >
+                            {metadataName(
+                              metadataCatalog,
+                              id,
+                            )}
+                          </span>
+                        ))}
+                    </div>
+
+                    <div className="mt-7 flex flex-wrap gap-3">
+                      <button
+                        type="button"
+                        onClick={() =>
+                          playMovie(
+                            selectedMovie,
+                          )
+                        }
+                        className="flex items-center gap-2 rounded-xl bg-white px-6 py-3 text-sm font-black text-black transition hover:bg-red-600 hover:text-white"
+                      >
+                        <Play className="h-4 w-4 fill-current" />
+                        Watch Now
+                      </button>
+
+                      <button
+                        type="button"
+                        onClick={() =>
+                          toggleMyList(
+                            Number(
+                              selectedMovie.id,
+                            ),
+                          )
+                        }
+                        className="flex items-center gap-2 rounded-xl border border-white/10 bg-white/[0.05] px-5 py-3 text-sm font-black"
+                      >
+                        {myListIds.includes(
+                          Number(
+                            selectedMovie.id,
+                          ),
+                        ) ? (
+                          <>
+                            <Check className="h-4 w-4" />
+                            In My List
+                          </>
+                        ) : (
+                          <>
+                            <Plus className="h-4 w-4" />
+                            My List
+                          </>
+                        )}
+                      </button>
+                    </div>
+
+                    <div className="mt-8 grid gap-5 border-t border-white/[0.07] pt-7 sm:grid-cols-2">
+                      <div>
+                        <p className="text-[9px] font-black uppercase tracking-widest text-white/30">
+                          Genres
+                        </p>
+
+                        <p className="mt-2 text-sm text-white/55">
+                          {canonical.genres
+                            .map((id) =>
+                              metadataName(
+                                metadataCatalog,
+                                id,
+                              ),
+                            )
+                            .join(', ') ||
+                            'Not specified'}
+                        </p>
+                      </div>
+
+                      <div>
+                        <p className="text-[9px] font-black uppercase tracking-widest text-white/30">
+                          Directors
+                        </p>
+
+                        <p className="mt-2 text-sm text-white/55">
+                          {canonical.directors
+                            .map(
+                              (person) =>
+                                person.name,
+                            )
+                            .join(', ') ||
+                            'Not specified'}
+                        </p>
+                      </div>
+
+                      <div>
+                        <p className="text-[9px] font-black uppercase tracking-widest text-white/30">
+                          Cast
+                        </p>
+
+                        <p className="mt-2 text-sm text-white/55">
+                          {canonical.cast
+                            .slice(0, 8)
+                            .map(
+                              (member) =>
+                                member.personId,
+                            )
+                            .join(', ') ||
+                            'Not specified'}
+                        </p>
+                      </div>
+
+                      <div>
+                        <p className="text-[9px] font-black uppercase tracking-widest text-white/30">
+                          Quality
+                        </p>
+
+                        <p className="mt-2 text-sm text-white/55">
+                          {canonical.videoQualities
+                            .join(' • ') ||
+                            'Auto'}
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                </>
+              )
+            })()}
+          </div>
+        </div>
       )}
 
       {watchingMovie && (
-        <WatchingModal
-          movie={
-            watchingMovie
-          }
-          canonical={
-            canonicalMap.get(
-              Number(
-                watchingMovie.id,
-              ),
-            ) ?? null
-          }
-          continueEntry={
-            getContinueWatchingEntry(
-              Number(
-                watchingMovie.id,
-              ),
-            )
-          }
-          onClose={() => {
-            setWatchingMovie(
-              null,
-            )
+        <div className="fixed inset-0 z-[80] bg-black">
+          <div className="absolute inset-x-0 top-0 z-20 flex items-center justify-between bg-gradient-to-b from-black/90 to-transparent px-4 py-5 sm:px-8">
+            <div className="min-w-0">
+              <p className="text-[9px] font-black uppercase tracking-[0.25em] text-red-500">
+                Now Playing
+              </p>
 
-            setContinueWatchingIds(
-              getContinueWatchingIds(),
-            )
-
-            setContinueWatchingEntries(
-              getContinueWatchingEntries(),
-            )
-          }}
-          onTimeUpdate={(
-            currentTime,
-          ) => {
-            const canonical =
-              canonicalMap.get(
-                Number(
-                  watchingMovie.id,
-                ),
-              )
-
-            const estimatedDuration =
-              canonical?.runtimeMinutes
-                ? canonical.runtimeMinutes *
-                  60
-                : getContinueWatchingEntry(
-                    Number(
-                      watchingMovie.id,
-                    ),
-                  )?.duration ?? 0
-
-            saveContinueWatching(
-              Number(
-                watchingMovie.id,
-              ),
-              currentTime,
-              estimatedDuration,
-            )
-
-            setContinueWatchingEntries(
-              getContinueWatchingEntries(),
-            )
-
-            setContinueWatchingIds(
-              getContinueWatchingIds(),
-            )
-          }}
-          onEnded={() => {
-            removeContinueWatching(
-              Number(
-                watchingMovie.id,
-              ),
-            )
-
-            setContinueWatchingEntries(
-              getContinueWatchingEntries(),
-            )
-
-            setContinueWatchingIds(
-              getContinueWatchingIds(),
-            )
-          }}
-        />
-      )}
-
-      <footer className="border-t border-white/[0.06] px-5 py-12 sm:px-10 lg:px-16">
-        <div className="mx-auto flex max-w-[1600px] flex-col gap-8 md:flex-row md:items-end md:justify-between">
-          <div>
-            <div className="text-2xl font-black">
-              <span className="text-red-600">
-                PMF
-              </span>
-              LIX
+              <h2 className="truncate text-base font-black sm:text-xl">
+                {watchingMovie.title}
+              </h2>
             </div>
 
-            <p className="mt-2 max-w-md text-sm leading-6 text-white/30">
-              Prince Mufasa Flix — a cinematic home for stories from around the world.
-            </p>
+            <button
+              type="button"
+              onClick={closePlayer}
+              className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-white/10 text-white transition hover:bg-white hover:text-black"
+              aria-label="Close player"
+            >
+              <X className="h-5 w-5" />
+            </button>
           </div>
 
-          <div className="flex flex-wrap gap-4 text-xs font-bold text-white/30">
-            <span>
-              Licensed content only
-            </span>
-            <span>
-              Secure streaming
-            </span>
-            <span>
-              © 2026 PMF Flix
-            </span>
+          <div className="flex h-full items-center justify-center p-2 pt-16 sm:p-8 sm:pt-20">
+            {(() => {
+              const videoUrl =
+                getMovieVideoUrl(
+                  watchingMovie,
+                )
+
+              if (
+                videoUrl &&
+                isYouTubeUrl(videoUrl)
+              ) {
+                return (
+                  <div className="aspect-video w-full max-w-7xl overflow-hidden rounded-2xl bg-black shadow-2xl">
+                    <iframe
+                      src={getYouTubeEmbedUrl(
+                        videoUrl,
+                      )}
+                      title={
+                        watchingMovie.title
+                      }
+                      className="h-full w-full"
+                      allow="autoplay; encrypted-media; fullscreen; picture-in-picture"
+                      allowFullScreen
+                    />
+                  </div>
+                )
+              }
+
+              if (
+                canonicalWatchingMovie
+              ) {
+                return (
+                  <div className="w-full max-w-7xl">
+                    <VideoPlayer
+                      videoUrl={
+                        videoUrl ||
+                        undefined
+                      }
+                      videoAssets={
+                        canonicalWatchingMovie.videoAssets ??
+                        []
+                      }
+                      subtitles={
+                        canonicalWatchingMovie.subtitles ??
+                        []
+                      }
+                      posterUrl={
+                        canonicalWatchingMovie.posterUrl ||
+                        watchingMovie.poster ||
+                        heroImage
+                      }
+                      title={
+                        watchingMovie.title
+                      }
+                      autoPlay
+                      initialTime={
+                        continueEntry?.position ??
+                        0
+                      }
+                      onTimeUpdate={
+                        handleTimeUpdate
+                      }
+                      onEnded={
+                        handleEnded
+                      }
+                    />
+
+                    {!videoUrl && (
+                      <div className="mt-4 rounded-xl border border-yellow-400/20 bg-yellow-400/5 p-4 text-center text-sm text-yellow-200/70">
+                        This title does not
+                        have a playable video
+                        source yet. Add a licensed
+                        video URL or video asset
+                        in the PMF catalog.
+                      </div>
+                    )}
+                  </div>
+                )
+              }
+
+              return (
+                <div className="text-center">
+                  <Film className="mx-auto h-12 w-12 text-white/20" />
+                  <p className="mt-4 text-white/50">
+                    Video unavailable.
+                  </p>
+                </div>
+              )
+            })()}
           </div>
         </div>
-      </footer>
+      )}
     </AppShell>
   )
 }
 
-function MovieDetailsModal({
-  movie,
-  canonical,
-  metadataCatalog,
-  myListIds,
-  onClose,
-  onPlay,
-  onToggleMyList,
-}: {
-  movie: DisplayMovie
-  canonical: CanonicalMovie | null
-  metadataCatalog: MetadataCatalog | null
-  myListIds: number[]
-  onClose: () => void
-  onPlay: () => void
-  onToggleMyList: (
-    id: number,
-  ) => void
-}) {
-  const myList = myListIds.includes(
-    Number(movie.id),
-  )
-
-  const backdrop =
-    canonical?.backdropUrl ||
-    canonical?.posterUrl ||
-    heroImage
-
-  const videoUrl =
-    canonical
-      ? getMovieVideoUrl(movie)
-      : ''
-
-  const trailerUrl =
-    canonical?.trailerUrl?.trim() ||
-    ''
-
-  const hasTrailer =
-    Boolean(trailerUrl)
-
-  return (
-    <div className="fixed inset-0 z-[100] overflow-y-auto bg-black/90 backdrop-blur-xl">
-      <div className="min-h-full p-3 sm:p-6">
-        <div className="relative mx-auto max-w-5xl overflow-hidden rounded-3xl border border-white/10 bg-[#090909] shadow-2xl">
-          <button
-            type="button"
-            onClick={onClose}
-            className="absolute right-4 top-4 z-20 flex h-10 w-10 items-center justify-center rounded-full border border-white/10 bg-black/60 text-white/70 backdrop-blur transition hover:bg-white/10 hover:text-white"
-            aria-label="Close"
-          >
-            <X className="h-5 w-5" />
-          </button>
-
-          <div className="relative aspect-[16/8] min-h-[300px] overflow-hidden">
-            <img
-              src={backdrop}
-              alt=""
-              className="h-full w-full object-cover"
-            />
-
-            <div className="absolute inset-0 bg-gradient-to-t from-[#090909] via-black/35 to-black/10" />
-
-            <div className="absolute inset-x-0 bottom-0 p-5 sm:p-8 lg:p-10">
-              <div className="flex flex-wrap gap-2">
-                {canonical?.isPmfOriginal && (
-                  <span className="rounded-full bg-red-600 px-3 py-1 text-[9px] font-black uppercase tracking-wider">
-                    PMF Original
-                  </span>
-                )}
-
-                {canonical?.isPremium && (
-                  <span className="rounded-full bg-yellow-400 px-3 py-1 text-[9px] font-black uppercase tracking-wider text-black">
-                    Premium
-                  </span>
-                )}
-              </div>
-
-              <h1 className="mt-3 max-w-3xl text-4xl font-black tracking-tight sm:text-5xl lg:text-6xl">
-                {movie.title}
-              </h1>
-            </div>
-          </div>
-
-          <div className="p-5 sm:p-8 lg:p-10">
-            <div className="flex flex-wrap items-center gap-3 text-sm text-white/55">
-              {canonical?.releaseYear && (
-                <span>
-                  {canonical.releaseYear}
-                </span>
-              )}
-
-              {canonical?.rating !==
-                undefined && (
-                <span className="flex items-center gap-1">
-                  <Star className="h-4 w-4 fill-current text-yellow-400" />
-                  {canonical.rating}
-                </span>
-              )}
-
-              {canonical && (
-                <span>
-                  {formatRuntime(
-                    canonical,
-                  )}
-                </span>
-              )}
-
-              {canonical?.ageRating && (
-                <span className="rounded border border-white/15 px-2 py-0.5 text-xs">
-                  {
-                    canonical.ageRating
-                  }
-                </span>
-              )}
-
-              <span className="rounded border border-white/10 px-2 py-0.5 text-xs">
-                {canonical?.contentType ===
-                'tv_show'
-                  ? 'TV Series'
-                  : 'Film'}
-              </span>
-            </div>
-
-            {canonical?.tagline && (
-              <p className="mt-5 text-lg font-bold text-white/80">
-                {canonical.tagline}
-              </p>
-            )}
-
-            <p className="mt-4 max-w-3xl text-sm leading-7 text-white/55 sm:text-base">
-              {canonical?.synopsis ||
-                movie.description ||
-                'No description available.'}
-            </p>
-
-            <div className="mt-7 flex flex-wrap gap-3">
-              <button
-                type="button"
-                onClick={onPlay}
-                className="flex items-center gap-2 rounded-xl bg-white px-6 py-3.5 text-sm font-black text-black transition hover:bg-red-600 hover:text-white"
-              >
-                <Play className="h-4 w-4 fill-current" />
-                Watch Now
-              </button>
-
-              <button
-                type="button"
-                onClick={() =>
-                  onToggleMyList(
-                    Number(
-                      movie.id,
-                    ),
-                  )
-                }
-                className="flex items-center gap-2 rounded-xl border border-white/10 bg-white/[0.05] px-5 py-3.5 text-sm font-black transition hover:bg-white/10"
-              >
-                {myList ? (
-                  <>
-                    <Check className="h-4 w-4" />
-                    In My List
-                  </>
-                ) : (
-                  <>
-                    <Plus className="h-4 w-4" />
-                    My List
-                  </>
-                )}
-              </button>
-            </div>
-
-            <div className="mt-10 grid gap-6 border-t border-white/[0.08] pt-7 sm:grid-cols-2">
-              <MetadataBlock
-                icon={
-                  <Globe2 className="h-4 w-4" />
-                }
-                title="Genres"
-              >
-                <div className="flex flex-wrap gap-2">
-                  {canonical?.genres
-                    .slice(0, 8)
-                    .map(
-                      (id) => (
-                        <span
-                          key={id}
-                          className="rounded-full border border-white/10 bg-white/[0.04] px-3 py-1.5 text-xs text-white/50"
-                        >
-                          {metadataName(
-                            metadataCatalog,
-                            id,
-                          )}
-                        </span>
-                      ),
-                    )}
-
-                  {(!canonical ||
-                    canonical.genres
-                      .length ===
-                      0) && (
-                    <span className="text-sm text-white/30">
-                      Not specified
-                    </span>
-                  )}
-                </div>
-              </MetadataBlock>
-
-              <MetadataBlock
-                icon={
-                  <Layers3 className="h-4 w-4" />
-                }
-                title="Format"
-              >
-                <div className="space-y-2 text-sm text-white/45">
-                  <p>
-                    Type:{' '}
-                    <span className="text-white/75">
-                      {canonical?.contentType ===
-                      'tv_show'
-                        ? 'TV Series'
-                        : 'Movie'}
-                    </span>
-                  </p>
-
-                  <p>
-                    Runtime:{' '}
-                    <span className="text-white/75">
-                      {canonical
-                        ? formatRuntime(
-                            canonical,
-                          ) ||
-                          'Not specified'
-                        : 'Not specified'}
-                    </span>
-                  </p>
-
-                  <p>
-                    Quality:{' '}
-                    <span className="text-white/75">
-                      {canonical?.videoQualities
-                        .length
-                        ? canonical.videoQualities.join(
-                            ', ',
-                          )
-                        : 'Auto'}
-                    </span>
-                  </p>
-                </div>
-              </MetadataBlock>
-
-              <MetadataBlock
-                icon={
-                  <Heart className="h-4 w-4" />
-                }
-                title="Cast & Crew"
-              >
-                <div className="space-y-2 text-sm text-white/45">
-                  <p>
-                    Directors:{' '}
-                    <span className="text-white/75">
-                      {canonical?.directors
-                        .map(
-                          (person) =>
-                            person.name,
-                        )
-                        .join(
-                          ', ',
-                        ) ||
-                        'Not specified'}
-                    </span>
-                  </p>
-
-                  <p>
-                    Writers:{' '}
-                    <span className="text-white/75">
-                      {canonical?.writers
-                        .map(
-                          (person) =>
-                            person.name,
-                        )
-                        .join(
-                          ', ',
-                        ) ||
-                        'Not specified'}
-                    </span>
-                  </p>
-
-                  <p>
-                    Cast IDs:{' '}
-                    <span className="text-white/75">
-                      {canonical?.cast
-                        .slice(
-                          0,
-                          6,
-                        )
-                        .map(
-                          (person) =>
-                            person.personId,
-                        )
-                        .join(
-                          ', ',
-                        ) ||
-                        'Not specified'}
-                    </span>
-                  </p>
-                </div>
-              </MetadataBlock>
-
-              <MetadataBlock
-                icon={
-                  <Clock3 className="h-4 w-4" />
-                }
-                title="Availability"
-              >
-                <div className="space-y-2 text-sm text-white/45">
-                  <p>
-                    Streaming:{' '}
-                    <span className="text-white/75">
-                      {videoUrl
-                        ? 'Available'
-                        : 'Coming soon'}
-                    </span>
-                  </p>
-
-                  <p>
-                    Download:{' '}
-                    <span className="text-white/75">
-                      {canonical?.downloadAvailability
-                        ?.available
-                        ? 'Available'
-                        : 'Not available'}
-                    </span>
-                  </p>
-                </div>
-              </MetadataBlock>
-            </div>
-
-            {hasTrailer && (
-              <div className="mt-10 border-t border-white/[0.08] pt-8">
-                <SectionTitle
-                  eyebrow="Preview"
-                  title="Official Trailer"
-                />
-
-                {isYouTubeUrl(
-                  trailerUrl,
-                ) ? (
-                  <div className="aspect-video overflow-hidden rounded-2xl border border-white/10 bg-black">
-                    <iframe
-                      src={getYouTubeEmbedUrl(
-                        trailerUrl,
-                      )}
-                      title={`${movie.title} trailer`}
-                      className="h-full w-full"
-                      allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
-                      allowFullScreen
-                    />
-                  </div>
-                ) : (
-                  <video
-                    controls
-                    poster={
-                      canonical?.posterUrl
-                    }
-                    className="aspect-video w-full rounded-2xl bg-black"
-                    src={trailerUrl}
-                  />
-                )}
-              </div>
-            )}
-          </div>
-        </div>
-      </div>
-    </div>
-  )
-}
-
-function MetadataBlock({
-  icon,
-  title,
-  children,
-}: {
-  icon: ReactNode
-  title: string
-  children: ReactNode
-}) {
-  return (
-    <div>
-      <div className="mb-3 flex items-center gap-2 text-xs font-black uppercase tracking-wider text-white/55">
-        {icon}
-        {title}
-      </div>
-
-      {children}
-    </div>
-  )
-}
-
-function WatchingModal({
-  movie,
-  canonical,
-  continueEntry,
-  onClose,
-  onTimeUpdate,
-  onEnded,
-}: {
-  movie: DisplayMovie
-  canonical: CanonicalMovie | null
-  continueEntry: ContinueWatchingEntry | null
-  onClose: () => void
-  onTimeUpdate: (
-    currentTime: number,
-  ) => void
-  onEnded: () => void
-}) {
-  const videoUrl =
-    getMovieVideoUrl(movie)
-
-  const trailerUrl =
-    canonical?.trailerUrl?.trim() ||
-    ''
-
-  const initialTime =
-    continueEntry?.position ?? 0
-
-  const hasPlayableVideo =
-    Boolean(videoUrl) &&
-    !isYouTubeUrl(videoUrl)
-
-  const hasYouTubeVideo =
-    Boolean(videoUrl) &&
-    isYouTubeUrl(videoUrl)
-
-  return (
-    <div className="fixed inset-0 z-[120] flex items-center justify-center bg-black/95 p-2 backdrop-blur-xl sm:p-5">
-      <div className="relative w-full max-w-6xl overflow-hidden rounded-2xl border border-white/10 bg-[#050505] shadow-2xl">
-        <div className="flex items-center justify-between border-b border-white/[0.08] px-4 py-3">
-          <div className="min-w-0">
-            <p className="truncate text-sm font-black sm:text-base">
-              {movie.title}
-            </p>
-
-            <p className="text-[10px] uppercase tracking-wider text-white/30">
-              PMF Player
-            </p>
-          </div>
-
-          <button
-            type="button"
-            onClick={onClose}
-            className="ml-4 flex h-9 w-9 shrink-0 items-center justify-center rounded-full border border-white/10 bg-white/[0.04] text-white/60 transition hover:text-white"
-            aria-label="Close player"
-          >
-            <X className="h-4 w-4" />
-          </button>
-        </div>
-
-        <div className="bg-black">
-          {hasPlayableVideo ? (
-            <VideoPlayer
-              videoUrl={
-                videoUrl
-              }
-              posterUrl={
-                canonical?.backdropUrl ||
-                canonical?.posterUrl ||
-                movie.poster
-              }
-              subtitles={
-                canonical?.subtitles ??
-                []
-              }
-              initialTime={
-                initialTime
-              }
-              autoPlay
-              title={
-                movie.title
-              }
-              onTimeUpdate={
-                onTimeUpdate
-              }
-              onEnded={
-                onEnded
-              }
-            />
-          ) : hasYouTubeVideo ? (
-            <div className="aspect-video">
-              <iframe
-                src={getYouTubeEmbedUrl(
-                  videoUrl,
-                )}
-                title={movie.title}
-                className="h-full w-full"
-                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
-                allowFullScreen
-              />
-            </div>
-          ) : trailerUrl &&
-            isYouTubeUrl(
-              trailerUrl,
-            ) ? (
-            <div className="aspect-video">
-              <iframe
-                src={getYouTubeEmbedUrl(
-                  trailerUrl,
-                )}
-                title={`${movie.title} trailer`}
-                className="h-full w-full"
-                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
-                allowFullScreen
-              />
-            </div>
-          ) : trailerUrl ? (
-            <video
-              controls
-              autoPlay
-              poster={
-                canonical?.posterUrl ||
-                movie.poster
-              }
-              src={trailerUrl}
-              className="aspect-video w-full bg-black"
-            />
-          ) : (
-            <div className="flex aspect-video flex-col items-center justify-center px-6 text-center">
-              <Film className="h-12 w-12 text-white/15" />
-
-              <h2 className="mt-5 text-xl font-black">
-                Video not available yet
-              </h2>
-
-              <p className="mt-2 max-w-md text-sm leading-6 text-white/35">
-                This title has catalog information but no playable licensed video source has been connected yet.
-              </p>
-
-              <button
-                type="button"
-                onClick={onClose}
-                className="mt-5 rounded-xl bg-white px-5 py-3 text-sm font-black text-black"
-              >
-                Back to PMF
-              </button>
-            </div>
-          )}
-        </div>
-
-        <div className="flex flex-col gap-3 border-t border-white/[0.08] px-4 py-4 sm:flex-row sm:items-center sm:justify-between">
-          <div className="flex min-w-0 items-center gap-3">
-            <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-red-600/10 text-red-500">
-              <Play className="h-4 w-4 fill-current" />
-            </div>
-
-            <div className="min-w-0">
-              <p className="truncate text-xs font-bold text-white/70">
-                {movie.title}
-              </p>
-
-              <p className="text-[10px] text-white/30">
-                {continueEntry &&
-                continueEntry.position >
-                  0
-                  ? 'Resume position restored'
-                  : 'Starting from the beginning'}
-              </p>
-            </div>
-          </div>
-
-          <button
-            type="button"
-            onClick={onClose}
-            className="rounded-xl border border-white/10 bg-white/[0.04] px-4 py-2.5 text-xs font-black text-white/60 transition hover:text-white"
-          >
-            Close Player
-          </button>
-        </div>
-      </div>
-    </div>
-  )
- }
-
-    function App() {
+export default function App() {
   const [sessionReady, setSessionReady] =
     useState(false)
 
@@ -3005,51 +2324,39 @@ function WatchingModal({
     useState(false)
 
   useEffect(() => {
-    let active = true
+    let mounted = true
 
-    const loadSession = async () => {
-      const {
-        data,
-      } =
-        await supabase.auth.getSession()
+    supabase.auth
+      .getSession()
+      .then(({ data }) => {
+        if (!mounted) return
 
-      if (!active) {
-        return
-      }
+        setAuthenticated(
+          Boolean(data.session),
+        )
+        setSessionReady(true)
+      })
+      .catch(() => {
+        if (!mounted) return
 
-      setAuthenticated(
-        Boolean(data.session),
-      )
-
-      setSessionReady(true)
-    }
-
-    void loadSession()
+        setAuthenticated(false)
+        setSessionReady(true)
+      })
 
     const {
       data: listener,
     } =
       supabase.auth.onAuthStateChange(
-        (
-          _event,
-          session,
-        ) => {
-          if (!active) {
-            return
-          }
-
+        (_event, session) => {
           setAuthenticated(
             Boolean(session),
           )
-
-          setSessionReady(
-            true,
-          )
+          setSessionReady(true)
         },
       )
 
     return () => {
-      active = false
+      mounted = false
       listener.subscription.unsubscribe()
     }
   }, [])
@@ -3057,17 +2364,16 @@ function WatchingModal({
   if (!sessionReady) {
     return (
       <AppShell>
-        <div className="flex min-h-screen items-center justify-center bg-[#030303]">
+        <div className="flex min-h-screen items-center justify-center">
           <div className="text-center">
-            <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-2xl border border-red-600/20 bg-red-600/10">
-              <span className="text-xl font-black text-red-600">
+            <div className="text-4xl font-black">
+              <span className="text-red-600">
                 PMF
               </span>
+              LIX
             </div>
 
-            <div className="mt-5 text-sm font-bold text-white/50">
-              Loading PMF Flix...
-            </div>
+            <div className="mt-4 h-1 w-16 animate-pulse rounded-full bg-red-600" />
           </div>
         </div>
       </AppShell>
@@ -3078,11 +2384,5 @@ function WatchingModal({
     return <AuthScreen />
   }
 
-  return (
-    <AuthenticatedApp />
-  )
+  return <AuthenticatedApp />
 }
-
-export default App
-
-            
