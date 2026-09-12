@@ -15,10 +15,8 @@ import {
   Clock3,
   Film,
   Globe2,
-  Heart,
   Home,
   Info,
-  Layers3,
   LogOut,
   Menu,
   Play,
@@ -940,16 +938,6 @@ function AuthenticatedApp() {
       continueWatchingEntries,
       movies,
     ])
-
-  const myListMovies = useMemo(
-    () =>
-      movies.filter((movie) =>
-        myListIds.includes(
-          Number(movie.id),
-        ),
-      ),
-    [movies, myListIds],
-  )
 
   const filteredMovies = useMemo(() => {
     const query =
