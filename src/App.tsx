@@ -1271,145 +1271,146 @@ function AuthenticatedApp() {
 
           <nav className="hidden items-center gap-1 lg:flex">
             {NAV_ITEMS.map(
-              ({
-                value,
-                label,
-                icon: Icon,
-              }) => (
-                <button
-                  key={value}
-                  type="button"
-                  onClick={() =>
-                    navigate(value)
-                  }
-                  className={`rounded-lg px-3 py-2 text-xs font-bold transition ${
-                    section === value
-                      ? 'bg-white/10 text-white'
-                      : 'text-white/45 hover:bg-white/5 hover:text-white'
-                  }`}
-                >
-                  {label}
-                </button>
-              ),
-            )}
-          </nav>
+  ({
+    value,
+    label,
+    icon: Icon,
+  }) => (
+    <button
+      key={value}
+      type="button"
+      onClick={() =>
+        navigate(value)
+      }
+      className={`flex items-center gap-2 rounded-lg px-3 py-2 text-xs font-bold transition ${
+        section === value
+          ? 'bg-white/10 text-white'
+          : 'text-white/45 hover:bg-white/5 hover:text-white'
+      }`}
+    >
+      <Icon className="h-3.5 w-3.5" />
+      {label}
+    </button>
+  ),
+)}
+</nav>
 
-          <div className="ml-auto flex items-center gap-2">
-            <div className="hidden w-56 items-center gap-2 rounded-full border border-white/10 bg-white/[0.04] px-3 md:flex">
-              <Search className="h-4 w-4 text-white/35" />
+<div className="ml-auto flex items-center gap-2">
+  <div className="hidden w-56 items-center gap-2 rounded-full border border-white/10 bg-white/[0.04] px-3 md:flex">
+    <Search className="h-4 w-4 text-white/35" />
 
-              <input
-                value={searchQuery}
-                onChange={(event) =>
-                  setSearchQuery(
-                    event.target.value,
-                  )
-                }
-                placeholder="Search PMF..."
-                className="w-full bg-transparent py-2.5 text-xs outline-none placeholder:text-white/25"
-              />
-            </div>
+    <input
+      value={searchQuery}
+      onChange={(event) =>
+        setSearchQuery(
+          event.target.value,
+        )
+      }
+      placeholder="Search PMF..."
+      className="w-full bg-transparent py-2.5 text-xs outline-none placeholder:text-white/25"
+    />
+  </div>
 
-            <button
-              type="button"
-              onClick={() =>
-                setShowFilters(
-                  (value) => !value,
-                )
-              }
-              className={`flex h-9 w-9 items-center justify-center rounded-full border ${
-                showFilters
-                  ? 'border-red-600/40 bg-red-600/10 text-red-400'
-                  : 'border-white/10 bg-white/[0.04] text-white/60'
-              }`}
-              aria-label="Filters"
-            >
-              <SlidersHorizontal className="h-4 w-4" />
-            </button>
+  <button
+    type="button"
+    onClick={() =>
+      setShowFilters(
+        (value) => !value,
+      )
+    }
+    className={`flex h-9 w-9 items-center justify-center rounded-full border ${
+      showFilters
+        ? 'border-red-600/40 bg-red-600/10 text-red-400'
+        : 'border-white/10 bg-white/[0.04] text-white/60'
+    }`}
+    aria-label="Filters"
+  >
+    <SlidersHorizontal className="h-4 w-4" />
+  </button>
 
-            <button
-              type="button"
-              onClick={() =>
-                setMobileMenuOpen(
-                  (value) => !value,
-                )
-              }
-              className="flex h-9 w-9 items-center justify-center rounded-full border border-white/10 bg-white/[0.04] text-white/60 lg:hidden"
-              aria-label="Menu"
-            >
-              <Menu className="h-4 w-4" />
-            </button>
+  <button
+    type="button"
+    onClick={() =>
+      setMobileMenuOpen(
+        (value) => !value,
+      )
+    }
+    className="flex h-9 w-9 items-center justify-center rounded-full border border-white/10 bg-white/[0.04] text-white/60 lg:hidden"
+    aria-label="Menu"
+  >
+    <Menu className="h-4 w-4" />
+  </button>
 
-            <button
-              type="button"
-              onClick={async () => {
-                await supabase.auth.signOut()
-              }}
-              className="hidden items-center gap-2 rounded-full border border-white/10 bg-white/[0.04] px-3 py-2 text-xs font-bold text-white/60 transition hover:text-white sm:flex"
-            >
-              <LogOut className="h-3.5 w-3.5" />
-              Sign Out
-            </button>
-          </div>
-        </div>
+  <button
+    type="button"
+    onClick={async () => {
+      await supabase.auth.signOut()
+    }}
+    className="hidden items-center gap-2 rounded-full border border-white/10 bg-white/[0.04] px-3 py-2 text-xs font-bold text-white/60 transition hover:text-white sm:flex"
+  >
+    <LogOut className="h-3.5 w-3.5" />
+    Sign Out
+  </button>
+</div>
+</div>
 
-        {mobileMenuOpen && (
-          <div className="border-t border-white/[0.06] bg-black/95 px-4 py-4 lg:hidden">
-            <div className="mb-3 flex items-center gap-2 rounded-xl border border-white/10 bg-white/[0.04] px-3">
-              <Search className="h-4 w-4 text-white/35" />
+{mobileMenuOpen && (
+  <div className="border-t border-white/[0.06] bg-black/95 px-4 py-4 lg:hidden">
+    <div className="mb-3 flex items-center gap-2 rounded-xl border border-white/10 bg-white/[0.04] px-3">
+      <Search className="h-4 w-4 text-white/35" />
 
-              <input
-                value={searchQuery}
-                onChange={(event) =>
-                  setSearchQuery(
-                    event.target.value,
-                  )
-                }
-                placeholder="Search movies, shows..."
-                className="w-full bg-transparent py-3 text-sm outline-none placeholder:text-white/25"
-              />
-            </div>
+      <input
+        value={searchQuery}
+        onChange={(event) =>
+          setSearchQuery(
+            event.target.value,
+          )
+        }
+        placeholder="Search movies, shows..."
+        className="w-full bg-transparent py-3 text-sm outline-none placeholder:text-white/25"
+      />
+    </div>
 
-            <div className="grid grid-cols-2 gap-2">
-              {NAV_ITEMS.map(
-                ({
-                  value,
-                  label,
-                  icon: Icon,
-                }) => (
-                  <button
-                    key={value}
-                    type="button"
-                    onClick={() =>
-                      navigate(value)
-                    }
-                    className={`flex items-center gap-2 rounded-xl border px-3 py-3 text-left text-sm font-bold ${
-                      section === value
-                        ? 'border-red-600/40 bg-red-600/10 text-white'
-                        : 'border-white/10 bg-white/[0.03] text-white/50'
-                    }`}
-                  >
-                    <Icon className="h-4 w-4" />
-                    {label}
-                  </button>
-                ),
-              )}
-            </div>
+    <div className="grid grid-cols-2 gap-2">
+      {NAV_ITEMS.map(
+        ({
+          value,
+          label,
+          icon: Icon,
+        }) => (
+          <button
+            key={value}
+            type="button"
+            onClick={() =>
+              navigate(value)
+            }
+            className={`flex items-center gap-2 rounded-xl border px-3 py-3 text-left text-sm font-bold ${
+              section === value
+                ? 'border-red-600/40 bg-red-600/10 text-white'
+                : 'border-white/10 bg-white/[0.03] text-white/50'
+            }`}
+          >
+            <Icon className="h-4 w-4" />
+            {label}
+          </button>
+        ),
+      )}
+    </div>
 
-            <button
-              type="button"
-              onClick={async () => {
-                await supabase.auth.signOut()
-              }}
-              className="mt-2 flex w-full items-center justify-center gap-2 rounded-xl border border-white/10 py-3 text-sm font-bold text-white/50"
-            >
-              <LogOut className="h-4 w-4" />
-              Sign Out
-            </button>
-          </div>
-        )}
-      </header>
-
+    <button
+      type="button"
+      onClick={async () => {
+        await supabase.auth.signOut()
+      }}
+      className="mt-2 flex w-full items-center justify-center gap-2 rounded-xl border border-white/10 py-3 text-sm font-bold text-white/50"
+    >
+      <LogOut className="h-4 w-4" />
+      Sign Out
+    </button>
+  </div>
+)}
+</header>
+              
       <main className="pt-16">
         {loading ? (
           <div className="min-h-[85vh]">
