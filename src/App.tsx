@@ -2393,88 +2393,60 @@ export default function App() {
                 </section>
 
                 <div className="mx-auto max-w-[1600px] px-5 pt-12 sm:px-8 lg:px-12">
-                  {continueWatchingMovies.length >
-                    0 && (
-                    <MovieRail
-                      eyebrow="Pick up where you left off"
-                      title="Continue Watching"
-                      movies={
-                        continueWatchingMovies
-                      }
-                      movieMap={
-                        movieMap
-                      }
-                      myListIds={
-                        myListIds
-                      }
-                      likedIds={
-                        likedIds
-                      }
-                      continueWatchingEntries={
-                        continueWatchingEntries
-                      }
-                      onOpen={
-                        openMovie
-                      }
-                      onToggleMyList={
-                        toggleMyList
-                      }
-                      onToggleLike={
-                        toggleLike
-                      }
-                      onPlay={
-                      playMovie
-                    }
-                  />
-                </div>
-              </>
-            )}
+  {continueWatchingMovies.length > 0 && (
+    <MovieRail
+      eyebrow="Pick up where you left off"
+      title="Continue Watching"
+      movies={continueWatchingMovies}
+      movieMap={movieMap}
+      myListIds={myListIds}
+      likedIds={likedIds}
+      continueWatchingEntries={continueWatchingEntries}
+      onOpen={openMovie}
+      onToggleMyList={toggleMyList}
+      onToggleLike={toggleLike}
+      onPlay={playMovie}
+    />
+  )}
+</div>
+</>
+)}
 
-            {section !==
-              'home' && (
-              <div className="mx-auto max-w-[1600px] px-5 pt-28 sm:px-8 lg:px-12">
-                <SectionTitle
-                  eyebrow="Explore PMF"
-                  title={
-                    section ===
-                    'my-list'
-                      ? 'My List'
-                      : section ===
-                        'tv'
-                      ? 'TV Series'
-                      : 'Movies'
-                  }
-                  description={
-                    section ===
-                    'my-list'
-                      ? 'Your personal collection of stories you want to watch.'
-                      : 'Explore the PMF catalogue with global discovery, filters and smart sorting.'
-                  }
-                  action={
-                    section !==
-                      'my-list' && (
-                      <button
-                        type="button"
-                        onClick={() =>
-                          setShowFilters(
-                            (
-                              value,
-                            ) =>
-                              !value,
-                          )
-                        }
-                        className={`hidden items-center gap-2 rounded-xl border px-4 py-2.5 text-xs font-black transition sm:flex ${
-                          showFilters
-                            ? 'border-red-500/30 bg-red-600/15 text-red-400'
-                            : 'border-white/10 bg-white/[0.04] text-white/60 hover:text-white'
-                        }`}
-                      >
-                        <SlidersHorizontal className="h-4 w-4" />
-                        Filters
-                      </button>
-                    )
-                  }
-                />
+{section !== 'home' && (
+  <div className="mx-auto max-w-[1600px] px-5 pt-28 sm:px-8 lg:px-12">
+    <SectionTitle
+      eyebrow="Explore PMF"
+      title={
+        section === 'my-list'
+          ? 'My List'
+          : section === 'tv'
+            ? 'TV Series'
+            : 'Movies'
+      }
+      description={
+        section === 'my-list'
+          ? 'Your personal collection of stories you want to watch.'
+          : 'Explore the PMF catalogue with global discovery, filters and smart sorting.'
+      }
+      action={
+        section !== 'my-list' && (
+          <button
+            type="button"
+            onClick={() =>
+              setShowFilters((value) => !value)
+            }
+            className={`hidden items-center gap-2 rounded-xl border px-4 py-2.5 text-xs font-black transition sm:flex ${
+              showFilters
+                ? 'border-red-500/30 bg-red-600/15 text-red-400'
+                : 'border-white/10 bg-white/[0.04] text-white/60 hover:text-white'
+            }`}
+          >
+            <SlidersHorizontal className="h-4 w-4" />
+            Filters
+          </button>
+        )
+      }
+    />
 
                 {section !==
                   'my-list' && (
