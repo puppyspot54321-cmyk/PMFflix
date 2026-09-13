@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState } from 'react'
 import type { ReactNode } from 'react'
 import type { Session } from '@supabase/supabase-js'
 import {
-  Bookmark, Check, ChevronLeft, ChevronRight, Clock3, Download,
+  Bookmark, Check, ChevronLeft, ChevronRight, Download,
   Film, Globe2, Heart, Home, Info, LogOut, Menu, Play, Plus,
   Search, SlidersHorizontal, Sparkles, Star, Tv, X
 } from 'lucide-react'
