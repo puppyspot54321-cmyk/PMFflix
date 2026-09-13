@@ -33,20 +33,19 @@ function AuthenticatedApp({
     useState<Section>('home')
 
   const [searchQuery, setSearchQuery] = useState('')
-
   const [selectedMovie, setSelectedMovie] =
     useState<Movie | null>(null)
-
   const [watchingMovie, setWatchingMovie] =
     useState<Movie | null>(null)
 
   const [movies, setMovies] = useState<Movie[]>([])
-  const [moviesLoading, setMoviesLoading] = useState(true)
-  const [moviesError, setMoviesError] = useState('')
+  const [moviesLoading, setMoviesLoading] =
+    useState(true)
+  const [moviesError, setMoviesError] =
+    useState('')
 
   const [showMobileSearch, setShowMobileSearch] =
     useState(false)
-
   const [showFilters, setShowFilters] =
     useState(false)
 
@@ -61,11 +60,13 @@ function AuthenticatedApp({
 
   const [myList, setMyList] = useState<number[]>(() => {
     try {
-      const saved = localStorage.getItem('pmf-my-list')
+      const saved =
+        localStorage.getItem('pmf-my-list')
 
       if (!saved) return []
 
-      const parsed: unknown = JSON.parse(saved)
+      const parsed: unknown =
+        JSON.parse(saved)
 
       if (!Array.isArray(parsed)) return []
 
@@ -87,7 +88,8 @@ function AuthenticatedApp({
 
         if (!saved) return []
 
-        const parsed: unknown = JSON.parse(saved)
+        const parsed: unknown =
+          JSON.parse(saved)
 
         if (!Array.isArray(parsed)) return []
 
@@ -108,7 +110,8 @@ function AuthenticatedApp({
       setMoviesError('')
 
       try {
-        const canonicalMovies = await getMovies()
+        const canonicalMovies =
+          await getMovies()
 
         if (!mounted) return
 
@@ -170,7 +173,7 @@ function AuthenticatedApp({
         JSON.stringify(list),
       )
     } catch {
-      // Ignore localStorage failures.
+      // Ignore storage failures.
     }
   }
 
@@ -181,16 +184,19 @@ function AuthenticatedApp({
         : [...current, movieId]
 
       saveMyList(updated)
-
       return updated
     })
   }
 
-  const addToContinueWatching = (movieId: number) => {
+  const addToContinueWatching = (
+    movieId: number,
+  ) => {
     setContinueWatching((current) => {
       const updated = [
         movieId,
-        ...current.filter((id) => id !== movieId),
+        ...current.filter(
+          (id) => id !== movieId,
+        ),
       ].slice(0, 10)
 
       try {
@@ -199,7 +205,7 @@ function AuthenticatedApp({
           JSON.stringify(updated),
         )
       } catch {
-        // Ignore localStorage failures.
+        // Ignore storage failures.
       }
 
       return updated
@@ -209,7 +215,7 @@ function AuthenticatedApp({
   const getVideoUrl = (movie: Movie) => {
     if (
       movie.videoUrl &&
-      movie.videoUrl.trim() !== ''
+      movie.videoUrl.trim()
     ) {
       return movie.videoUrl.trim()
     }
@@ -295,7 +301,8 @@ function AuthenticatedApp({
     if (!selectedMovie) return
 
     const updatedMovie = movies.find(
-      (movie) => movie.id === selectedMovie.id,
+      (movie) =>
+        movie.id === selectedMovie.id,
     )
 
     if (updatedMovie) {
@@ -307,7 +314,8 @@ function AuthenticatedApp({
     if (!watchingMovie) return
 
     const updatedMovie = movies.find(
-      (movie) => movie.id === watchingMovie.id,
+      (movie) =>
+        movie.id === watchingMovie.id,
     )
 
     if (updatedMovie) {
@@ -315,43 +323,52 @@ function AuthenticatedApp({
     }
   }, [movies, watchingMovie?.id])
 
-  const categoryOptions = useMemo(() => {
-    return Array.from(
-      new Set(
-        movies
-          .map((movie) => movie.category?.trim())
-          .filter(
-            (category): category is string =>
-              Boolean(category),
-          ),
-      ),
-    ).sort()
-  }, [movies])
+  const categoryOptions = useMemo(
+    () =>
+      Array.from(
+        new Set(
+          movies
+            .map((movie) =>
+              movie.category?.trim(),
+            )
+            .filter(
+              (value): value is string =>
+                Boolean(value),
+            ),
+        ),
+      ).sort(),
+    [movies],
+  )
 
-  const typeOptions = useMemo(() => {
-    return Array.from(
-      new Set(
-        movies
-          .map((movie) => movie.type?.trim())
-          .filter(
-            (type): type is string => Boolean(type),
-          ),
-      ),
-    ).sort()
-  }, [movies])
+  const typeOptions = useMemo(
+    () =>
+      Array.from(
+        new Set(
+          movies
+            .map((movie) => movie.type?.trim())
+            .filter(
+              (value): value is string =>
+                Boolean(value),
+            ),
+        ),
+      ).sort(),
+    [movies],
+  )
 
-  const yearOptions = useMemo(() => {
-    return Array.from(
-      new Set(
-        movies
-          .map((movie) => movie.year)
-          .filter(
-            (year): year is number =>
-              typeof year === 'number',
-          ),
-      ),
-    ).sort((a, b) => b - a)
-  }, [movies])
+  const yearOptions = useMemo(
+    () =>
+      Array.from(
+        new Set(
+          movies
+            .map((movie) => movie.year)
+            .filter(
+              (year): year is number =>
+                typeof year === 'number',
+            ),
+        ),
+      ).sort((a, b) => b - a),
+    [movies],
+  )
 
   const filteredMovies = useMemo(() => {
     const query = searchQuery
@@ -405,14 +422,11 @@ function AuthenticatedApp({
         const minimum = Number(
           filters.minRating,
         )
-
         const rating = Number(
           movie.rating ?? 0,
         )
 
-        if (rating < minimum) {
-          return false
-        }
+        if (rating < minimum) return false
       }
 
       if (query) {
@@ -439,19 +453,17 @@ function AuthenticatedApp({
       switch (filters.sort) {
         case 'newest':
           return b.year - a.year
-
         case 'oldest':
           return a.year - b.year
-
         case 'rating':
           return (
             Number(b.rating ?? 0) -
             Number(a.rating ?? 0)
           )
-
         case 'title':
-          return a.title.localeCompare(b.title)
-
+          return a.title.localeCompare(
+            b.title,
+          )
         case 'featured':
         default:
           return (
@@ -488,22 +500,20 @@ function AuthenticatedApp({
 
   const actionMovies = useMemo(
     () =>
-      movies.filter(
-        (movie) =>
-          movie.category
-            ?.toLowerCase()
-            .includes('action'),
+      movies.filter((movie) =>
+        movie.category
+          ?.toLowerCase()
+          .includes('action'),
       ),
     [movies],
   )
 
   const adventureMovies = useMemo(
     () =>
-      movies.filter(
-        (movie) =>
-          movie.category
-            ?.toLowerCase()
-            .includes('adventure'),
+      movies.filter((movie) =>
+        movie.category
+          ?.toLowerCase()
+          .includes('adventure'),
       ),
     [movies],
   )
@@ -549,29 +559,31 @@ function AuthenticatedApp({
 
     return (
       <article
-        className="group relative min-w-0 cursor-pointer overflow-hidden rounded-xl bg-white/[0.04] ring-1 ring-white/10 transition duration-300 hover:-translate-y-1 hover:bg-white/[0.08] hover:ring-white/20"
+        className="group relative cursor-pointer overflow-hidden rounded-2xl bg-white/[0.035] ring-1 ring-white/10 transition-all duration-500 hover:-translate-y-2 hover:bg-white/[0.07] hover:ring-white/25 hover:shadow-2xl hover:shadow-red-950/20"
         onClick={() => openMovie(movie)}
       >
-        <div className="relative aspect-[2/3] overflow-hidden bg-zinc-900">
+        <div className="relative aspect-[2/3] overflow-hidden bg-zinc-950">
           {movie.poster ? (
             <img
               src={movie.poster}
               alt={movie.title}
-              className="h-full w-full object-cover transition duration-500 group-hover:scale-105"
               loading="lazy"
+              className="h-full w-full object-cover transition duration-700 group-hover:scale-110 group-hover:saturate-125"
             />
           ) : (
-            <div className="flex h-full items-center justify-center bg-gradient-to-br from-zinc-900 to-black p-4 text-center">
-              <span className="text-sm font-bold text-white/40">
+            <div className="flex h-full items-center justify-center bg-gradient-to-br from-zinc-900 via-zinc-950 to-black p-4 text-center">
+              <span className="text-sm font-bold text-white/30">
                 {movie.title}
               </span>
             </div>
           )}
 
-          <div className="absolute inset-0 bg-gradient-to-t from-black via-transparent to-transparent opacity-80" />
+          <div className="absolute inset-0 bg-gradient-to-t from-black via-black/5 to-transparent opacity-90" />
+
+          <div className="absolute inset-x-0 bottom-0 h-1/2 bg-gradient-to-t from-black/80 to-transparent opacity-0 transition duration-500 group-hover:opacity-100" />
 
           {movie.featured && (
-            <span className="absolute left-2 top-2 rounded-full bg-red-600 px-2 py-1 text-[9px] font-black uppercase tracking-wider text-white shadow-lg">
+            <span className="absolute left-3 top-3 rounded-full border border-white/10 bg-red-600 px-2.5 py-1 text-[9px] font-black uppercase tracking-[0.16em] shadow-lg shadow-red-950/40">
               Featured
             </span>
           )}
@@ -587,23 +599,25 @@ function AuthenticatedApp({
               event.stopPropagation()
               toggleMyList(movie.id)
             }}
-            className="absolute right-2 top-2 flex h-8 w-8 items-center justify-center rounded-full bg-black/70 text-lg text-white backdrop-blur transition hover:bg-red-600"
+            className="absolute right-3 top-3 flex h-9 w-9 items-center justify-center rounded-full border border-white/10 bg-black/65 text-lg text-white backdrop-blur-xl transition-all hover:scale-110 hover:bg-red-600"
           >
             {inMyList ? '✓' : '+'}
           </button>
 
-          <div className="absolute bottom-0 left-0 right-0 p-3">
-            <h3 className="truncate text-sm font-bold text-white">
+          <div className="absolute bottom-0 left-0 right-0 p-3.5">
+            <h3 className="truncate text-sm font-black text-white sm:text-base">
               {movie.title}
             </h3>
 
-            <div className="mt-1 flex items-center gap-2 text-[10px] text-white/60">
-              <span>{movie.year}</span>
+            <div className="mt-1.5 flex items-center gap-1.5 overflow-hidden text-[10px] text-white/55">
+              <span className="shrink-0">
+                {movie.year}
+              </span>
 
               {movie.category && (
                 <>
                   <span>•</span>
-                  <span>
+                  <span className="truncate">
                     {movie.category}
                   </span>
                 </>
@@ -612,12 +626,25 @@ function AuthenticatedApp({
               {movie.rating && (
                 <>
                   <span>•</span>
-                  <span>
-                    {movie.rating}
+                  <span className="shrink-0 text-white/75">
+                    ★ {movie.rating}
                   </span>
                 </>
               )}
             </div>
+          </div>
+
+          <div className="absolute bottom-20 left-3 right-3 translate-y-2 opacity-0 transition-all duration-300 group-hover:translate-y-0 group-hover:opacity-100">
+            <button
+              type="button"
+              onClick={(event) => {
+                event.stopPropagation()
+                startWatching(movie)
+              }}
+              className="flex w-full items-center justify-center gap-2 rounded-full bg-white py-2.5 text-xs font-black text-black shadow-xl"
+            >
+              ▶ Watch
+            </button>
           </div>
         </div>
       </article>
@@ -627,21 +654,23 @@ function AuthenticatedApp({
   const MovieRow = ({
     title,
     items,
+    eyebrow = 'PMF FLIX',
   }: {
     title: string
     items: Movie[]
+    eyebrow?: string
   }) => {
     if (!items.length) return null
 
     return (
-      <section className="mx-auto max-w-7xl px-4 py-6 sm:px-6 lg:px-8">
-        <div className="mb-4 flex items-end justify-between">
+      <section className="mx-auto max-w-7xl px-4 py-7 sm:px-6 lg:px-8">
+        <div className="mb-5 flex items-end justify-between">
           <div>
-            <p className="mb-1 text-[10px] font-black uppercase tracking-[0.3em] text-red-500">
-              PMF Flix
+            <p className="mb-1.5 text-[9px] font-black uppercase tracking-[0.35em] text-red-500">
+              {eyebrow}
             </p>
 
-            <h2 className="text-xl font-black text-white sm:text-2xl">
+            <h2 className="text-xl font-black tracking-tight text-white sm:text-2xl">
               {title}
             </h2>
           </div>
@@ -651,13 +680,13 @@ function AuthenticatedApp({
             onClick={() =>
               setActiveSection('movies')
             }
-            className="text-xs font-bold text-white/50 transition hover:text-white"
+            className="rounded-full border border-white/10 px-3 py-1.5 text-[10px] font-bold text-white/45 transition hover:border-white/20 hover:bg-white/5 hover:text-white"
           >
-            See all
+            Explore →
           </button>
         </div>
 
-        <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5">
+        <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 sm:gap-4 md:grid-cols-4 lg:grid-cols-5">
           {items
             .slice(0, 10)
             .map((movie) => (
@@ -675,14 +704,14 @@ function AuthenticatedApp({
     if (!showFilters) return null
 
     return (
-      <div className="mb-8 rounded-2xl border border-white/10 bg-white/[0.04] p-4 backdrop-blur-xl">
-        <div className="mb-4 flex items-center justify-between">
+      <div className="mb-8 overflow-hidden rounded-3xl border border-white/10 bg-white/[0.035] p-4 shadow-2xl backdrop-blur-2xl sm:p-5">
+        <div className="mb-5 flex items-center justify-between">
           <div>
-            <p className="text-[10px] font-black uppercase tracking-[0.25em] text-red-500">
-              Discovery
+            <p className="text-[9px] font-black uppercase tracking-[0.3em] text-red-500">
+              Discovery Engine
             </p>
 
-            <h3 className="mt-1 text-lg font-bold text-white">
+            <h3 className="mt-1 text-lg font-black text-white">
               Find your next story
             </h3>
           </div>
@@ -691,7 +720,7 @@ function AuthenticatedApp({
             <button
               type="button"
               onClick={resetFilters}
-              className="text-xs font-bold text-red-400 hover:text-red-300"
+              className="rounded-full px-3 py-1.5 text-xs font-bold text-red-400 hover:bg-red-500/10 hover:text-red-300"
             >
               Reset
             </button>
@@ -704,10 +733,11 @@ function AuthenticatedApp({
             onChange={(event) =>
               setFilters((current) => ({
                 ...current,
-                category: event.target.value,
+                category:
+                  event.target.value,
               }))
             }
-            className="rounded-lg border border-white/10 bg-black/60 px-3 py-3 text-sm text-white outline-none focus:border-red-500"
+            className="rounded-xl border border-white/10 bg-black/60 px-3 py-3 text-sm text-white outline-none transition focus:border-red-500/60"
           >
             <option value="">
               All genres
@@ -733,7 +763,7 @@ function AuthenticatedApp({
                 type: event.target.value,
               }))
             }
-            className="rounded-lg border border-white/10 bg-black/60 px-3 py-3 text-sm text-white outline-none focus:border-red-500"
+            className="rounded-xl border border-white/10 bg-black/60 px-3 py-3 text-sm text-white outline-none transition focus:border-red-500/60"
           >
             <option value="">
               All content
@@ -757,7 +787,7 @@ function AuthenticatedApp({
                 year: event.target.value,
               }))
             }
-            className="rounded-lg border border-white/10 bg-black/60 px-3 py-3 text-sm text-white outline-none focus:border-red-500"
+            className="rounded-xl border border-white/10 bg-black/60 px-3 py-3 text-sm text-white outline-none transition focus:border-red-500/60"
           >
             <option value="">
               All years
@@ -778,29 +808,20 @@ function AuthenticatedApp({
             onChange={(event) =>
               setFilters((current) => ({
                 ...current,
-                minRating: event.target.value,
+                minRating:
+                  event.target.value,
               }))
             }
-            className="rounded-lg border border-white/10 bg-black/60 px-3 py-3 text-sm text-white outline-none focus:border-red-500"
+            className="rounded-xl border border-white/10 bg-black/60 px-3 py-3 text-sm text-white outline-none transition focus:border-red-500/60"
           >
             <option value="">
               Any rating
             </option>
-            <option value="5">
-              5+
-            </option>
-            <option value="6">
-              6+
-            </option>
-            <option value="7">
-              7+
-            </option>
-            <option value="8">
-              8+
-            </option>
-            <option value="9">
-              9+
-            </option>
+            <option value="5">5+</option>
+            <option value="6">6+</option>
+            <option value="7">7+</option>
+            <option value="8">8+</option>
+            <option value="9">9+</option>
           </select>
 
           <select
@@ -812,7 +833,7 @@ function AuthenticatedApp({
                   .value as SortMode,
               }))
             }
-            className="rounded-lg border border-white/10 bg-black/60 px-3 py-3 text-sm text-white outline-none focus:border-red-500"
+            className="rounded-xl border border-white/10 bg-black/60 px-3 py-3 text-sm text-white outline-none transition focus:border-red-500/60"
           >
             <option value="featured">
               Featured first
@@ -834,28 +855,29 @@ function AuthenticatedApp({
       </div>
     )
   }
-    return (
-    <div className="min-h-screen bg-black text-white">
-      <header className="sticky top-0 z-40 border-b border-white/10 bg-black/85 backdrop-blur-xl">
-        <div className="mx-auto flex h-16 max-w-7xl items-center gap-5 px-4 sm:px-6 lg:px-8">
+
+  return (
+    <div className="min-h-screen overflow-x-hidden bg-black text-white">
+      <header className="sticky top-0 z-40 border-b border-white/[0.08] bg-black/75 backdrop-blur-2xl">
+        <div className="mx-auto flex h-[68px] max-w-7xl items-center gap-5 px-4 sm:px-6 lg:px-8">
           <button
             type="button"
             onClick={goHome}
-            className="shrink-0 text-left"
+            className="group shrink-0 text-left"
           >
-            <div className="text-xl font-black tracking-tight">
+            <div className="text-[21px] font-black tracking-[-0.06em]">
               PMF
-              <span className="text-red-600">
+              <span className="text-red-600 transition group-hover:text-red-500">
                 LIX
               </span>
             </div>
 
-            <div className="hidden text-[8px] font-bold uppercase tracking-[0.25em] text-white/30 sm:block">
+            <div className="hidden text-[7px] font-bold uppercase tracking-[0.28em] text-white/30 sm:block">
               Prince Mufasa Flix
             </div>
           </button>
 
-          <nav className="hidden items-center gap-5 md:flex">
+          <nav className="hidden items-center gap-6 md:flex">
             {(
               [
                 ['home', 'Home'],
@@ -870,29 +892,36 @@ function AuthenticatedApp({
                 onClick={() =>
                   navigateTo(section)
                 }
-                className={`text-sm font-semibold transition ${
+                className={`relative py-2 text-sm font-semibold transition ${
                   activeSection === section
                     ? 'text-white'
-                    : 'text-white/50 hover:text-white'
+                    : 'text-white/45 hover:text-white'
                 }`}
               >
                 {label}
+
+                {activeSection ===
+                  section && (
+                  <span className="absolute -bottom-1 left-1/2 h-0.5 w-5 -translate-x-1/2 rounded-full bg-red-600 shadow-lg shadow-red-600/50" />
+                )}
               </button>
             ))}
           </nav>
 
           <div className="ml-auto flex items-center gap-2">
             <div className="hidden lg:block">
-              <input
-                value={searchQuery}
-                onChange={(event) =>
-                  setSearchQuery(
-                    event.target.value,
-                  )
-                }
-                placeholder="Search movies, genres..."
-                className="w-56 rounded-full border border-white/10 bg-white/[0.06] px-4 py-2 text-xs text-white outline-none placeholder:text-white/30 focus:border-red-500"
-              />
+              <div className="relative">
+                <input
+                  value={searchQuery}
+                  onChange={(event) =>
+                    setSearchQuery(
+                      event.target.value,
+                    )
+                  }
+                  placeholder="Search PMF..."
+                  className="w-56 rounded-full border border-white/10 bg-white/[0.045] py-2.5 pl-4 pr-4 text-xs text-white outline-none transition placeholder:text-white/25 focus:w-64 focus:border-white/20 focus:bg-white/[0.07]"
+                />
+              </div>
             </div>
 
             <button
@@ -902,7 +931,7 @@ function AuthenticatedApp({
                   (current) => !current,
                 )
               }
-              className="rounded-full px-3 py-2 text-xs font-bold text-white/60 hover:bg-white/10 hover:text-white lg:hidden"
+              className="rounded-full border border-white/10 px-3 py-2 text-[10px] font-bold text-white/60 transition hover:bg-white/10 hover:text-white lg:hidden"
             >
               Search
             </button>
@@ -912,7 +941,7 @@ function AuthenticatedApp({
               onClick={() =>
                 supabase.auth.signOut()
               }
-              className="rounded-full border border-white/10 px-3 py-2 text-[10px] font-bold text-white/60 transition hover:border-red-500/40 hover:text-white"
+              className="rounded-full border border-white/10 px-3 py-2 text-[10px] font-bold text-white/55 transition hover:border-red-500/40 hover:bg-red-500/5 hover:text-white"
             >
               Sign out
             </button>
@@ -920,7 +949,7 @@ function AuthenticatedApp({
         </div>
 
         {showMobileSearch && (
-          <div className="border-t border-white/10 px-4 py-3 lg:hidden">
+          <div className="border-t border-white/[0.06] px-4 py-3 lg:hidden">
             <input
               autoFocus
               value={searchQuery}
@@ -929,14 +958,14 @@ function AuthenticatedApp({
                   event.target.value,
                 )
               }
-              placeholder="Search PMF Flix..."
-              className="w-full rounded-xl border border-white/10 bg-white/[0.06] px-4 py-3 text-sm text-white outline-none placeholder:text-white/30 focus:border-red-500"
+              placeholder="Search movies, genres..."
+              className="w-full rounded-xl border border-white/10 bg-white/[0.05] px-4 py-3 text-sm text-white outline-none placeholder:text-white/25 focus:border-red-500/50"
             />
           </div>
         )}
 
-        <div className="border-t border-white/[0.05] md:hidden">
-          <div className="mx-auto flex max-w-7xl overflow-x-auto px-4 py-2">
+        <div className="border-t border-white/[0.04] md:hidden">
+          <div className="mx-auto flex max-w-7xl overflow-x-auto px-4 py-2 [scrollbar-width:none]">
             {(
               [
                 ['home', 'Home'],
@@ -951,10 +980,10 @@ function AuthenticatedApp({
                 onClick={() =>
                   navigateTo(section)
                 }
-                className={`mr-5 whitespace-nowrap py-2 text-xs font-bold ${
+                className={`mr-6 whitespace-nowrap py-2 text-xs font-bold ${
                   activeSection === section
                     ? 'text-red-500'
-                    : 'text-white/45'
+                    : 'text-white/40'
                 }`}
               >
                 {label}
@@ -966,37 +995,45 @@ function AuthenticatedApp({
 
             {activeSection === 'home' &&
         !searchQuery.trim() && (
-          <section className="relative min-h-[62vh] overflow-hidden">
+          <section className="relative min-h-[68vh] overflow-hidden">
             <img
               src={heroImage}
               alt="PMF Cinematic Hero"
-              className="absolute inset-0 h-full w-full object-cover"
+              className="absolute inset-0 h-full w-full object-cover object-center"
             />
 
-            <div className="absolute inset-0 bg-gradient-to-r from-black via-black/65 to-transparent" />
-            <div className="absolute inset-0 bg-gradient-to-t from-black via-transparent to-black/20" />
+            <div className="absolute inset-0 bg-[radial-gradient(circle_at_70%_35%,transparent_0%,rgba(0,0,0,.25)_35%,rgba(0,0,0,.9)_100%)]" />
 
-            <div className="relative mx-auto flex min-h-[62vh] max-w-7xl items-end px-4 pb-16 pt-24 sm:px-6 lg:px-8">
+            <div className="absolute inset-0 bg-gradient-to-r from-black via-black/55 to-transparent" />
+
+            <div className="absolute inset-x-0 bottom-0 h-64 bg-gradient-to-t from-black via-black/60 to-transparent" />
+
+            <div className="relative mx-auto flex min-h-[68vh] max-w-7xl items-end px-4 pb-16 pt-28 sm:px-6 sm:pb-20 lg:px-8">
               <div className="max-w-2xl">
-                <p className="mb-3 text-xs font-black uppercase tracking-[0.35em] text-red-500">
-                  Featured Film
-                </p>
+                <div className="mb-5 flex items-center gap-3">
+                  <span className="h-px w-8 bg-red-600" />
 
-                <h1 className="text-4xl font-black leading-none tracking-tight sm:text-6xl">
+                  <p className="text-[10px] font-black uppercase tracking-[0.4em] text-red-500">
+                    PMF Original Experience
+                  </p>
+                </div>
+
+                <h1 className="text-5xl font-black leading-[0.9] tracking-[-0.06em] sm:text-7xl lg:text-8xl">
                   Your World.
                   <br />
                   Your Stories.
                   <br />
-                  <span className="text-red-600">
+                  <span className="text-red-600 drop-shadow-[0_0_25px_rgba(229,9,20,.25)]">
                     Your Flix.
                   </span>
                 </h1>
 
-                <p className="mt-5 max-w-xl text-sm leading-6 text-white/60 sm:text-base">
+                <p className="mt-6 max-w-xl text-sm leading-7 text-white/60 sm:text-base">
                   Discover cinematic stories,
                   unforgettable characters and
-                  premium entertainment on PMF
-                  Flix.
+                  premium entertainment built
+                  for the next generation of
+                  African and global audiences.
                 </p>
 
                 <div className="mt-7 flex flex-wrap gap-3">
@@ -1009,9 +1046,9 @@ function AuthenticatedApp({
                             trendingMovies[0],
                           )
                         }
-                        className="rounded-full bg-white px-6 py-3 text-sm font-black text-black transition hover:bg-white/90"
+                        className="rounded-full bg-white px-7 py-3.5 text-sm font-black text-black shadow-2xl shadow-black/30 transition hover:scale-105 hover:bg-white/90"
                       >
-                        ▶ Play
+                        ▶ Play Now
                       </button>
 
                       <button
@@ -1021,12 +1058,20 @@ function AuthenticatedApp({
                             trendingMovies[0],
                           )
                         }
-                        className="rounded-full bg-white/10 px-6 py-3 text-sm font-black text-white backdrop-blur transition hover:bg-white/20"
+                        className="rounded-full border border-white/10 bg-white/[0.09] px-7 py-3.5 text-sm font-black text-white backdrop-blur-xl transition hover:scale-105 hover:bg-white/[0.16]"
                       >
                         More Info
                       </button>
                     </>
                   )}
+                </div>
+
+                <div className="mt-8 flex flex-wrap items-center gap-4 text-[10px] font-bold uppercase tracking-[0.18em] text-white/35">
+                  <span>Premium Cinema</span>
+                  <span className="h-1 w-1 rounded-full bg-red-600" />
+                  <span>Original Stories</span>
+                  <span className="h-1 w-1 rounded-full bg-red-600" />
+                  <span>Global Entertainment</span>
                 </div>
               </div>
             </div>
@@ -1036,12 +1081,12 @@ function AuthenticatedApp({
       <main>
         <div className="mx-auto max-w-7xl px-4 pt-8 sm:px-6 lg:px-8">
           {searchQuery.trim() && (
-            <div className="mb-7">
-              <p className="text-[10px] font-black uppercase tracking-[0.3em] text-red-500">
+            <div className="mb-8 rounded-3xl border border-white/10 bg-white/[0.025] p-5 sm:p-7">
+              <p className="text-[9px] font-black uppercase tracking-[0.35em] text-red-500">
                 PMF Search
               </p>
 
-              <h1 className="mt-2 text-2xl font-black">
+              <h1 className="mt-2 text-2xl font-black tracking-tight sm:text-3xl">
                 Results for “
                 {searchQuery.trim()}
                 ”
@@ -1052,11 +1097,11 @@ function AuthenticatedApp({
           {activeSection !== 'home' &&
             !searchQuery.trim() && (
               <div className="mb-8 pt-4">
-                <p className="text-[10px] font-black uppercase tracking-[0.3em] text-red-500">
+                <p className="text-[9px] font-black uppercase tracking-[0.35em] text-red-500">
                   PMF Catalogue
                 </p>
 
-                <h1 className="mt-2 text-3xl font-black">
+                <h1 className="mt-2 text-3xl font-black tracking-tight sm:text-4xl">
                   {activeSection ===
                   'my-list'
                     ? 'My List'
@@ -1065,13 +1110,20 @@ function AuthenticatedApp({
                       ? 'TV Series'
                       : 'Movies'}
                 </h1>
+
+                <p className="mt-2 max-w-xl text-sm text-white/40">
+                  {activeSection ===
+                  'my-list'
+                    ? 'Your personal collection of stories saved for later.'
+                    : 'Explore the PMF catalogue and discover your next story.'}
+                </p>
               </div>
             )}
 
           {(activeSection !== 'home' ||
             searchQuery.trim()) && (
             <div className="mb-5 flex items-center justify-between gap-3">
-              <p className="text-xs text-white/40">
+              <p className="text-xs text-white/35">
                 {filteredMovies.length}{' '}
                 {filteredMovies.length ===
                 1
@@ -1087,7 +1139,7 @@ function AuthenticatedApp({
                     (current) => !current,
                   )
                 }
-                className="rounded-full border border-white/10 bg-white/[0.04] px-4 py-2 text-xs font-bold text-white/70 transition hover:border-red-500/40 hover:text-white"
+                className="rounded-full border border-white/10 bg-white/[0.04] px-4 py-2 text-xs font-bold text-white/60 transition hover:border-red-500/30 hover:bg-white/[0.07] hover:text-white"
               >
                 {showFilters
                   ? 'Hide Filters'
@@ -1105,10 +1157,13 @@ function AuthenticatedApp({
         {moviesLoading && (
           <section className="mx-auto flex min-h-[45vh] max-w-7xl items-center justify-center px-4">
             <div className="text-center">
-              <div className="mx-auto mb-4 h-10 w-10 animate-spin rounded-full border-2 border-white/10 border-t-red-600" />
+              <div className="relative mx-auto h-12 w-12">
+                <div className="absolute inset-0 rounded-full border border-white/10" />
+                <div className="absolute inset-0 animate-spin rounded-full border-2 border-transparent border-t-red-600" />
+              </div>
 
-              <p className="text-sm font-semibold text-white/50">
-                Loading PMF catalogue...
+              <p className="mt-5 text-xs font-bold uppercase tracking-[0.2em] text-white/30">
+                Preparing PMF
               </p>
             </div>
           </section>
@@ -1116,8 +1171,12 @@ function AuthenticatedApp({
 
         {!moviesLoading && moviesError && (
           <section className="mx-auto max-w-7xl px-4 py-16 sm:px-6 lg:px-8">
-            <div className="rounded-2xl border border-red-500/20 bg-red-500/5 p-8 text-center">
-              <p className="text-sm font-bold text-red-400">
+            <div className="rounded-3xl border border-red-500/20 bg-red-500/[0.04] p-10 text-center">
+              <div className="text-4xl">
+                !
+              </div>
+
+              <p className="mt-4 text-sm font-bold text-red-400">
                 {moviesError}
               </p>
 
@@ -1126,7 +1185,7 @@ function AuthenticatedApp({
                 onClick={() =>
                   window.location.reload()
                 }
-                className="mt-5 rounded-full bg-red-600 px-5 py-2 text-xs font-black text-white hover:bg-red-500"
+                className="mt-6 rounded-full bg-red-600 px-6 py-3 text-xs font-black text-white transition hover:bg-red-500"
               >
                 Try Again
               </button>
@@ -1140,7 +1199,7 @@ function AuthenticatedApp({
             searchQuery.trim()) && (
             <section className="mx-auto max-w-7xl px-4 pb-20 sm:px-6 lg:px-8">
               {filteredMovies.length ? (
-                <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5">
+                <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 sm:gap-4 md:grid-cols-4 lg:grid-cols-5">
                   {filteredMovies.map(
                     (movie) => (
                       <MovieCard
@@ -1151,13 +1210,13 @@ function AuthenticatedApp({
                   )}
                 </div>
               ) : (
-                <div className="flex min-h-[35vh] items-center justify-center rounded-2xl border border-white/10 bg-white/[0.02] p-10 text-center">
+                <div className="flex min-h-[38vh] items-center justify-center rounded-3xl border border-white/10 bg-white/[0.02] p-10 text-center">
                   <div>
-                    <div className="text-4xl">
+                    <div className="text-5xl">
                       🎬
                     </div>
 
-                    <h2 className="mt-4 text-lg font-black">
+                    <h2 className="mt-5 text-xl font-black">
                       Nothing found
                     </h2>
 
@@ -1172,7 +1231,7 @@ function AuthenticatedApp({
                         setSearchQuery('')
                         resetFilters()
                       }}
-                      className="mt-5 rounded-full bg-red-600 px-5 py-2 text-xs font-black"
+                      className="mt-6 rounded-full bg-red-600 px-6 py-3 text-xs font-black transition hover:bg-red-500"
                     >
                       Clear Discovery
                     </button>
@@ -1190,40 +1249,45 @@ function AuthenticatedApp({
               <MovieRow
                 title="Trending Now"
                 items={trendingMovies}
+                eyebrow="What's Hot"
               />
 
               <MovieRow
                 title="Continue Watching"
                 items={continueMovies}
+                eyebrow="Pick Up Where You Left Off"
               />
 
               <MovieRow
                 title="Latest Releases"
                 items={latestMovies}
+                eyebrow="Fresh On PMF"
               />
 
               <MovieRow
                 title="Action"
                 items={actionMovies}
+                eyebrow="High Energy"
               />
 
               <MovieRow
                 title="Adventure"
                 items={adventureMovies}
+                eyebrow="Go Beyond"
               />
             </div>
           )}
       </main>
 
-                    {selectedMovie && (
+            {selectedMovie && (
         <div
-          className="fixed inset-0 z-50 flex items-center justify-center bg-black/90 p-4 backdrop-blur-sm"
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/90 p-3 backdrop-blur-xl sm:p-5"
           onClick={() =>
             setSelectedMovie(null)
           }
         >
           <div
-            className="max-h-[90vh] w-full max-w-3xl overflow-y-auto rounded-2xl border border-white/10 bg-zinc-950 shadow-2xl"
+            className="max-h-[92vh] w-full max-w-4xl overflow-y-auto overflow-hidden rounded-3xl border border-white/10 bg-[#080808] shadow-2xl shadow-black"
             onClick={(event) =>
               event.stopPropagation()
             }
@@ -1239,31 +1303,32 @@ function AuthenticatedApp({
                 <div className="h-full w-full bg-gradient-to-br from-zinc-900 to-black" />
               )}
 
-              <div className="absolute inset-0 bg-gradient-to-t from-zinc-950 via-transparent to-black/20" />
+              <div className="absolute inset-0 bg-gradient-to-t from-[#080808] via-black/20 to-black/30" />
 
               <button
                 type="button"
+                aria-label="Close movie details"
                 onClick={() =>
                   setSelectedMovie(null)
                 }
-                className="absolute right-4 top-4 flex h-9 w-9 items-center justify-center rounded-full bg-black/70 text-white hover:bg-white/20"
+                className="absolute right-4 top-4 flex h-10 w-10 items-center justify-center rounded-full border border-white/10 bg-black/65 text-xl text-white backdrop-blur-xl transition hover:scale-105 hover:bg-white/20"
               >
                 ×
               </button>
 
-              <div className="absolute bottom-5 left-5 right-5">
-                <p className="mb-2 text-[10px] font-black uppercase tracking-[0.3em] text-red-500">
+              <div className="absolute bottom-6 left-5 right-5 sm:left-8 sm:right-8">
+                <p className="mb-2 text-[9px] font-black uppercase tracking-[0.35em] text-red-500">
                   PMF Flix
                 </p>
 
-                <h2 className="text-3xl font-black sm:text-5xl">
+                <h2 className="text-3xl font-black tracking-tight sm:text-5xl">
                   {selectedMovie.title}
                 </h2>
               </div>
             </div>
 
-            <div className="p-5 sm:p-7">
-              <div className="flex flex-wrap items-center gap-3 text-xs text-white/50">
+            <div className="p-5 sm:p-8">
+              <div className="flex flex-wrap items-center gap-3 text-xs font-semibold text-white/45">
                 <span>
                   {selectedMovie.year}
                 </span>
@@ -1287,14 +1352,14 @@ function AuthenticatedApp({
                 )}
 
                 {selectedMovie.rating && (
-                  <span>
+                  <span className="text-white/75">
                     ★ {selectedMovie.rating}
                   </span>
                 )}
               </div>
 
               {selectedMovie.description && (
-                <p className="mt-5 text-sm leading-7 text-white/60">
+                <p className="mt-6 max-w-3xl text-sm leading-7 text-white/55 sm:text-base">
                   {selectedMovie.description}
                 </p>
               )}
@@ -1307,7 +1372,7 @@ function AuthenticatedApp({
                       selectedMovie,
                     )
                   }
-                  className="rounded-full bg-white px-6 py-3 text-sm font-black text-black transition hover:bg-white/90"
+                  className="rounded-full bg-white px-7 py-3 text-sm font-black text-black transition hover:scale-105 hover:bg-white/90"
                 >
                   ▶ Play
                 </button>
@@ -1319,7 +1384,7 @@ function AuthenticatedApp({
                       selectedMovie.id,
                     )
                   }
-                  className="rounded-full border border-white/10 bg-white/[0.06] px-6 py-3 text-sm font-black text-white transition hover:bg-white/10"
+                  className="rounded-full border border-white/10 bg-white/[0.06] px-7 py-3 text-sm font-black text-white transition hover:scale-105 hover:bg-white/[0.1]"
                 >
                   {myList.includes(
                     selectedMovie.id,
@@ -1336,10 +1401,14 @@ function AuthenticatedApp({
       {watchingMovie && (
         <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black">
           <div className="relative h-full w-full">
+            <div className="absolute left-4 top-4 z-10 rounded-full border border-white/10 bg-black/60 px-3 py-2 text-[10px] font-black uppercase tracking-[0.2em] text-white/60 backdrop-blur-xl">
+              PMF • Now Playing
+            </div>
+
             <button
               type="button"
               onClick={closeWatching}
-              className="absolute right-4 top-4 z-10 rounded-full bg-black/70 px-4 py-2 text-sm font-bold text-white backdrop-blur transition hover:bg-white/20"
+              className="absolute right-4 top-4 z-20 rounded-full border border-white/10 bg-black/70 px-4 py-2 text-xs font-bold text-white backdrop-blur-xl transition hover:bg-white/20"
             >
               Close
             </button>
@@ -1364,8 +1433,8 @@ function AuthenticatedApp({
 
                       <p className="mt-3 text-sm leading-6 text-white/40">
                         No licensed video source
-                        is currently available for
-                        this title.
+                        is currently available
+                        for this title.
                       </p>
 
                       <button
@@ -1373,7 +1442,7 @@ function AuthenticatedApp({
                         onClick={
                           closeWatching
                         }
-                        className="mt-6 rounded-full bg-red-600 px-6 py-3 text-sm font-black"
+                        className="mt-6 rounded-full bg-red-600 px-6 py-3 text-sm font-black transition hover:bg-red-500"
                       >
                         Back to PMF
                       </button>
@@ -1382,7 +1451,9 @@ function AuthenticatedApp({
                 )
               }
 
-              if (isYouTubeUrl(videoUrl)) {
+              if (
+                isYouTubeUrl(videoUrl)
+              ) {
                 let embedUrl = videoUrl
 
                 try {
@@ -1406,13 +1477,15 @@ function AuthenticatedApp({
                     }
                   }
                 } catch {
-                  // Keep original URL if parsing fails.
+                  // Keep original URL.
                 }
 
                 return (
                   <iframe
                     src={embedUrl}
-                    title={watchingMovie.title}
+                    title={
+                      watchingMovie.title
+                    }
                     className="h-full w-full"
                     allow="autoplay; encrypted-media; fullscreen; picture-in-picture"
                     allowFullScreen
@@ -1428,12 +1501,12 @@ function AuthenticatedApp({
                   autoPlay
                   playsInline
                   className="h-full w-full bg-black object-contain"
-                  onError={() => {
+                  onError={() =>
                     console.error(
                       'PMF video failed to load:',
                       videoUrl,
                     )
-                  }}
+                  }
                 />
               )
             })()}
@@ -1441,14 +1514,14 @@ function AuthenticatedApp({
         </div>
       )}
 
-      <footer className="border-t border-white/10 bg-black">
-        <div className="mx-auto max-w-7xl px-4 py-10 sm:px-6 lg:px-8">
-          <div className="flex flex-col gap-6 sm:flex-row sm:items-center sm:justify-between">
+      <footer className="border-t border-white/[0.08] bg-[#020202]">
+        <div className="mx-auto max-w-7xl px-4 py-12 sm:px-6 lg:px-8">
+          <div className="flex flex-col gap-8 sm:flex-row sm:items-center sm:justify-between">
             <div>
               <button
                 type="button"
                 onClick={goHome}
-                className="text-xl font-black"
+                className="text-2xl font-black tracking-[-0.05em]"
               >
                 PMF
                 <span className="text-red-600">
@@ -1456,23 +1529,31 @@ function AuthenticatedApp({
                 </span>
               </button>
 
-              <p className="mt-2 text-xs text-white/30">
+              <p className="mt-2 text-[9px] font-bold uppercase tracking-[0.3em] text-white/25">
                 Prince Mufasa Flix
+              </p>
+
+              <p className="mt-3 max-w-sm text-xs leading-5 text-white/25">
+                Your World. Your Stories.
+                Your Flix.
               </p>
             </div>
 
-            <div className="text-xs text-white/25">
-              Signed in as{' '}
-              {session.user.email ??
-                'PMF member'}
+            <div className="rounded-2xl border border-white/[0.07] bg-white/[0.025] px-5 py-4 text-xs text-white/30">
+              Signed in as
+              <br />
+              <span className="mt-1 inline-block font-semibold text-white/55">
+                {session.user.email ??
+                  'PMF member'}
+              </span>
             </div>
           </div>
 
-          <div className="mt-8 border-t border-white/5 pt-5 text-[10px] leading-5 text-white/20">
+          <div className="mt-10 border-t border-white/[0.05] pt-6 text-[10px] leading-5 text-white/20">
             © {new Date().getFullYear()}{' '}
             Prince Mufasa Flix. All rights
-            reserved. Content available on PMF
-            Flix must be properly licensed,
+            reserved. Content available on
+            PMF Flix must be properly licensed,
             owned, or otherwise legally
             authorized for streaming.
           </div>
@@ -1480,7 +1561,7 @@ function AuthenticatedApp({
       </footer>
     </div>
   )
- }
+}
 
 export default function App() {
   const [session, setSession] =
@@ -1527,16 +1608,19 @@ export default function App() {
     return (
       <div className="flex min-h-screen items-center justify-center bg-black text-white">
         <div className="text-center">
-          <div className="text-3xl font-black">
+          <div className="text-3xl font-black tracking-[-0.05em]">
             PMF
             <span className="text-red-600">
               LIX
             </span>
           </div>
 
-          <div className="mx-auto mt-5 h-8 w-8 animate-spin rounded-full border-2 border-white/10 border-t-red-600" />
+          <div className="relative mx-auto mt-6 h-9 w-9">
+            <div className="absolute inset-0 rounded-full border border-white/10" />
+            <div className="absolute inset-0 animate-spin rounded-full border-2 border-transparent border-t-red-600" />
+          </div>
 
-          <p className="mt-4 text-xs text-white/30">
+          <p className="mt-4 text-[10px] font-bold uppercase tracking-[0.25em] text-white/25">
             Preparing your cinematic
             experience...
           </p>
@@ -1554,4 +1638,4 @@ export default function App() {
       session={session}
     />
   )
-              }
+}
