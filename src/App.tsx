@@ -2545,46 +2545,201 @@ export default function App() {
 
                         {metadataCatalog?.genres.map(
                           (
-                            genre,
-                          ) => (
-                            <option
-                              key={
-                                genre.id
-                              }
-                              value={
-                                genre.id
-                              }
-                              className="bg-black"
-                            >
-                              {
-                                genre.name
-                              }
-                            </option>
-                          ),
-                        )}
-                      </select>
+<div className="mx-auto max-w-[1600px] px-5 pt-12 sm:px-8 lg:px-12">
+  {continueWatchingMovies.length > 0 && (
+    <MovieRail
+      eyebrow="Pick up where you left off"
+      title="Continue Watching"
+      movies={continueWatchingMovies}
+      movieMap={movieMap}
+      myListIds={myListIds}
+      likedIds={likedIds}
+      continueWatchingEntries={continueWatchingEntries}
+      onOpen={openMovie}
+      onToggleMyList={toggleMyList}
+      onToggleLike={toggleLike}
+      onPlay={playMovie}
+    />
+  )}
 
-                      <select
-                        value={
-                          yearFilter
-                        }
-                        onChange={(
-                          event,
-                        ) =>
-                          setYearFilter(
-                            event
-                              .target
-                              .value,
-                          )
-                        }
-                        className="rounded-xl border border-white/10 bg-black/50 px-3 py-3 text-xs font-bold text-white outline-none"
-                      >
-                        <option
-                          value=""
-                          className="bg-black"
-                        >
-                          All Years
-                        </option>
+  {newReleases.length > 0 && (
+    <MovieRail
+      eyebrow="Fresh from PMF"
+      title="New Releases"
+      movies={newReleases}
+      movieMap={movieMap}
+      myListIds={myListIds}
+      likedIds={likedIds}
+      continueWatchingEntries={continueWatchingEntries}
+      onOpen={openMovie}
+      onToggleMyList={toggleMyList}
+      onToggleLike={toggleLike}
+      onPlay={playMovie}
+    />
+  )}
+
+  {pmfOriginals.length > 0 && (
+    <MovieRail
+      eyebrow="Made for PMF"
+      title="PMF Originals"
+      movies={pmfOriginals}
+      movieMap={movieMap}
+      myListIds={myListIds}
+      likedIds={likedIds}
+      continueWatchingEntries={continueWatchingEntries}
+      onOpen={openMovie}
+      onToggleMyList={toggleMyList}
+      onToggleLike={toggleLike}
+      onPlay={playMovie}
+    />
+  )}
+
+  {topRated.length > 0 && (
+    <MovieRail
+      eyebrow="Critically loved"
+      title="Top Rated"
+      movies={topRated}
+      movieMap={movieMap}
+      myListIds={myListIds}
+      likedIds={likedIds}
+      continueWatchingEntries={continueWatchingEntries}
+      onOpen={openMovie}
+      onToggleMyList={toggleMyList}
+      onToggleLike={toggleLike}
+      onPlay={playMovie}
+    />
+  )}
+
+  {recommendedMovies.length > 0 && (
+    <MovieRail
+      eyebrow="Picked for you"
+      title="Recommended for You"
+      movies={recommendedMovies}
+      movieMap={movieMap}
+      myListIds={myListIds}
+      likedIds={likedIds}
+      continueWatchingEntries={continueWatchingEntries}
+      onOpen={openMovie}
+      onToggleMyList={toggleMyList}
+      onToggleLike={toggleLike}
+      onPlay={playMovie}
+    />
+  )}
+</div>
+
+</>
+)}
+
+{section !== 'home' && (
+  <div className="mx-auto max-w-[1600px] px-5 pt-28 sm:px-8 lg:px-12">
+    <SectionTitle
+      eyebrow="Explore PMF"
+      title={
+        section === 'my-list'
+          ? 'My List'
+          : section === 'tv'
+            ? 'TV Series'
+            : 'Movies'
+      }
+      description={
+        section === 'my-list'
+          ? 'Your personal collection of stories you want to watch.'
+          : 'Explore the PMF catalogue with global discovery, filters and smart sorting.'
+      }
+      action={
+        section !== 'my-list' && (
+          <button
+            type="button"
+            onClick={() =>
+              setShowFilters((value) => !value)
+            }
+            className={`hidden items-center gap-2 rounded-xl border px-4 py-2.5 text-xs font-black transition sm:flex ${
+              showFilters
+                ? 'border-red-500/30 bg-red-600/15 text-red-400'
+                : 'border-white/10 bg-white/[0.04] text-white/60 hover:text-white'
+            }`}
+          >
+            <SlidersHorizontal className="h-4 w-4" />
+            Filters
+          </button>
+        )
+      }
+    />
+
+    {section !== 'my-list' && (
+      <div className="mb-8 flex flex-wrap items-center gap-2">
+        <button
+          type="button"
+          onClick={() =>
+            setShowFilters((value) => !value)
+          }
+          className="flex items-center gap-2 rounded-xl border border-white/10 bg-white/[0.04] px-4 py-2.5 text-xs font-black text-white/70 sm:hidden"
+        >
+          <SlidersHorizontal className="h-4 w-4" />
+          Filters
+        </button>
+
+        <select
+          value={sortMode}
+          onChange={(event) =>
+            setSortMode(event.target.value as SortMode)
+          }
+          className="rounded-xl border border-white/10 bg-white/[0.04] px-4 py-2.5 text-xs font-bold text-white outline-none"
+        >
+          <option value="popular" className="bg-black">
+            Most Popular
+          </option>
+          <option value="newest" className="bg-black">
+            Newest
+          </option>
+          <option value="rating" className="bg-black">
+            Highest Rated
+          </option>
+          <option value="title" className="bg-black">
+            A-Z
+          </option>
+        </select>
+
+        <span className="ml-auto text-xs font-bold text-white/30">
+          {filteredMovies.length} titles
+        </span>
+      </div>
+    )}
+
+    {showFilters && section !== 'my-list' && (
+      <div className="mb-8 grid gap-3 rounded-2xl border border-white/10 bg-white/[0.025] p-4 sm:grid-cols-2 lg:grid-cols-4">
+        <select
+          value={genreFilter}
+          onChange={(event) =>
+            setGenreFilter(event.target.value)
+          }
+          className="rounded-xl border border-white/10 bg-black/50 px-3 py-3 text-xs font-bold text-white outline-none"
+        >
+          <option value="" className="bg-black">
+            All Genres
+          </option>
+
+          {metadataCatalog?.genres.map((genre) => (
+            <option
+              key={genre.id}
+              value={genre.id}
+              className="bg-black"
+            >
+              {genre.name}
+            </option>
+          ))}
+        </select>
+
+        <select
+          value={yearFilter}
+          onChange={(event) =>
+            setYearFilter(event.target.value)
+          }
+          className="rounded-xl border border-white/10 bg-black/50 px-3 py-3 text-xs font-bold text-white outline-none"
+        >
+          <option value="" className="bg-black">
+            All Years
+          </option>
 
                         {availableYears.map(
                           (
