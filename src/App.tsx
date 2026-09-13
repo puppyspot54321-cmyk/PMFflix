@@ -48,23 +48,36 @@ function AuthenticatedApp({
   const [activeSection, setActiveSection] =
     useState<Section>('home')
 
-  const [searchQuery, setSearchQuery] = useState('')
+  const [searchQuery, setSearchQuery] =
+    useState('')
+
   const [selectedMovie, setSelectedMovie] =
     useState<Movie | null>(null)
+
   const [watchingMovie, setWatchingMovie] =
     useState<Movie | null>(null)
 
   const [movies, setMovies] = useState<Movie[]>([])
   const [moviesLoading, setMoviesLoading] =
     useState(true)
-  const [moviesError, setMoviesError] = useState('')
+
+  const [moviesError, setMoviesError] =
+    useState('')
 
   const [showMobileSearch, setShowMobileSearch] =
     useState(false)
-  const [showFilters, setShowFilters] = useState(false)
-  const [mobileMenu, setMobileMenu] = useState(false)
 
-  const [heroIndex, setHeroIndex] = useState(0)
+  const [showFilters, setShowFilters] =
+    useState(false)
+
+  const [mobileMenu, setMobileMenu] =
+    useState(false)
+
+  const [heroIndex, setHeroIndex] =
+    useState(0)
+
+  const [searchFocused, setSearchFocused] =
+    useState(false)
 
   const [filters, setFilters] =
     useState<DiscoveryFilters>({
@@ -75,25 +88,27 @@ function AuthenticatedApp({
       sort: 'featured',
     })
 
-  const [myList, setMyList] = useState<number[]>(() => {
-    try {
-      const saved =
-        localStorage.getItem('pmf-my-list')
+  const [myList, setMyList] =
+    useState<number[]>(() => {
+      try {
+        const saved =
+          localStorage.getItem('pmf-my-list')
 
-      if (!saved) return []
+        if (!saved) return []
 
-      const parsed: unknown = JSON.parse(saved)
+        const parsed: unknown =
+          JSON.parse(saved)
 
-      if (!Array.isArray(parsed)) return []
+        if (!Array.isArray(parsed)) return []
 
-      return parsed.filter(
-        (value): value is number =>
-          typeof value === 'number',
-      )
-    } catch {
-      return []
-    }
-  })
+        return parsed.filter(
+          (value): value is number =>
+            typeof value === 'number',
+        )
+      } catch {
+        return []
+      }
+    })
 
   const [continueWatching, setContinueWatching] =
     useState<number[]>(() => {
@@ -104,7 +119,8 @@ function AuthenticatedApp({
 
         if (!saved) return []
 
-        const parsed: unknown = JSON.parse(saved)
+        const parsed: unknown =
+          JSON.parse(saved)
 
         if (!Array.isArray(parsed)) return []
 
@@ -125,7 +141,8 @@ function AuthenticatedApp({
       setMoviesError('')
 
       try {
-        const canonicalMovies = await getMovies()
+        const canonicalMovies =
+          await getMovies()
 
         if (!mounted) return
 
@@ -223,7 +240,11 @@ function AuthenticatedApp({
 
   const openMovie = (movie: Movie) => {
     setSelectedMovie(movie)
-    window.scrollTo({ top: 0, behavior: 'smooth' })
+
+    window.scrollTo({
+      top: 0,
+      behavior: 'smooth',
+    })
   }
 
   const startWatching = (movie: Movie) => {
@@ -243,6 +264,7 @@ function AuthenticatedApp({
     setWatchingMovie(null)
     setShowFilters(false)
     setMobileMenu(false)
+    setSearchFocused(false)
 
     window.scrollTo({
       top: 0,
@@ -255,6 +277,7 @@ function AuthenticatedApp({
     setSearchQuery('')
     setShowFilters(false)
     setMobileMenu(false)
+    setSearchFocused(false)
 
     window.scrollTo({
       top: 0,
@@ -319,6 +342,8 @@ function AuthenticatedApp({
         setSelectedMovie(null)
       } else if (mobileMenu) {
         setMobileMenu(false)
+      } else if (searchFocused) {
+        setSearchFocused(false)
       }
     }
 
@@ -337,6 +362,7 @@ function AuthenticatedApp({
     watchingMovie,
     selectedMovie,
     mobileMenu,
+    searchFocused,
   ])
 
   useEffect(() => {
@@ -466,22 +492,6 @@ function AuthenticatedApp({
         return false
       }
 
-      if (filters.minRating) {
-        const minimum = Number(
-          filters.minRating,
-        )
-        const rating = Number(
-          movie.rating ?? 0,
-        )
-
-        if (
-          Number.isFinite(rating) &&
-          rating < minimum
-        ) {
-          return false
-        }
-      }
-
       if (query) {
         const searchable = [
           movie.title,
@@ -560,6 +570,19 @@ function AuthenticatedApp({
     [movies],
   )
 
+  const trendingMovies = useMemo(
+    () =>
+      [...movies]
+        .sort(
+          (a, b) =>
+            Number(Boolean(b.featured)) -
+              Number(Boolean(a.featured)) ||
+            b.year - a.year,
+        )
+        .slice(0, 10),
+    [movies],
+  )
+
   const actionMovies = useMemo(
     () =>
       movies.filter((movie) =>
@@ -594,6 +617,58 @@ function AuthenticatedApp({
         ),
     [continueWatching, movies],
   )
+
+  const recommendedMovies = useMemo(() => {
+    if (!heroMovie) return []
+
+    const heroCategory =
+      heroMovie.category?.toLowerCase()
+
+    return movies
+      .filter(
+        (movie) =>
+          movie.id !== heroMovie.id &&
+          movie.category?.toLowerCase() ===
+            heroCategory,
+      )
+      .slice(0, 8)
+  }, [movies, heroMovie])
+
+  const genreMovies = useMemo(() => {
+    const seen = new Set<string>()
+    const result: {
+      name: string
+      items: Movie[]
+    }[] = []
+
+    movies.forEach((movie) => {
+      const category =
+        movie.category?.trim()
+
+      if (!category) return
+
+      if (seen.has(category)) {
+        const existing = result.find(
+          (item) => item.name === category,
+        )
+
+        if (existing) {
+          existing.items.push(movie)
+        }
+
+        return
+      }
+
+      seen.add(category)
+
+      result.push({
+        name: category,
+        items: [movie],
+      })
+    })
+
+    return result.slice(0, 5)
+  }, [movies])
 
   const resetFilters = () => {
     setFilters({
@@ -645,7 +720,9 @@ function AuthenticatedApp({
     activeSection === 'home'
       ? 'A premium world of stories, selected for your next great watch.'
       : activeSection === 'my-list'
-        ? `${myList.length} title${myList.length === 1 ? '' : 's'} saved for later.`
+        ? `${myList.length} title${
+            myList.length === 1 ? '' : 's'
+          } saved for later.`
         : 'Explore the PMF-Flix catalogue and find something worth watching.'
 
   const MovieCard = ({
@@ -655,11 +732,13 @@ function AuthenticatedApp({
     movie: Movie
     compact?: boolean
   }) => {
-    const inMyList = myList.includes(movie.id)
+    const inMyList = myList.includes(
+      movie.id,
+    )
 
     return (
       <article
-        className={`group relative shrink-0 cursor-pointer overflow-hidden rounded-2xl border border-white/10 bg-white/[0.035] shadow-xl shadow-black/20 transition duration-500 hover:-translate-y-2 hover:border-white/20 hover:bg-white/[0.07] ${
+        className={`group relative shrink-0 cursor-pointer overflow-hidden rounded-2xl border border-white/10 bg-white/[0.035] shadow-xl shadow-black/20 transition duration-500 hover:-translate-y-2 hover:border-red-500/30 hover:bg-white/[0.07] hover:shadow-red-950/20 ${
           compact
             ? 'w-[155px] sm:w-[180px]'
             : 'w-[180px] sm:w-[210px]'
@@ -687,7 +766,7 @@ function AuthenticatedApp({
           <div className="absolute inset-0 bg-red-600/0 transition duration-500 group-hover:bg-red-600/10" />
 
           {movie.featured && (
-            <div className="absolute left-3 top-3 flex items-center gap-1 rounded-full border border-white/10 bg-red-600 px-2.5 py-1 text-[8px] font-black uppercase tracking-[0.16em] shadow-lg shadow-red-950/40">
+            <div className="absolute left-3 top-3 flex items-center gap-1 rounded-full border border-white/10 bg-red-600 px-2.5 py-1 text-[8px] font-black uppercase tracking-[0.16em]">
               <Sparkles size={10} />
               Featured
             </div>
@@ -715,6 +794,21 @@ function AuthenticatedApp({
             )}
           </button>
 
+          <button
+            type="button"
+            aria-label={`Play ${movie.title}`}
+            onClick={(event) => {
+              event.stopPropagation()
+              startWatching(movie)
+            }}
+            className="absolute bottom-14 left-3 flex h-9 w-9 translate-y-3 items-center justify-center rounded-full bg-white text-black opacity-0 shadow-xl transition duration-300 group-hover:translate-y-0 group-hover:opacity-100"
+          >
+            <Play
+              size={15}
+              fill="currentColor"
+            />
+          </button>
+
           <div className="absolute bottom-0 left-0 right-0 translate-y-1 p-3.5 transition duration-500 group-hover:translate-y-0">
             <h3 className="truncate text-sm font-black text-white sm:text-base">
               {movie.title}
@@ -722,9 +816,7 @@ function AuthenticatedApp({
 
             <div className="mt-1.5 flex items-center gap-1.5 overflow-hidden text-[9px] font-semibold text-white/55">
               <span>{movie.year}</span>
-
               <span>•</span>
-
               <span className="truncate">
                 {movie.category}
               </span>
@@ -742,16 +834,18 @@ function AuthenticatedApp({
         </div>
       </article>
     )
-  }
+    }
 
   const MovieRail = ({
     title,
     subtitle,
     items,
+    accent = false,
   }: {
     title: string
     subtitle?: string
     items: Movie[]
+    accent?: boolean
   }) => {
     const [offset, setOffset] = useState(0)
 
@@ -763,16 +857,23 @@ function AuthenticatedApp({
     )
 
     const canBack = offset > 0
+
     const canForward =
       offset + 8 < items.length
 
     return (
-      <section className="mt-10">
+      <section className="mt-12">
         <div className="mb-4 flex items-end justify-between gap-4">
           <div>
-            <h2 className="text-xl font-black tracking-tight text-white sm:text-2xl">
-              {title}
-            </h2>
+            <div className="flex items-center gap-2">
+              {accent && (
+                <span className="h-2 w-2 rounded-full bg-red-600 shadow-lg shadow-red-600/50" />
+              )}
+
+              <h2 className="text-xl font-black tracking-tight text-white sm:text-2xl">
+                {title}
+              </h2>
+            </div>
 
             {subtitle && (
               <p className="mt-1 text-xs text-white/35 sm:text-sm">
@@ -801,7 +902,10 @@ function AuthenticatedApp({
               onClick={() =>
                 setOffset((value) =>
                   Math.min(
-                    Math.max(0, items.length - 8),
+                    Math.max(
+                      0,
+                      items.length - 8,
+                    ),
                     value + 4,
                   ),
                 )
@@ -825,9 +929,68 @@ function AuthenticatedApp({
     )
   }
 
+  const SearchResults = () => {
+    if (!searchQuery.trim()) return null
+
+    return (
+      <section className="mt-8">
+        <div className="mb-5 flex items-center justify-between">
+          <div>
+            <p className="text-[9px] font-black uppercase tracking-[0.25em] text-red-500">
+              Search results
+            </p>
+
+            <h2 className="mt-1 text-2xl font-black">
+              Results for “{searchQuery}”
+            </h2>
+          </div>
+
+          <button
+            type="button"
+            onClick={() => {
+              setSearchQuery('')
+              setSearchFocused(false)
+            }}
+            className="rounded-full border border-white/10 px-3 py-2 text-[10px] font-bold text-white/50 hover:bg-white/10 hover:text-white"
+          >
+            Clear
+          </button>
+        </div>
+
+        {filteredMovies.length ? (
+          <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 sm:gap-4 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6">
+            {filteredMovies.map((movie) => (
+              <MovieCard
+                key={movie.id}
+                movie={movie}
+                compact
+              />
+            ))}
+          </div>
+        ) : (
+          <div className="flex min-h-[300px] flex-col items-center justify-center rounded-3xl border border-white/10 bg-white/[0.025] px-6 text-center">
+            <Search
+              size={32}
+              className="text-white/15"
+            />
+
+            <h3 className="mt-4 text-lg font-black text-white">
+              Nothing found
+            </h3>
+
+            <p className="mt-2 max-w-sm text-xs leading-6 text-white/30">
+              Try another title, genre or
+              keyword.
+            </p>
+          </div>
+        )}
+      </section>
+    )
+  }
+
   return (
     <div className="min-h-screen overflow-x-hidden bg-[#050505] text-white selection:bg-red-600 selection:text-white">
-      <header className="fixed inset-x-0 top-0 z-50 border-b border-white/[0.06] bg-black/60 backdrop-blur-2xl">
+      <header className="fixed inset-x-0 top-0 z-50 border-b border-white/[0.06] bg-black/65 backdrop-blur-2xl">
         <div className="mx-auto flex h-16 max-w-[1500px] items-center justify-between px-4 sm:h-[72px] sm:px-7 lg:px-10">
           <button
             type="button"
@@ -878,22 +1041,43 @@ function AuthenticatedApp({
           </nav>
 
           <div className="flex items-center gap-2">
-            <div className="hidden items-center rounded-full border border-white/10 bg-white/[0.04] px-3 py-2 md:flex">
+            <div
+              className={`hidden items-center rounded-full border transition md:flex ${
+                searchFocused
+                  ? 'border-red-500/40 bg-white/[0.07] shadow-lg shadow-red-950/20'
+                  : 'border-white/10 bg-white/[0.04]'
+              }`}
+            >
               <Search
                 size={15}
-                className="text-white/30"
+                className="ml-3 text-white/30"
               />
 
               <input
                 value={searchQuery}
+                onFocus={() =>
+                  setSearchFocused(true)
+                }
                 onChange={(event) =>
                   setSearchQuery(
                     event.target.value,
                   )
                 }
                 placeholder="Search PMF-Flix..."
-                className="ml-2 w-36 bg-transparent text-xs font-semibold text-white outline-none placeholder:text-white/25 lg:w-48"
+                className="ml-2 w-36 bg-transparent px-2 py-2.5 text-xs font-semibold text-white outline-none placeholder:text-white/25 lg:w-48"
               />
+
+              {searchQuery && (
+                <button
+                  type="button"
+                  onClick={() =>
+                    setSearchQuery('')
+                  }
+                  className="mr-2 text-white/30 hover:text-white"
+                >
+                  <X size={13} />
+                </button>
+              )}
             </div>
 
             <button
@@ -927,7 +1111,9 @@ function AuthenticatedApp({
             <button
               type="button"
               onClick={() => void signOut()}
-              title={`Sign out ${session.user.email ?? ''}`}
+              title={`Sign out ${
+                session.user.email ?? ''
+              }`}
               className="hidden h-10 w-10 items-center justify-center rounded-full border border-white/10 bg-white/[0.04] text-white/50 transition hover:border-red-500/30 hover:bg-red-600 hover:text-white sm:flex"
             >
               <LogOut size={16} />
@@ -998,7 +1184,7 @@ function AuthenticatedApp({
         )}
       </header>
 
-      {activeSection === 'home' &&
+            {activeSection === 'home' &&
         !searchQuery &&
         !selectedMovie && (
           <section className="relative min-h-[680px] overflow-hidden pt-16 sm:min-h-[760px] sm:pt-[72px]">
@@ -1013,14 +1199,16 @@ function AuthenticatedApp({
               />
 
               <div className="absolute inset-0 bg-gradient-to-r from-black via-black/75 to-black/20" />
+
               <div className="absolute inset-0 bg-gradient-to-t from-[#050505] via-black/10 to-black/30" />
+
               <div className="absolute inset-0 bg-[radial-gradient(circle_at_75%_35%,rgba(220,38,38,0.18),transparent_32%)]" />
             </div>
 
             <div className="relative mx-auto flex min-h-[680px] max-w-[1500px] items-end px-5 pb-20 sm:min-h-[760px] sm:px-8 sm:pb-28 lg:px-12">
               <div className="max-w-2xl">
-                <div className="mb-5 flex items-center gap-2">
-                  <span className="flex items-center gap-1.5 rounded-full bg-red-600 px-3 py-1.5 text-[9px] font-black uppercase tracking-[0.18em]">
+                <div className="mb-5 flex flex-wrap items-center gap-2">
+                  <span className="flex items-center gap-1.5 rounded-full bg-red-600 px-3 py-1.5 text-[9px] font-black uppercase tracking-[0.18em] shadow-lg shadow-red-950/30">
                     <Sparkles size={11} />
                     PMF Original
                   </span>
@@ -1030,7 +1218,7 @@ function AuthenticatedApp({
                   </span>
                 </div>
 
-                <h1 className="max-w-xl text-5xl font-black leading-[0.92] tracking-[-0.06em] text-white sm:text-7xl lg:text-8xl">
+                <h1 className="max-w-xl text-5xl font-black leading-[0.92] tracking-[-0.06em] text-white transition duration-700 sm:text-7xl lg:text-8xl">
                   {heroMovie?.title ||
                     'Your World. Your Stories.'}
                 </h1>
@@ -1042,9 +1230,7 @@ function AuthenticatedApp({
 
                 {heroMovie && (
                   <div className="mt-5 flex flex-wrap items-center gap-3 text-[10px] font-bold text-white/50">
-                    <span>
-                      {heroMovie.year}
-                    </span>
+                    <span>{heroMovie.year}</span>
 
                     <span>•</span>
 
@@ -1089,6 +1275,7 @@ function AuthenticatedApp({
                           fill="currentColor"
                         />
                         Watch Now
+
                         <ArrowRight
                           size={14}
                           className="transition group-hover:translate-x-1"
@@ -1133,7 +1320,7 @@ function AuthenticatedApp({
           </section>
         )}
 
-            <main className="mx-auto max-w-[1500px] px-4 pb-20 sm:px-7 lg:px-10">
+      <main className="mx-auto max-w-[1500px] px-4 pb-20 sm:px-7 lg:px-10">
         {!selectedMovie && (
           <section
             className={
@@ -1143,46 +1330,49 @@ function AuthenticatedApp({
                 : 'pt-28 sm:pt-32'
             }
           >
-            <div className="mb-8 flex flex-col gap-5 lg:flex-row lg:items-end lg:justify-between">
-              <div>
-                <div className="mb-2 flex items-center gap-2 text-[9px] font-black uppercase tracking-[0.25em] text-red-500">
-                  <span className="h-1 w-1 rounded-full bg-red-500" />
-                  PMF Discovery
+            {!searchQuery && (
+              <div className="mb-8 flex flex-col gap-5 lg:flex-row lg:items-end lg:justify-between">
+                <div>
+                  <div className="mb-2 flex items-center gap-2 text-[9px] font-black uppercase tracking-[0.25em] text-red-500">
+                    <span className="h-1 w-1 rounded-full bg-red-500" />
+                    PMF Discovery
+                  </div>
+
+                  <h2 className="text-3xl font-black tracking-[-0.04em] text-white sm:text-4xl">
+                    {sectionTitle}
+                  </h2>
+
+                  <p className="mt-2 max-w-xl text-sm text-white/35">
+                    {sectionDescription}
+                  </p>
                 </div>
 
-                <h2 className="text-3xl font-black tracking-[-0.04em] text-white sm:text-4xl">
-                  {sectionTitle}
-                </h2>
+                <div className="flex flex-wrap gap-2">
+                  <button
+                    type="button"
+                    onClick={() =>
+                      setShowFilters(
+                        (value) => !value,
+                      )
+                    }
+                    className={`flex items-center gap-2 rounded-xl border px-4 py-2.5 text-xs font-bold transition ${
+                      hasActiveFilters
+                        ? 'border-red-600/50 bg-red-600/10 text-red-400'
+                        : 'border-white/10 bg-white/[0.04] text-white/60 hover:bg-white/[0.08]'
+                    }`}
+                  >
+                    <Filter size={14} />
+                    Filters
 
-                <p className="mt-2 max-w-xl text-sm text-white/35">
-                  {sectionDescription}
-                </p>
+                    {hasActiveFilters && (
+                      <span className="flex h-4 w-4 items-center justify-center rounded-full bg-red-600 text-[8px] text-white">
+                        !
+                      </span>
+                    )}
+                  </button>
+                </div>
               </div>
-
-              <div className="flex flex-wrap gap-2">
-                <button
-                  type="button"
-                  onClick={() =>
-                    setShowFilters(
-                      (value) => !value,
-                    )
-                  }
-                  className={`flex items-center gap-2 rounded-xl border px-4 py-2.5 text-xs font-bold transition ${
-                    hasActiveFilters
-                      ? 'border-red-600/50 bg-red-600/10 text-red-400'
-                      : 'border-white/10 bg-white/[0.04] text-white/60 hover:bg-white/[0.08]'
-                  }`}
-                >
-                  <Filter size={14} />
-                  Filters
-                  {hasActiveFilters && (
-                    <span className="flex h-4 w-4 items-center justify-center rounded-full bg-red-600 text-[8px] text-white">
-                      !
-                    </span>
-                  )}
-                </button>
-              </div>
-            </div>
+            )}
 
             {showFilters && (
               <div className="mb-8 rounded-2xl border border-white/10 bg-white/[0.035] p-4 shadow-2xl shadow-black/20 sm:p-5">
@@ -1332,8 +1522,10 @@ function AuthenticatedApp({
               <div className="flex min-h-[360px] items-center justify-center">
                 <div className="text-center">
                   <div className="mx-auto h-12 w-12 animate-spin rounded-full border-2 border-white/10 border-t-red-600" />
+
                   <p className="mt-5 text-[10px] font-black uppercase tracking-[0.25em] text-white/25">
-                    Loading your cinematic world
+                    Loading your cinematic
+                    world
                   </p>
                 </div>
               </div>
@@ -1347,8 +1539,9 @@ function AuthenticatedApp({
                   Please refresh and try again.
                 </p>
               </div>
-            ) : searchQuery ||
-              activeSection !== 'home' ||
+            ) : searchQuery ? (
+              <SearchResults />
+            ) : activeSection !== 'home' ||
               hasActiveFilters ? (
               <section>
                 <div className="mb-5 flex items-center justify-between">
@@ -1386,9 +1579,9 @@ function AuthenticatedApp({
                     </h3>
 
                     <p className="mt-2 max-w-sm text-xs leading-6 text-white/30">
-                      Try another search or clear
-                      your filters to explore more
-                      of PMF-Flix.
+                      Try another search or
+                      clear your filters to
+                      explore more of PMF-Flix.
                     </p>
                   </div>
                 )}
@@ -1400,6 +1593,7 @@ function AuthenticatedApp({
                     title="Continue Watching"
                     subtitle="Pick up where your story left off."
                     items={continueMovies}
+                    accent
                   />
                 )}
 
@@ -1407,10 +1601,11 @@ function AuthenticatedApp({
                   title="Trending Now"
                   subtitle="What the PMF world is watching."
                   items={
-                    featuredMovies.length
-                      ? featuredMovies
+                    trendingMovies.length
+                      ? trendingMovies
                       : movies
                   }
+                  accent
                 />
 
                 <MovieRail
@@ -1418,6 +1613,14 @@ function AuthenticatedApp({
                   subtitle="Fresh stories, ready for discovery."
                   items={latestMovies}
                 />
+
+                                {recommendedMovies.length > 0 && (
+                  <MovieRail
+                    title="Because You Might Like This"
+                    subtitle="More stories from the same cinematic world."
+                    items={recommendedMovies}
+                  />
+                )}
 
                 {actionMovies.length > 0 && (
                   <MovieRail
@@ -1434,6 +1637,15 @@ function AuthenticatedApp({
                     items={adventureMovies}
                   />
                 )}
+
+                {genreMovies.map((genre) => (
+                  <MovieRail
+                    key={genre.name}
+                    title={genre.name}
+                    subtitle={`Explore ${genre.name.toLowerCase()} stories on PMF-Flix.`}
+                    items={genre.items}
+                  />
+                ))}
               </div>
             )}
           </section>
@@ -1479,7 +1691,8 @@ function AuthenticatedApp({
 
                 <div className="flex flex-col justify-center">
                   <div className="flex flex-wrap items-center gap-2">
-                    <span className="rounded-full bg-red-600 px-3 py-1 text-[8px] font-black uppercase tracking-[0.18em]">
+                    <span className="flex items-center gap-1 rounded-full bg-red-600 px-3 py-1 text-[8px] font-black uppercase tracking-[0.18em]">
+                      <Sparkles size={10} />
                       PMF
                     </span>
 
@@ -1496,10 +1709,13 @@ function AuthenticatedApp({
                     <span>
                       {selectedMovie.year}
                     </span>
+
                     <span>•</span>
+
                     <span>
                       {selectedMovie.category}
                     </span>
+
                     {selectedMovie.duration && (
                       <>
                         <span>•</span>
@@ -1508,6 +1724,7 @@ function AuthenticatedApp({
                         </span>
                       </>
                     )}
+
                     {selectedMovie.rating && (
                       <>
                         <span>•</span>
@@ -1566,6 +1783,7 @@ function AuthenticatedApp({
                       <p className="text-[8px] font-black uppercase tracking-[0.18em] text-white/25">
                         Year
                       </p>
+
                       <p className="mt-2 text-sm font-black">
                         {selectedMovie.year}
                       </p>
@@ -1575,6 +1793,7 @@ function AuthenticatedApp({
                       <p className="text-[8px] font-black uppercase tracking-[0.18em] text-white/25">
                         Genre
                       </p>
+
                       <p className="mt-2 truncate text-sm font-black">
                         {selectedMovie.category}
                       </p>
@@ -1585,6 +1804,7 @@ function AuthenticatedApp({
                         <Star size={9} />
                         Rating
                       </p>
+
                       <p className="mt-2 text-sm font-black">
                         {selectedMovie.rating ||
                           'N/A'}
@@ -1598,7 +1818,7 @@ function AuthenticatedApp({
         )}
       </main>
 
-            <footer className="border-t border-white/[0.06] bg-black/40">
+      <footer className="border-t border-white/[0.06] bg-black/40">
         <div className="mx-auto flex max-w-[1500px] flex-col gap-6 px-5 py-10 sm:px-8 lg:flex-row lg:items-center lg:justify-between lg:px-12">
           <div>
             <div className="text-2xl font-black tracking-[-0.07em]">
@@ -1755,6 +1975,7 @@ function AuthenticatedApp({
 export default function App() {
   const [session, setSession] =
     useState<Session | null>(null)
+
   const [authLoading, setAuthLoading] =
     useState(true)
 
@@ -1764,9 +1985,10 @@ export default function App() {
     const loadSession = async () => {
       try {
         const {
-          data: { session: currentSession },
-        } =
-          await supabase.auth.getSession()
+          data: {
+            session: currentSession,
+          },
+        } = await supabase.auth.getSession()
 
         if (!mounted) return
 
@@ -1816,6 +2038,7 @@ export default function App() {
 
           <div className="relative mx-auto mt-7 h-10 w-10">
             <div className="absolute inset-0 rounded-full border border-white/10" />
+
             <div className="absolute inset-0 animate-spin rounded-full border-2 border-transparent border-t-red-600" />
           </div>
 
@@ -1836,5 +2059,5 @@ export default function App() {
     <AuthenticatedApp
       session={session}
     />
-  )
-}
+   )
+  }
