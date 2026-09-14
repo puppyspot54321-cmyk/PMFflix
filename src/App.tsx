@@ -834,7 +834,7 @@ function AuthenticatedApp({
         </div>
       </article>
     )
-    }
+  }
 
   const MovieRail = ({
     title,
@@ -2059,5 +2059,5 @@ export default function App() {
     <AuthenticatedApp
       session={session}
     />
-   )
-  }
+  )
+}
