@@ -224,11 +224,46 @@ function getYouTubeEmbed(
   return `https://www.youtube.com/embed/${id}?autoplay=1&rel=0&modestbranding=1`
 }
 
-function AppShell({
-  session,
-}: {
-  session: Session
-}) {
+function AppShell() {
+  const [session, setSession] =
+    useState<Session | null>(null)
+
+  const [authLoading, setAuthLoading] =
+    useState(true)
+
+  useEffect(() => {
+    let mounted = true
+
+    const loadSession = async () => {
+      const { data } =
+        await supabase.auth.getSession()
+
+      if (!mounted) return
+
+      setSession(data.session)
+      setAuthLoading(false)
+    }
+
+    void loadSession()
+
+    const {
+      data: { subscription },
+    } =
+      supabase.auth.onAuthStateChange(
+        (_event, nextSession) => {
+          if (!mounted) return
+
+          setSession(nextSession)
+          setAuthLoading(false)
+        },
+      )
+
+    return () => {
+      mounted = false
+      subscription.unsubscribe()
+    }
+  }, [])
+
   const [section, setSection] =
     useState<Section>('home')
 
