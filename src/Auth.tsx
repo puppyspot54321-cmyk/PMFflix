@@ -1,43 +1,81 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import {
-  ArrowRight,
   Eye,
   EyeOff,
   Film,
-  Loader2,
-  Lock,
+  LoaderCircle,
+  LockKeyhole,
   Mail,
   Sparkles,
 } from 'lucide-react'
+import type { Session } from '@supabase/supabase-js'
 import { supabase } from './supabase'
 import heroImage from './assets/hero.png'
 
-type Mode = 'signin' | 'signup'
+type AuthScreenProps = {
+  onAuthenticated?: (session: Session) => void
+}
 
-export default function AuthScreen() {
-  const [mode, setMode] = useState<Mode>('signin')
+export default function AuthScreen({
+  onAuthenticated,
+}: AuthScreenProps) {
+  const [mode, setMode] = useState<
+    'signin' | 'signup'
+  >('signin')
+
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
-  const [confirmPassword, setConfirmPassword] = useState('')
-  const [showPassword, setShowPassword] = useState(false)
+  const [confirmPassword, setConfirmPassword] =
+    useState('')
+
+  const [showPassword, setShowPassword] =
+    useState(false)
+
   const [showConfirmPassword, setShowConfirmPassword] =
     useState(false)
+
   const [loading, setLoading] = useState(false)
   const [message, setMessage] = useState('')
   const [error, setError] = useState('')
 
-  const isSignup = mode === 'signup'
+  useEffect(() => {
+    let active = true
+
+    supabase.auth
+      .getSession()
+      .then(({ data }) => {
+        if (
+          active &&
+          data.session &&
+          onAuthenticated
+        ) {
+          onAuthenticated(data.session)
+        }
+      })
+
+    const {
+      data: { subscription },
+    } =
+      supabase.auth.onAuthStateChange(
+        (_event, session) => {
+          if (
+            session &&
+            onAuthenticated
+          ) {
+            onAuthenticated(session)
+          }
+        },
+      )
+
+    return () => {
+      active = false
+      subscription.unsubscribe()
+    }
+  }, [onAuthenticated])
 
   const clearFeedback = () => {
-    setMessage('')
     setError('')
-  }
-
-  const switchMode = (nextMode: Mode) => {
-    clearFeedback()
-    setMode(nextMode)
-    setPassword('')
-    setConfirmPassword('')
+    setMessage('')
   }
 
   const handleSubmit = async (
@@ -47,408 +85,391 @@ export default function AuthScreen() {
 
     clearFeedback()
 
-    const cleanEmail = email.trim().toLowerCase()
+    const cleanEmail =
+      email.trim().toLowerCase()
 
-    if (!cleanEmail) {
-      setError('Please enter your email address.')
-      return
-    }
-
-    if (!password) {
-      setError('Please enter your password.')
-      return
-    }
-
-    if (password.length < 6) {
+    if (!cleanEmail || !password) {
       setError(
-        'Your password must contain at least 6 characters.',
+        'Please enter your email and password.',
       )
       return
     }
 
-    if (isSignup && password !== confirmPassword) {
-      setError('Your passwords do not match.')
-      return
+    if (mode === 'signup') {
+      if (password.length < 6) {
+        setError(
+          'Your password must contain at least 6 characters.',
+        )
+        return
+      }
+
+      if (password !== confirmPassword) {
+        setError(
+          'Your passwords do not match.',
+        )
+        return
+      }
     }
 
     setLoading(true)
 
     try {
-      if (isSignup) {
-        const { data, error: signUpError } =
-          await supabase.auth.signUp({
-            email: cleanEmail,
-            password,
-          })
-
-        if (signUpError) {
-          throw signUpError
-        }
-
-        if (data.session) {
-          setMessage(
-            'Your PMF account is ready. Welcome to PMF-Flix.',
+      if (mode === 'signin') {
+        const {
+          data,
+          error: signInError,
+        } =
+          await supabase.auth.signInWithPassword(
+            {
+              email: cleanEmail,
+              password,
+            },
           )
-        } else {
-          setMessage(
-            'Account created. Check your email to confirm your account before signing in.',
-          )
-        }
-      } else {
-        const { error: signInError } =
-          await supabase.auth.signInWithPassword({
-            email: cleanEmail,
-            password,
-          })
 
         if (signInError) {
           throw signInError
         }
-      }
-    } catch (err) {
-      console.error('PMF authentication error:', err)
 
-      const text =
-        err instanceof Error
-          ? err.message
+        if (!data.session) {
+          throw new Error(
+            'Login succeeded, but no active session was returned.',
+          )
+        }
+
+        setMessage(
+          'Welcome back to PMF-Flix.',
+        )
+
+        if (onAuthenticated) {
+          onAuthenticated(data.session)
+        }
+
+        return
+      }
+
+      const {
+        data,
+        error: signUpError,
+      } =
+        await supabase.auth.signUp({
+          email: cleanEmail,
+          password,
+        })
+
+      if (signUpError) {
+        throw signUpError
+      }
+
+      if (data.session) {
+        setMessage(
+          'Your PMF-Flix account is ready.',
+        )
+
+        if (onAuthenticated) {
+          onAuthenticated(data.session)
+        }
+
+        return
+      }
+
+      setMessage(
+        'Account created. Please check your email to confirm your account, then sign in.',
+      )
+
+      setMode('signin')
+      setPassword('')
+      setConfirmPassword('')
+    } catch (authError) {
+      const authMessage =
+        authError instanceof Error
+          ? authError.message
           : 'Authentication failed. Please try again.'
 
-      setError(text)
+      setError(
+        authMessage
+          .replace(
+            'Invalid login credentials',
+            'Incorrect email or password.',
+          )
+          .replace(
+            'Email not confirmed',
+            'Please confirm your email address before signing in.',
+          ),
+      )
     } finally {
       setLoading(false)
     }
   }
 
+  const switchMode = (
+    nextMode: 'signin' | 'signup',
+  ) => {
+    clearFeedback()
+    setMode(nextMode)
+    setPassword('')
+    setConfirmPassword('')
+  }
+
   return (
-    <main className="relative min-h-screen overflow-hidden bg-black text-white">
-      <img
-        src={heroImage}
-        alt="PMF Cinematic Hero"
-        className="absolute inset-0 h-full w-full object-cover object-center opacity-40"
-      />
+    <main className="relative min-h-screen overflow-hidden bg-[#030303] text-white">
+      <div className="absolute inset-0">
+        <img
+          src={heroImage}
+          alt=""
+          className="h-full w-full object-cover opacity-20"
+        />
 
-      <div className="absolute inset-0 bg-black/70" />
+        <div className="absolute inset-0 bg-black/75" />
 
-      <div className="absolute inset-0 bg-[radial-gradient(circle_at_75%_35%,rgba(220,20,30,.18),transparent_35%)]" />
-
-      <div className="absolute inset-0 bg-gradient-to-r from-black via-black/80 to-black/45" />
+        <div className="absolute inset-0 bg-gradient-to-br from-black via-black/80 to-black/50" />
+      </div>
 
       <div className="relative z-10 flex min-h-screen items-center justify-center px-4 py-10 sm:px-6">
-        <div className="grid w-full max-w-6xl items-center gap-12 lg:grid-cols-[1.1fr_.9fr]">
-          <section className="hidden lg:block">
-            <div className="max-w-xl">
-              <div className="mb-7 flex items-center gap-3">
-                <div className="flex h-11 w-11 items-center justify-center rounded-2xl border border-red-500/20 bg-red-600/10">
-                  <Film className="h-5 w-5 text-red-500" />
-                </div>
-
-                <div>
-                  <div className="text-2xl font-black tracking-[-0.06em]">
-                    PMF
-                    <span className="text-red-600">
-                      LIX
-                    </span>
-                  </div>
-
-                  <p className="text-[8px] font-bold uppercase tracking-[0.3em] text-white/30">
-                    Prince Mufasa Flix
-                  </p>
-                </div>
-              </div>
-
-              <p className="mb-4 text-[10px] font-black uppercase tracking-[0.4em] text-red-500">
-                Your cinematic world
-              </p>
-
-              <h1 className="text-6xl font-black leading-[.92] tracking-[-0.07em] xl:text-8xl">
-                Your World.
-                <br />
-                Your Stories.
-                <br />
-                <span className="text-red-600">
-                  Your Flix.
-                </span>
-              </h1>
-
-              <p className="mt-7 max-w-lg text-base leading-7 text-white/45">
-                Discover premium stories, unforgettable
-                characters and cinematic entertainment
-                built for a new generation of global
-                audiences.
-              </p>
-
-              <div className="mt-8 flex flex-wrap gap-3">
-                <div className="rounded-full border border-white/10 bg-white/[0.04] px-4 py-2 text-[9px] font-black uppercase tracking-[0.18em] text-white/45 backdrop-blur-xl">
-                  Premium Cinema
-                </div>
-
-                <div className="rounded-full border border-white/10 bg-white/[0.04] px-4 py-2 text-[9px] font-black uppercase tracking-[0.18em] text-white/45 backdrop-blur-xl">
-                  Original Stories
-                </div>
-
-                <div className="rounded-full border border-white/10 bg-white/[0.04] px-4 py-2 text-[9px] font-black uppercase tracking-[0.18em] text-white/45 backdrop-blur-xl">
-                  Global Entertainment
-                </div>
-              </div>
+        <div className="w-full max-w-md">
+          <div className="mb-8 text-center">
+            <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl bg-white text-black shadow-2xl">
+              <Film size={25} />
             </div>
-          </section>
 
-          <section className="mx-auto w-full max-w-md">
-            <div className="mb-7 text-center lg:hidden">
-              <div className="text-3xl font-black tracking-[-0.06em]">
-                PMF
-                <span className="text-red-600">
-                  LIX
-                </span>
-              </div>
+            <h1 className="mt-5 text-3xl font-black tracking-[-0.05em]">
+              PMF
+              <span className="text-white/35">
+                -FLIX
+              </span>
+            </h1>
 
-              <p className="mt-1 text-[8px] font-bold uppercase tracking-[0.3em] text-white/30">
-                Prince Mufasa Flix
+            <p className="mt-2 text-[8px] font-black uppercase tracking-[0.3em] text-white/25">
+              Prince Mufasa Flix
+            </p>
+
+            <div className="mt-5 flex items-center justify-center gap-2 text-[8px] font-black uppercase tracking-[0.2em] text-white/30">
+              <Sparkles size={10} />
+              Your World. Your Stories. Your Flix.
+            </div>
+          </div>
+
+          <section className="rounded-3xl border border-white/10 bg-black/65 p-5 shadow-2xl backdrop-blur-2xl sm:p-7">
+            <div className="mb-7">
+              <h2 className="text-2xl font-black tracking-[-0.04em]">
+                {mode === 'signin'
+                  ? 'Welcome back'
+                  : 'Join PMF-Flix'}
+              </h2>
+
+              <p className="mt-2 text-xs leading-5 text-white/30">
+                {mode === 'signin'
+                  ? 'Sign in to continue your cinematic journey.'
+                  : 'Create your PMF-Flix account and start building your world of stories.'}
               </p>
             </div>
 
-            <div className="overflow-hidden rounded-[2rem] border border-white/10 bg-black/65 p-6 shadow-2xl shadow-black/60 backdrop-blur-2xl sm:p-8">
-              <div className="mb-7">
-                <div className="mb-4 flex h-12 w-12 items-center justify-center rounded-2xl bg-red-600 shadow-lg shadow-red-950/40">
-                  <Sparkles className="h-5 w-5 text-white" />
+            <form
+              onSubmit={handleSubmit}
+              className="space-y-4"
+            >
+              <label className="block">
+                <span className="mb-2 block text-[7px] font-black uppercase tracking-[0.18em] text-white/30">
+                  Email address
+                </span>
+
+                <div className="flex items-center gap-3 rounded-xl border border-white/10 bg-white/[0.035] px-4 transition focus-within:border-white/25">
+                  <Mail
+                    size={15}
+                    className="shrink-0 text-white/25"
+                  />
+
+                  <input
+                    type="email"
+                    value={email}
+                    onChange={(event) =>
+                      setEmail(
+                        event.target.value,
+                      )
+                    }
+                    autoComplete="email"
+                    placeholder="you@example.com"
+                    className="min-w-0 flex-1 bg-transparent py-3.5 text-sm text-white outline-none placeholder:text-white/20"
+                    disabled={loading}
+                  />
                 </div>
+              </label>
 
-                <p className="text-[9px] font-black uppercase tracking-[0.35em] text-red-500">
-                  PMF Member Access
-                </p>
+              <label className="block">
+                <span className="mb-2 block text-[7px] font-black uppercase tracking-[0.18em] text-white/30">
+                  Password
+                </span>
 
-                <h2 className="mt-2 text-3xl font-black tracking-tight">
-                  {isSignup
-                    ? 'Create your account'
-                    : 'Welcome back'}
-                </h2>
+                <div className="flex items-center gap-3 rounded-xl border border-white/10 bg-white/[0.035] px-4 transition focus-within:border-white/25">
+                  <LockKeyhole
+                    size={15}
+                    className="shrink-0 text-white/25"
+                  />
 
-                <p className="mt-2 text-sm leading-6 text-white/35">
-                  {isSignup
-                    ? 'Join PMF-Flix and enter your cinematic world.'
-                    : 'Sign in to continue your PMF-Flix experience.'}
-                </p>
-              </div>
+                  <input
+                    type={
+                      showPassword
+                        ? 'text'
+                        : 'password'
+                    }
+                    value={password}
+                    onChange={(event) =>
+                      setPassword(
+                        event.target.value,
+                      )
+                    }
+                    autoComplete={
+                      mode === 'signin'
+                        ? 'current-password'
+                        : 'new-password'
+                    }
+                    placeholder="Enter your password"
+                    className="min-w-0 flex-1 bg-transparent py-3.5 text-sm text-white outline-none placeholder:text-white/20"
+                    disabled={loading}
+                  />
 
-              <form
-                onSubmit={handleSubmit}
-                className="space-y-4"
-              >
+                  <button
+                    type="button"
+                    onClick={() =>
+                      setShowPassword(
+                        (value) => !value,
+                      )
+                    }
+                    className="shrink-0 text-white/25 hover:text-white"
+                    aria-label={
+                      showPassword
+                        ? 'Hide password'
+                        : 'Show password'
+                    }
+                  >
+                    {showPassword ? (
+                      <EyeOff size={15} />
+                    ) : (
+                      <Eye size={15} />
+                    )}
+                  </button>
+                </div>
+              </label>
+
+              {mode === 'signup' && (
                 <label className="block">
-                  <span className="mb-2 block text-[10px] font-bold uppercase tracking-[0.18em] text-white/40">
-                    Email address
+                  <span className="mb-2 block text-[7px] font-black uppercase tracking-[0.18em] text-white/30">
+                    Confirm password
                   </span>
 
-                  <div className="relative">
-                    <Mail className="pointer-events-none absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-white/25" />
-
-                    <input
-                      type="email"
-                      value={email}
-                      onChange={(event) =>
-                        setEmail(event.target.value)
-                      }
-                      autoComplete="email"
-                      placeholder="you@example.com"
-                      disabled={loading}
-                      className="w-full rounded-2xl border border-white/10 bg-white/[0.045] py-3.5 pl-11 pr-4 text-sm text-white outline-none transition placeholder:text-white/20 focus:border-red-500/60 focus:bg-white/[0.07] disabled:opacity-50"
+                  <div className="flex items-center gap-3 rounded-xl border border-white/10 bg-white/[0.035] px-4 transition focus-within:border-white/25">
+                    <LockKeyhole
+                      size={15}
+                      className="shrink-0 text-white/25"
                     />
-                  </div>
-                </label>
-
-                <label className="block">
-                  <span className="mb-2 block text-[10px] font-bold uppercase tracking-[0.18em] text-white/40">
-                    Password
-                  </span>
-
-                  <div className="relative">
-                    <Lock className="pointer-events-none absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-white/25" />
 
                     <input
                       type={
-                        showPassword
+                        showConfirmPassword
                           ? 'text'
                           : 'password'
                       }
-                      value={password}
+                      value={
+                        confirmPassword
+                      }
                       onChange={(event) =>
-                        setPassword(event.target.value)
+                        setConfirmPassword(
+                          event.target.value,
+                        )
                       }
-                      autoComplete={
-                        isSignup
-                          ? 'new-password'
-                          : 'current-password'
-                      }
-                      placeholder="••••••••"
+                      autoComplete="new-password"
+                      placeholder="Confirm your password"
+                      className="min-w-0 flex-1 bg-transparent py-3.5 text-sm text-white outline-none placeholder:text-white/20"
                       disabled={loading}
-                      className="w-full rounded-2xl border border-white/10 bg-white/[0.045] py-3.5 pl-11 pr-12 text-sm text-white outline-none transition placeholder:text-white/20 focus:border-red-500/60 focus:bg-white/[0.07] disabled:opacity-50"
                     />
 
                     <button
                       type="button"
+                      onClick={() =>
+                        setShowConfirmPassword(
+                          (value) =>
+                            !value,
+                        )
+                      }
+                      className="shrink-0 text-white/25 hover:text-white"
                       aria-label={
-                        showPassword
+                        showConfirmPassword
                           ? 'Hide password'
                           : 'Show password'
                       }
-                      onClick={() =>
-                        setShowPassword(
-                          (value) => !value,
-                        )
-                      }
-                      className="absolute right-3 top-1/2 flex h-9 w-9 -translate-y-1/2 items-center justify-center rounded-full text-white/30 transition hover:bg-white/10 hover:text-white"
                     >
-                      {showPassword ? (
-                        <EyeOff className="h-4 w-4" />
+                      {showConfirmPassword ? (
+                        <EyeOff size={15} />
                       ) : (
-                        <Eye className="h-4 w-4" />
+                        <Eye size={15} />
                       )}
                     </button>
                   </div>
                 </label>
+              )}
 
-                {isSignup && (
-                  <label className="block">
-                    <span className="mb-2 block text-[10px] font-bold uppercase tracking-[0.18em] text-white/40">
-                      Confirm password
-                    </span>
+              {error && (
+                <div className="rounded-xl border border-red-400/15 bg-red-400/[0.05] px-4 py-3 text-[10px] leading-5 text-red-200/75">
+                  {error}
+                </div>
+              )}
 
-                    <div className="relative">
-                      <Lock className="pointer-events-none absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-white/25" />
+              {message && (
+                <div className="rounded-xl border border-white/10 bg-white/[0.04] px-4 py-3 text-[10px] leading-5 text-white/60">
+                  {message}
+                </div>
+              )}
 
-                      <input
-                        type={
-                          showConfirmPassword
-                            ? 'text'
-                            : 'password'
-                        }
-                        value={confirmPassword}
-                        onChange={(event) =>
-                          setConfirmPassword(
-                            event.target.value,
-                          )
-                        }
-                        autoComplete="new-password"
-                        placeholder="••••••••"
-                        disabled={loading}
-                        className="w-full rounded-2xl border border-white/10 bg-white/[0.045] py-3.5 pl-11 pr-12 text-sm text-white outline-none transition placeholder:text-white/20 focus:border-red-500/60 focus:bg-white/[0.07] disabled:opacity-50"
-                      />
-
-                      <button
-                        type="button"
-                        aria-label={
-                          showConfirmPassword
-                            ? 'Hide password'
-                            : 'Show password'
-                        }
-                        onClick={() =>
-                          setShowConfirmPassword(
-                            (value) => !value,
-                          )
-                        }
-                        className="absolute right-3 top-1/2 flex h-9 w-9 -translate-y-1/2 items-center justify-center rounded-full text-white/30 transition hover:bg-white/10 hover:text-white"
-                      >
-                        {showConfirmPassword ? (
-                          <EyeOff className="h-4 w-4" />
-                        ) : (
-                          <Eye className="h-4 w-4" />
-                        )}
-                      </button>
-                    </div>
-                  </label>
+              <button
+                type="submit"
+                disabled={loading}
+                className="flex w-full items-center justify-center gap-2 rounded-xl bg-white px-5 py-4 text-[9px] font-black uppercase tracking-[0.18em] text-black transition hover:scale-[1.01] disabled:cursor-not-allowed disabled:opacity-50"
+              >
+                {loading ? (
+                  <>
+                    <LoaderCircle
+                      size={14}
+                      className="animate-spin"
+                    />
+                    Connecting
+                  </>
+                ) : mode === 'signin' ? (
+                  'Enter PMF-Flix'
+                ) : (
+                  'Create Account'
                 )}
+              </button>
+            </form>
 
-                                {error && (
-                  <div
-                    role="alert"
-                    className="rounded-2xl border border-red-500/20 bg-red-500/[0.07] px-4 py-3 text-xs leading-5 text-red-300"
-                  >
-                    {error}
-                  </div>
-                )}
-
-                {message && (
-                  <div
-                    role="status"
-                    className="rounded-2xl border border-emerald-500/20 bg-emerald-500/[0.06] px-4 py-3 text-xs leading-5 text-emerald-300"
-                  >
-                    {message}
-                  </div>
-                )}
-
-                <button
-                  type="submit"
-                  disabled={loading}
-                  className="group flex w-full items-center justify-center gap-2 rounded-2xl bg-red-600 px-5 py-3.5 text-sm font-black text-white shadow-xl shadow-red-950/30 transition hover:bg-red-500 hover:shadow-red-950/50 disabled:cursor-not-allowed disabled:opacity-60"
-                >
-                  {loading ? (
-                    <>
-                      <Loader2 className="h-4 w-4 animate-spin" />
-                      {isSignup
-                        ? 'Creating account...'
-                        : 'Signing in...'}
-                    </>
-                  ) : (
-                    <>
-                      {isSignup
-                        ? 'Create Account'
-                        : 'Enter PMF-Flix'}
-
-                      <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-1" />
-                    </>
-                  )}
-                </button>
-              </form>
-
-              <div className="my-7 flex items-center gap-3">
-                <div className="h-px flex-1 bg-white/[0.08]" />
-                <span className="text-[9px] font-bold uppercase tracking-[0.2em] text-white/20">
-                  PMF
-                </span>
-                <div className="h-px flex-1 bg-white/[0.08]" />
-              </div>
-
-              <div className="text-center">
-                <p className="text-xs text-white/35">
-                  {isSignup
-                    ? 'Already have a PMF account?'
-                    : "Don't have a PMF account?"}
-                </p>
-
-                <button
-                  type="button"
-                  onClick={() =>
-                    switchMode(
-                      isSignup
-                        ? 'signin'
-                        : 'signup',
-                    )
-                  }
-                  disabled={loading}
-                  className="mt-2 text-sm font-black text-red-500 transition hover:text-red-400 disabled:opacity-50"
-                >
-                  {isSignup
-                    ? 'Sign in instead'
-                    : 'Create your account'}
-                </button>
-              </div>
-
-              <p className="mt-7 text-center text-[9px] leading-5 text-white/20">
-                By continuing, you agree to use PMF-Flix
-                only for content you are legally
-                authorized to access and stream.
+            <div className="mt-7 border-t border-white/[0.07] pt-5 text-center">
+              <p className="text-[10px] text-white/25">
+                {mode === 'signin'
+                  ? "Don't have an account?"
+                  : 'Already have an account?'}
               </p>
-            </div>
 
-            <div className="mt-5 flex items-center justify-center gap-2 text-[9px] font-bold uppercase tracking-[0.18em] text-white/20">
-              <span className="h-1 w-1 rounded-full bg-red-600" />
-              Secure PMF Member Access
-              <span className="h-1 w-1 rounded-full bg-red-600" />
+              <button
+                type="button"
+                onClick={() =>
+                  switchMode(
+                    mode === 'signin'
+                      ? 'signup'
+                      : 'signin',
+                  )
+                }
+                className="mt-2 text-[9px] font-black uppercase tracking-[0.16em] text-white/60 hover:text-white"
+              >
+                {mode === 'signin'
+                  ? 'Create your PMF account'
+                  : 'Sign in instead'}
+              </button>
             </div>
           </section>
+
+          <p className="mt-6 text-center text-[7px] font-black uppercase tracking-[0.2em] text-white/15">
+            Secure authentication powered by PMF-Flix
+          </p>
         </div>
       </div>
     </main>
   )
 }
-
