@@ -2742,11 +2742,11 @@ function AppShell() {
               </button>
             </div>
 
-            {message && (
-              <p className="mt-4 text-center text-[9px] font-bold text-white/40">
-                {message}
-              </p>
-            )}
+            {playerMessage && (
+  <p className="mt-4 text-center text-[9px] font-bold text-white/40">
+    {playerMessage}
+  </p>
+)}
           </div>
         </div>
       </div>
