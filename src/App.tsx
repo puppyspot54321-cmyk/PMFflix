@@ -2966,8 +2966,8 @@ function AppShell() {
 
           <div
             className={`pointer-events-none absolute inset-x-0 top-0 h-32 bg-gradient-to-b from-black/80 to-transparent transition-opacity duration-300 ${
-              playerControlsVisible
-                ? 'opacity-100'
+              showPlayerControls
+               ? 'opacity-100'
                 : 'opacity-0'
             }`}
           />
