@@ -1,4 +1,3 @@
-import WowHome from './components/WowHome'
 import heroImage from './assets/hero.png'
 import {
   useEffect,
