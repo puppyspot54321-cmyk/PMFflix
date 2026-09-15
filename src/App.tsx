@@ -2810,129 +2810,365 @@ function AppShell() {
     </main>
   )
 
-  const MovieDetails = () => {
+   const MovieDetails = () => {
     if (!selectedMovie) {
       return null
     }
 
-    const listed =
-      isInMyList(selectedMovie)
+    const movie = selectedMovie
+    const saved = isInMyList(movie)
+    const movieProgress = getProgress(movie)
 
-    const progress =
-      getProgressPercent(
-        selectedMovie,
-      )
-
-    const related = movies
+    const relatedMovies = movies
       .filter(
-        (movie) =>
-          getMovieId(movie) !==
-            getMovieId(selectedMovie) &&
+        (item) =>
+          getMovieId(item) !==
+            getMovieId(movie) &&
           (
-            movie.category ===
-              selectedMovie.category ||
-            movie.type ===
-              selectedMovie.type
+            item.category ===
+              movie.category ||
+            getRating(item) >=
+              getRating(movie)
           ),
       )
-      .slice(0, 8)
+      .slice(0, 6)
+
+    const progressPercent =
+      movieProgress.duration > 0
+        ? Math.min(
+            100,
+            Math.round(
+              (movieProgress.currentTime /
+                movieProgress.duration) *
+                100,
+            ),
+          )
+        : 0
 
     return (
-      <div className="fixed inset-0 z-[80] overflow-y-auto bg-black">
-        <div className="relative min-h-screen">
-          <div className="absolute inset-x-0 top-0 h-[55vh] overflow-hidden">
-            <img
-              src={
-                selectedMovie.poster ||
-                heroImage
-              }
-              alt=""
-              className="h-full w-full object-cover opacity-35"
+      <div className="fixed inset-0 z-[80] overflow-y-auto bg-[#030303]">
+        {/* BACKDROP */}
+        <div className="pointer-events-none fixed inset-0">
+          <div
+            className="absolute inset-0 bg-cover bg-center opacity-30 blur-sm"
+            style={{
+              backgroundImage: `url("${movie.poster || heroImage}")`,
+            }}
+          />
+
+          <div className="absolute inset-0 bg-gradient-to-b from-black/45 via-[#030303]/85 to-[#030303]" />
+
+          <div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_20%,rgba(255,255,255,0.08),transparent_38%)]" />
+        </div>
+
+        {/* TOP BAR */}
+        <div className="sticky top-0 z-20 flex items-center justify-between border-b border-white/[0.06] bg-black/40 px-4 py-4 backdrop-blur-2xl sm:px-8 lg:px-12">
+          <button
+            type="button"
+            onClick={() =>
+              setSelectedMovie(null)
+            }
+            className="group flex items-center gap-3 rounded-full border border-white/10 bg-white/[0.04] px-4 py-2.5 text-[8px] font-black uppercase tracking-[0.16em] text-white/60 transition hover:bg-white/[0.08] hover:text-white"
+          >
+            <ChevronLeft
+              size={15}
+              className="transition-transform group-hover:-translate-x-0.5"
+            />
+            Back
+          </button>
+
+          <div className="hidden items-center gap-2 sm:flex">
+            <Sparkles
+              size={14}
+              className="text-white/40"
             />
 
-            <div className="absolute inset-0 bg-gradient-to-b from-black/30 via-black/65 to-black" />
-            <div className="absolute inset-0 bg-gradient-to-r from-black/70 via-black/20 to-transparent" />
+            <span className="text-[8px] font-black uppercase tracking-[0.3em] text-white/30">
+              PMF Cinematic
+            </span>
           </div>
 
-          <div className="relative mx-auto max-w-[1400px] px-5 pb-24 pt-24 sm:px-10 lg:px-16">
-            <button
-              type="button"
-              onClick={() =>
-                setSelectedMovie(
-                  null,
-                )
-              }
-              className="mb-16 flex h-10 w-10 items-center justify-center rounded-full border border-white/10 bg-black/40 text-white/60 backdrop-blur transition hover:bg-white/10 hover:text-white"
-              aria-label="Close details"
-            >
-              <X size={17} />
-            </button>
+          <button
+            type="button"
+            aria-label="Close"
+            onClick={() =>
+              setSelectedMovie(null)
+            }
+            className="rounded-full border border-white/10 bg-white/[0.04] p-2.5 text-white/50 transition hover:bg-white/[0.08] hover:text-white"
+          >
+            <X size={16} />
+          </button>
+        </div>
 
-            <div className="max-w-3xl pt-10 sm:pt-20">
-              <div className="flex flex-wrap items-center gap-2 text-[8px] font-black uppercase tracking-[0.18em] text-white/45">
-                <span>
-                  {selectedMovie.type ||
-                    'Film'}
-                </span>
+        {/* HERO */}
+        <section className="relative">
+          <div className="mx-auto grid max-w-[1500px] gap-10 px-5 pb-14 pt-10 sm:px-10 sm:pt-16 lg:grid-cols-[320px_minmax(0,1fr)] lg:gap-14 lg:px-16 lg:pt-20">
+            {/* POSTER */}
+            <div className="mx-auto w-full max-w-[320px] lg:mx-0">
+              <div className="group relative overflow-hidden rounded-[1.75rem] border border-white/10 bg-white/[0.03] shadow-[0_30px_100px_rgba(0,0,0,0.65)]">
+                <img
+                  src={
+                    movie.poster ||
+                    heroImage
+                  }
+                  alt={movie.title}
+                  className="aspect-[2/3] w-full object-cover transition duration-700 group-hover:scale-[1.025]"
+                />
 
-                <span>•</span>
+                <div className="pointer-events-none absolute inset-0 bg-gradient-to-t from-black/50 via-transparent to-white/[0.06]" />
 
-                <span>
-                  {selectedMovie.year}
-                </span>
-
-                {selectedMovie.duration && (
-                  <>
-                    <span>•</span>
-                    <span>
-                      {
-                        selectedMovie.duration
-                      }
-                    </span>
-                  </>
+                {progressPercent > 0 && (
+                  <div className="absolute bottom-0 left-0 right-0 h-1 bg-white/10">
+                    <div
+                      className="h-full bg-white"
+                      style={{
+                        width: `${progressPercent}%`,
+                      }}
+                    />
+                  </div>
                 )}
+              </div>
+            </div>
 
-                {getRating(
-                  selectedMovie,
-                ) > 0 && (
+            {/* INFORMATION */}
+            <div className="flex min-w-0 flex-col justify-center">
+              <div className="flex flex-wrap items-center gap-2">
+                <span className="rounded-full border border-white/10 bg-white/[0.05] px-3 py-1.5 text-[8px] font-black uppercase tracking-[0.16em] text-white/55">
+                  {movie.type ||
+                    'Movie'}
+                </span>
+
+                <span className="text-[9px] font-black uppercase tracking-[0.16em] text-white/25">
+                  {movie.year}
+                </span>
+
+                {movie.category && (
                   <>
-                    <span>•</span>
-                    <span className="inline-flex items-center gap-1 text-white/70">
-                      <Star
-                        size={9}
-                        fill="currentColor"
-                      />
-                      {getRating(
-                        selectedMovie,
-                      ).toFixed(1)}
+                    <span className="text-white/15">
+                      •
+                    </span>
+
+                    <span className="text-[9px] font-black uppercase tracking-[0.16em] text-white/35">
+                      {movie.category}
                     </span>
                   </>
                 )}
               </div>
 
-              <h1 className="mt-5 text-5xl font-black tracking-[-0.065em] text-white sm:text-7xl">
-                {selectedMovie.title}
+              <h1 className="mt-5 max-w-5xl text-4xl font-black tracking-[-0.055em] text-white sm:text-6xl lg:text-7xl">
+                {movie.title}
               </h1>
 
-              {selectedMovie.category && (
-                <div className="mt-4 inline-flex rounded-full border border-white/10 bg-white/[0.05] px-3 py-1.5 text-[7px] font-black uppercase tracking-[0.18em] text-white/50">
-                  {selectedMovie.category}
-                </div>
-              )}
+              <div className="mt-5 flex flex-wrap items-center gap-3">
+                {movie.rating && (
+                  <div className="flex items-center gap-1.5">
+                    <Star
+                      size={14}
+                      fill="currentColor"
+                      className="text-white/70"
+                    />
 
-              <p className="mt-7 max-w-2xl text-sm leading-7 text-white/50 sm:text-base">
-                {selectedMovie.description ||
+                    <span className="text-[10px] font-black text-white/65">
+                      {movie.rating}
+                    </span>
+                  </div>
+                )}
+
+                {movie.duration && (
+                  <>
+                    <span className="text-white/15">
+                      •
+                    </span>
+
+                    <span className="text-[10px] font-black uppercase tracking-[0.12em] text-white/45">
+                      {movie.duration}
+                    </span>
+                  </>
+                )}
+
+                <span className="text-white/15">
+                  •
+                </span>
+
+                <span className="text-[10px] font-black uppercase tracking-[0.12em] text-white/35">
+                  PMF
+                </span>
+              </div>
+
+              <p className="mt-7 max-w-3xl text-sm leading-7 text-white/55 sm:text-base sm:leading-8">
+                {movie.description ||
                   'Discover this story on PMF-Flix.'}
               </p>
 
-              <div className="mt-8 flex flex-wrap gap-2">
+              {/* ACTIONS */}
+              <div className="mt-9 flex flex-wrap gap-3">
                 <button
                   type="button"
                   onClick={() =>
-                    startWatching(
-                      selectedMovie,
-                    )
+                    startWatching(movie)
                   }
+                  className="group flex items-center gap-3 rounded-full bg-white px-7 py-4 text-[9px] font-black uppercase tracking-[0.18em] text-black shadow-2xl transition duration-300 hover:scale-[1.03]"
+                >
+                  <Play
+                    size={15}
+                    fill="currentColor"
+                    className="transition-transform group-hover:scale-110"
+                  />
+
+                  {progressPercent > 3 &&
+                  progressPercent < 96
+                    ? 'Continue Watching'
+                    : 'Play Now'}
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() =>
+                    toggleMyList(movie)
+                  }
+                  className="flex items-center gap-3 rounded-full border border-white/10 bg-white/[0.05] px-6 py-4 text-[9px] font-black uppercase tracking-[0.18em] text-white/70 backdrop-blur-xl transition hover:bg-white/[0.09] hover:text-white"
+                >
+                  {saved ? (
+                    <Check size={15} />
+                  ) : (
+                    <ListPlus size={15} />
+                  )}
+
+                  {saved
+                    ? 'In My List'
+                    : 'Add to My List'}
+                </button>
+              </div>
+
+              {/* META */}
+              <div className="mt-10 grid max-w-3xl gap-3 sm:grid-cols-3">
+                <div className="rounded-2xl border border-white/[0.07] bg-white/[0.025] p-4">
+                  <p className="text-[8px] font-black uppercase tracking-[0.16em] text-white/25">
+                    Category
+                  </p>
+
+                  <p className="mt-2 text-sm font-bold text-white/70">
+                    {movie.category ||
+                      'General'}
+                  </p>
+                </div>
+
+                <div className="rounded-2xl border border-white/[0.07] bg-white/[0.025] p-4">
+                  <p className="text-[8px] font-black uppercase tracking-[0.16em] text-white/25">
+                    Release
+                  </p>
+
+                  <p className="mt-2 text-sm font-bold text-white/70">
+                    {movie.year}
+                  </p>
+                </div>
+
+                <div className="rounded-2xl border border-white/[0.07] bg-white/[0.025] p-4">
+                  <p className="text-[8px] font-black uppercase tracking-[0.16em] text-white/25">
+                    Watch Status
+                  </p>
+
+                  <p className="mt-2 text-sm font-bold text-white/70">
+                    {progressPercent > 3
+                      ? `${progressPercent}% watched`
+                      : 'Ready to watch'}
+                  </p>
+                </div>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        {/* DISCOVERY */}
+        {relatedMovies.length > 0 && (
+          <section className="relative border-t border-white/[0.06] px-5 py-14 sm:px-10 lg:px-16">
+            <div className="mx-auto max-w-[1500px]">
+              <div className="mb-7">
+                <p className="text-[8px] font-black uppercase tracking-[0.3em] text-white/25">
+                  Continue discovering
+                </p>
+
+                <h2 className="mt-2 text-2xl font-black tracking-[-0.04em] text-white sm:text-3xl">
+                  More stories for you
+                </h2>
+
+                <p className="mt-2 text-xs leading-6 text-white/30">
+                  More titles selected from
+                  the PMF catalogue.
+                </p>
+              </div>
+
+              <div className="no-scrollbar flex gap-4 overflow-x-auto pb-4">
+                {relatedMovies.map(
+                  (item) => (
+                    <button
+                      key={getMovieId(item)}
+                      type="button"
+                      onClick={() =>
+                        setSelectedMovie(
+                          item,
+                        )
+                      }
+                      className="group w-[150px] flex-none text-left sm:w-[180px]"
+                    >
+                      <div className="relative overflow-hidden rounded-2xl border border-white/[0.07] bg-white/[0.03]">
+                        <img
+                          src={
+                            item.poster ||
+                            heroImage
+                          }
+                          alt={item.title}
+                          className="aspect-[2/3] w-full object-cover transition duration-500 group-hover:scale-105"
+                        />
+
+                        <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-transparent to-transparent opacity-80" />
+
+                        <div className="absolute bottom-3 left-3 right-3">
+                          <p className="line-clamp-2 text-xs font-black text-white">
+                            {item.title}
+                          </p>
+
+                          <p className="mt-1 text-[8px] font-black uppercase tracking-[0.12em] text-white/40">
+                            {item.year}
+                            {' • '}
+                            {item.category ||
+                              'PMF'}
+                          </p>
+                        </div>
+                      </div>
+                    </button>
+                  ),
+                )}
+              </div>
+            </div>
+          </section>
+        )}
+
+        {/* SIGNATURE */}
+        <section className="relative overflow-hidden border-t border-white/[0.06] px-5 py-20 text-center sm:px-10 lg:px-16">
+          <div className="pointer-events-none absolute left-1/2 top-1/2 h-80 w-80 -translate-x-1/2 -translate-y-1/2 rounded-full bg-white/[0.025] blur-[100px]" />
+
+          <div className="relative">
+            <p className="text-[8px] font-black uppercase tracking-[0.4em] text-white/20">
+              PMF-Flix
+            </p>
+
+            <h2 className="mt-4 text-3xl font-black tracking-[-0.05em] text-white sm:text-4xl">
+              Every story deserves
+              <br />
+              a world to belong to.
+            </h2>
+
+            <p className="mx-auto mt-4 max-w-xl text-xs leading-6 text-white/30 sm:text-sm">
+              Discover another story whenever
+              you're ready.
+            </p>
+          </div>
+        </section>
+      </div>
+    )
+   }
+ 
                   className="inline-flex items-center gap-2 rounded-xl bg-white px-6 py-3.5 text-[9px] font-black uppercase tracking-[0.16em] text-black transition hover:scale-[1.02]"
                 >
                   <Play
