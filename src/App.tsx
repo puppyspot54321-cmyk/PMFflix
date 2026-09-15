@@ -3269,19 +3269,18 @@ function AppShell() {
         </div>
       )}
 
-      {message && !showProfile && (
-        <div className="fixed bottom-5 left-1/2 z-[75] -translate-x-1/2 rounded-full border border-white/10 bg-black/85 px-5 py-3 text-[8px] font-black uppercase tracking-[0.14em] text-white/65 shadow-2xl backdrop-blur-xl">
-          {message}
-        </div>
-      )}
+      {playerMessage && !showProfile && (
+  <div className="fixed bottom-5 left-1/2 z-[75] -translate-x-1/2 rounded-full border border-white/10 bg-black/85 px-5 py-3 text-[8px] font-black uppercase tracking-[0.14em] text-white/65 shadow-2xl backdrop-blur-xl">
+    {playerMessage}
+  </div>
+)}
 
-      {section === 'home' && (
-        <>
-          <HomeContent />
-          <Footer />
-        </>
-      )}
-
+{section === 'home' && (
+  <>
+    <HomeContent />
+    <Footer />
+  </>
+)}
       {(section === 'movies' ||
         section === 'series') && (
         <>
