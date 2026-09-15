@@ -2806,14 +2806,24 @@ function AppShell() {
       getVideoUrl(watchingMovie)
 
     const youtube =
-      isYouTube(videoUrl)
+      isYouTube(watchingMovie)
 
     const embedUrl =
       youtube
         ? getYouTubeEmbed(
-            videoUrl,
+            watchingMovie,
           )
         : ''
+
+    const hasVideo =
+      Boolean(videoUrl)
+
+    const hasYouTubeVideo =
+      youtube && Boolean(embedUrl)
+
+    const hasPlayableVideo =
+      hasVideo ||
+      hasYouTubeVideo
 
     const percent =
       playerDuration > 0
@@ -2831,25 +2841,26 @@ function AppShell() {
     return (
       <div
         ref={playerRef}
-        className={`fixed inset-0 z-[100] bg-black ${
-          theaterMode
-            ? 'p-0'
-            : 'p-0'
-        }`}
+        className="fixed inset-0 z-[100] bg-black"
         tabIndex={0}
-        onMouseMove={resetPlayerControls}
-        onClick={resetPlayerControls}
+        onMouseMove={
+          resetPlayerControls
+        }
+        onClick={
+          resetPlayerControls
+        }
       >
         <div className="relative flex h-full w-full items-center justify-center">
-          {youtube ? (
+
+          {hasYouTubeVideo ? (
             <iframe
               src={embedUrl}
               title={watchingMovie.title}
-              className="h-full w-full"
+              className="h-full w-full border-0"
               allow="autoplay; encrypted-media; fullscreen; picture-in-picture"
               allowFullScreen
             />
-          ) : videoUrl ? (
+          ) : hasVideo ? (
             <video
               ref={videoRef}
               src={videoUrl}
@@ -2859,17 +2870,23 @@ function AppShell() {
               }
               className="max-h-full max-w-full object-contain"
               playsInline
-              onLoadedMetadata={(event) => {
+              preload="metadata"
+              onLoadedMetadata={(
+                event,
+              ) => {
                 const duration =
                   event.currentTarget
                     .duration
 
-                setPlayerDuration(
+                const safeDuration =
                   Number.isFinite(
                     duration,
                   )
                     ? duration
-                    : 0,
+                    : 0
+
+                setPlayerDuration(
+                  safeDuration,
                 )
 
                 const saved =
@@ -2878,27 +2895,55 @@ function AppShell() {
                   )
 
                 if (
-                  saved > 0 &&
-                  saved <
-                    duration - 5
+                  saved.currentTime >
+                    0 &&
+                  saved.currentTime <
+                    safeDuration - 5
                 ) {
                   event.currentTarget.currentTime =
-                    saved
+                    saved.currentTime
+
+                  setPlayerTime(
+                    saved.currentTime,
+                  )
                 }
+
+                event.currentTarget.volume =
+                  volume
+
+                event.currentTarget.muted =
+                  muted
+
+                event.currentTarget.playbackRate =
+                  speed
               }}
-              onTimeUpdate={(event) => {
+              onTimeUpdate={(
+                event,
+              ) => {
                 const current =
                   event.currentTarget
                     .currentTime
 
-                setPlayerTime(current)
-
-                saveProgress(
-                  watchingMovie,
-                  current,
+                const duration =
                   event.currentTarget
-                    .duration,
+                    .duration
+
+                setPlayerTime(
+                  current,
                 )
+
+                if (
+                  Number.isFinite(
+                    duration,
+                  ) &&
+                  duration > 0
+                ) {
+                  saveProgress(
+                    watchingMovie,
+                    current,
+                    duration,
+                  )
+                }
 
                 if (
                   current > 10
@@ -2908,16 +2953,22 @@ function AppShell() {
                   )
                 }
               }}
-              onPlay={() =>
+              onPlay={() => {
                 setPlayerPlaying(
                   true,
                 )
-              }
-              onPause={() =>
+
+                resetPlayerControls()
+              }}
+              onPause={() => {
                 setPlayerPlaying(
                   false,
                 )
-              }
+
+                setShowPlayerControls(
+                  true,
+                )
+              }}
               onEnded={() => {
                 saveProgress(
                   watchingMovie,
@@ -2929,57 +2980,90 @@ function AppShell() {
                   false,
                 )
 
+                setPlayerTime(0)
+
+                setShowPlayerControls(
+                  true,
+                )
+
                 if (nextMovie) {
                   showMessage(
                     `Up next: ${nextMovie.title}`,
                   )
                 }
               }}
-              onError={() =>
+              onError={() => {
+                setPlayerPlaying(
+                  false,
+                )
+
+                setShowPlayerControls(
+                  true,
+                )
+
                 showMessage(
                   'This video could not be played.',
                 )
-              }
+              }}
             />
           ) : (
-            <div className="flex max-w-md flex-col items-center px-6 text-center">
-              <div className="flex h-20 w-20 items-center justify-center rounded-3xl border border-white/10 bg-white/[0.04]">
+            <div className="flex max-w-lg flex-col items-center px-6 text-center">
+
+              <div className="relative flex h-24 w-24 items-center justify-center rounded-[2rem] border border-white/10 bg-white/[0.035] shadow-2xl">
+                <div className="absolute inset-0 rounded-[2rem] bg-white/[0.025] blur-xl" />
+
                 <Film
-                  size={30}
-                  className="text-white/30"
+                  size={34}
+                  className="relative text-white/30"
                 />
               </div>
 
-              <h2 className="mt-6 text-xl font-black text-white">
+              <p className="mt-7 text-[8px] font-black uppercase tracking-[0.3em] text-white/25">
+                PMF-FLIX WATCH
+              </p>
+
+              <h2 className="mt-3 text-2xl font-black tracking-tight text-white sm:text-3xl">
                 {watchingMovie.title}
               </h2>
 
-              <p className="mt-3 text-xs leading-6 text-white/35">
-                This title does not have a
-                video source connected yet.
-                The PMF-Flix player is ready
-                for your future media-storage
-                layer.
+              <p className="mt-4 max-w-md text-xs leading-6 text-white/40">
+                This title is already part of
+                the PMF-Flix catalogue, but
+                its video source has not been
+                connected yet.
               </p>
+
+              <div className="mt-7 rounded-2xl border border-white/10 bg-white/[0.035] px-5 py-4">
+                <p className="text-[8px] font-black uppercase tracking-[0.18em] text-white/25">
+                  Media connection pending
+                </p>
+
+                <p className="mt-2 text-[10px] leading-5 text-white/35">
+                  Your future PMF media-storage
+                  layer can be connected here
+                  without rebuilding the player.
+                </p>
+              </div>
             </div>
           )}
 
           <div
             className={`pointer-events-none absolute inset-x-0 top-0 h-32 bg-gradient-to-b from-black/80 to-transparent transition-opacity duration-300 ${
               showPlayerControls
-               ? 'opacity-100'
+                ? 'opacity-100'
                 : 'opacity-0'
             }`}
           />
 
           <div
             className={`absolute inset-x-0 bottom-0 bg-gradient-to-t from-black via-black/80 to-transparent px-4 pb-5 pt-20 transition-opacity duration-300 sm:px-8 ${
-              playerControlsVisible
+              showPlayerControls
                 ? 'opacity-100'
                 : 'opacity-0'
             }`}
           >
             <div className="mx-auto max-w-[1400px]">
+
               <div className="mb-3 flex items-center justify-between">
                 <div className="min-w-0 pr-4">
                   <h2 className="truncate text-sm font-black text-white sm:text-lg">
@@ -3006,66 +3090,75 @@ function AppShell() {
                 </button>
               </div>
 
-              {!youtube && (
-                <input
-                  type="range"
-                  min="0"
-                  max={Math.max(
-                    1,
-                    playerDuration,
-                  )}
-                  value={Math.min(
-                    playerTime,
-                    playerDuration ||
+              {hasPlayableVideo &&
+                !youtube && (
+                  <input
+                    type="range"
+                    min="0"
+                    max={Math.max(
                       1,
-                  )}
-                  onChange={(event) => {
-                    const value =
-                      Number(
-                        event.target
-                          .value,
+                      playerDuration,
+                    )}
+                    value={Math.min(
+                      playerTime,
+                      playerDuration ||
+                        1,
+                    )}
+                    onChange={(
+                      event,
+                    ) => {
+                      seek(
+                        Number(
+                          event.target
+                            .value,
+                        ),
                       )
-
-                    seek(value)
-                  }}
-                  className="mb-4 h-1 w-full cursor-pointer accent-white"
-                  style={{
-                    background: `linear-gradient(to right, white ${percent}%, rgba(255,255,255,.15) ${percent}%)`,
-                  }}
-                />
-              )}
+                    }}
+                    className="mb-4 h-1 w-full cursor-pointer accent-white"
+                    style={{
+                      background: `linear-gradient(to right, white ${percent}%, rgba(255,255,255,.15) ${percent}%)`,
+                    }}
+                    aria-label="Playback progress"
+                  />
+                )}
 
               <div className="flex items-center justify-between gap-2">
-                <div className="flex items-center gap-1 sm:gap-2">
-                  <button
-                    type="button"
-                    onClick={
-                      playPause
-                    }
-                    className="flex h-9 w-9 items-center justify-center rounded-full bg-white text-black"
-                  >
-                    {playerPlaying ? (
-                      <Pause
-                        size={14}
-                        fill="currentColor"
-                      />
-                    ) : (
-                      <Play
-                        size={14}
-                        fill="currentColor"
-                      />
-                    )}
-                  </button>
 
-                  {!youtube && (
+                <div className="flex items-center gap-1 sm:gap-2">
+
+                  {hasPlayableVideo && (
+                    <button
+                      type="button"
+                      onClick={
+                        playPause
+                      }
+                      className="flex h-9 w-9 items-center justify-center rounded-full bg-white text-black"
+                      aria-label={
+                        playerPlaying
+                          ? 'Pause'
+                          : 'Play'
+                      }
+                    >
+                      {playerPlaying ? (
+                        <Pause
+                          size={14}
+                          fill="currentColor"
+                        />
+                      ) : (
+                        <Play
+                          size={14}
+                          fill="currentColor"
+                        />
+                      )}
+                    </button>
+                  )}
+
+                  {hasVideo && (
                     <>
                       <button
                         type="button"
-                        onClick={() =>
-                          seek(
-                            playerTime -
-                              10,
-                          )
+                        onClick={
+                          rewind
                         }
                         className="flex h-8 w-8 items-center justify-center rounded-lg text-white/60 hover:bg-white/10 hover:text-white"
                         aria-label="Rewind 10 seconds"
@@ -3077,11 +3170,8 @@ function AppShell() {
 
                       <button
                         type="button"
-                        onClick={() =>
-                          seek(
-                            playerTime +
-                              10,
-                          )
+                        onClick={
+                          forward
                         }
                         className="flex h-8 w-8 items-center justify-center rounded-lg text-white/60 hover:bg-white/10 hover:text-white"
                         aria-label="Forward 10 seconds"
@@ -3097,6 +3187,11 @@ function AppShell() {
                           toggleMute
                         }
                         className="flex h-8 w-8 items-center justify-center rounded-lg text-white/60 hover:bg-white/10 hover:text-white"
+                        aria-label={
+                          muted
+                            ? 'Unmute'
+                            : 'Mute'
+                        }
                       >
                         {muted ? (
                           <VolumeX
@@ -3124,20 +3219,21 @@ function AppShell() {
                         ) =>
                           changeVolume(
                             Number(
-                              event
-                                .target
+                              event.target
                                 .value,
                             ),
                           )
                         }
                         className="hidden w-20 accent-white sm:block"
+                        aria-label="Volume"
                       />
                     </>
                   )}
                 </div>
 
                 <div className="flex items-center gap-1 sm:gap-2">
-                  {!youtube && (
+
+                  {hasVideo && (
                     <button
                       type="button"
                       onClick={() =>
@@ -3151,6 +3247,7 @@ function AppShell() {
                       <Settings
                         size={12}
                       />
+
                       <span className="hidden sm:inline">
                         Speed
                       </span>
@@ -3182,36 +3279,40 @@ function AppShell() {
                 </div>
               </div>
 
-              {showPlayerSettings && (
-                <div className="mt-3 flex justify-end">
-                  <div className="flex items-center gap-1 rounded-xl border border-white/10 bg-black/80 p-1 backdrop-blur">
-                    {[
-                      0.75,
-                      1,
-                      1.25,
-                      1.5,
-                      2,
-                    ].map((value) => (
-                      <button
-                        key={value}
-                        type="button"
-                        onClick={() =>
-                          changeSpeed(
-                            value,
-                          )
-                        }
-                        className={`rounded-lg px-3 py-2 text-[8px] font-black ${
-                          speed === value
-                            ? 'bg-white text-black'
-                            : 'text-white/45 hover:bg-white/10 hover:text-white'
-                        }`}
-                      >
-                        {value}x
-                      </button>
-                    ))}
+              {showPlayerSettings &&
+                hasVideo && (
+                  <div className="mt-3 flex justify-end">
+                    <div className="flex items-center gap-1 rounded-xl border border-white/10 bg-black/80 p-1 backdrop-blur">
+                      {[
+                        0.75,
+                        1,
+                        1.25,
+                        1.5,
+                        2,
+                      ].map(
+                        (value) => (
+                          <button
+                            key={value}
+                            type="button"
+                            onClick={() =>
+                              changeSpeed(
+                                value,
+                              )
+                            }
+                            className={`rounded-lg px-3 py-2 text-[8px] font-black ${
+                              speed ===
+                              value
+                                ? 'bg-white text-black'
+                                : 'text-white/45 hover:bg-white/10 hover:text-white'
+                            }`}
+                          >
+                            {value}x
+                          </button>
+                        ),
+                      )}
+                    </div>
                   </div>
-                </div>
-              )}
+                )}
             </div>
           </div>
         </div>
@@ -3219,9 +3320,10 @@ function AppShell() {
     )
   }
 
-    const Footer = () => (
+  const Footer = () => (
     <footer className="border-t border-white/[0.06] bg-black px-5 py-12 sm:px-10 lg:px-16">
       <div className="mx-auto flex max-w-[1600px] flex-col gap-8 sm:flex-row sm:items-end sm:justify-between">
+
         <div>
           <div className="flex items-center gap-2">
             <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-white text-black">
@@ -3249,6 +3351,7 @@ function AppShell() {
             © {new Date().getFullYear()} PMF-Flix
           </p>
         </div>
+
       </div>
     </footer>
   )
@@ -3256,9 +3359,13 @@ function AppShell() {
   if (!session) {
     return (
       <AuthScreen
-        onAuthenticated={(nextSession: Session) =>
-          setSession(nextSession)
-        }
+        onAuthenticated={(
+          nextSession: Session,
+        ) => {
+          setSession(
+            nextSession,
+          )
+        }}
       />
     )
   }
@@ -3269,50 +3376,56 @@ function AppShell() {
 
       <MobileSearchResults />
 
-      {error && (
-        <div className="fixed left-1/2 top-20 z-[70] w-[calc(100%-2rem)] max-w-md -translate-x-1/2 rounded-2xl border border-red-500/20 bg-black/90 px-4 py-3 text-center text-[9px] font-bold text-white/70 shadow-2xl backdrop-blur-xl">
-          {error}
-        </div>
-      )}
+      {playerMessage &&
+        !showProfile && (
+          <div className="fixed bottom-5 left-1/2 z-[75] -translate-x-1/2 rounded-full border border-white/10 bg-black/85 px-5 py-3 text-[8px] font-black uppercase tracking-[0.14em] text-white/65 shadow-2xl backdrop-blur-xl">
+            {playerMessage}
+          </div>
+        )}
 
-      {playerMessage && !showProfile && (
-  <div className="fixed bottom-5 left-1/2 z-[75] -translate-x-1/2 rounded-full border border-white/10 bg-black/85 px-5 py-3 text-[8px] font-black uppercase tracking-[0.14em] text-white/65 shadow-2xl backdrop-blur-xl">
-    {playerMessage}
-  </div>
-)}
-
-{section === 'home' && (
-  <>
-    <HomeContent />
-    <Footer />
-  </>
-)}
-      {(section === 'movies' ||
-        section === 'series') && (
+      {section === 'home' && (
         <>
-          <LibraryContent />
+          <HomeContent />
           <Footer />
         </>
+      )}
+
+      {(section === 'movies' ||
+        section === 'series') && (
+        <CatalogPage
+          type={
+            section === 'movies'
+              ? 'Movie'
+              : 'Series'
+          }
+        />
       )}
 
       {section === 'my-list' && (
-        <>
-          <MyListContent />
-          <Footer />
-        </>
+        <MyListPage />
       )}
 
       {selectedMovie && (
-        <MovieDetails />
+        <MovieDetails
+          movie={selectedMovie}
+        />
       )}
 
-      <ProfilePanel />
+      {showProfile && (
+        <ProfilePanel />
+      )}
 
-      <Player />
+      {watchingMovie && (
+        <Player />
+      )}
     </div>
   )
 }
 
 export default function App() {
   return <AppShell />
-}
+}  
+
+
+
+
