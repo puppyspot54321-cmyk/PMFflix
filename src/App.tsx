@@ -1,14 +1,22 @@
-import { useEffect, useMemo, useRef, useState } from 'react'
 import heroImage from './assets/hero.png'
+import {
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+  type KeyboardEvent,
+  type ReactNode,
+} from 'react'
 import type { Movie } from './movieData/movies'
 import { getMovies } from './services/movieService'
-import { mapCanonicalMovieToLegacy } from './services/movieMapper'
+import { mapCanonicalMovieToLegacy } from './utils/movieMapper'
 import { supabase } from './supabase'
 import type { Session } from '@supabase/supabase-js'
 import AuthScreen from './Auth'
-
 import {
   Check,
+  ChevronLeft,
+  ChevronRight,
   Film,
   Heart,
   ListPlus,
@@ -18,6 +26,8 @@ import {
   Play,
   Search,
   Settings,
+  SkipBack,
+  SkipForward,
   Sparkles,
   Star,
   Volume2,
@@ -26,10 +36,25 @@ import {
 } from 'lucide-react'
 
 type Section =
-  | 'Home'
-  | 'Movies'
-  | 'TV Series'
-  | 'My List'
+  | 'home'
+  | 'movies'
+  | 'series'
+  | 'my-list'
+
+type SortMode =
+  | 'featured'
+  | 'newest'
+  | 'oldest'
+  | 'rating'
+  | 'title'
+
+type Filters = {
+  category: string
+  type: string
+  year: string
+  rating: string
+  sort: SortMode
+}
 
 type Profile = {
   name: string
@@ -37,49 +62,52 @@ type Profile = {
 }
 
 type HistoryItem = {
-  id: string
+  movieId: string
   watchedAt: number
 }
 
 type Progress = {
-  id: string
   currentTime: number
   duration: number
   updatedAt: number
 }
 
-type Filters = {
-  category: string
-  year: string
-  rating: string
-  sort: string
-}
-
 const PROFILE_KEY = 'pmf-profile'
 const MY_LIST_KEY = 'pmf-my-list'
-const CONTINUE_KEY = 'pmf-continue'
-const HISTORY_KEY = 'pmf-history'
-const PROGRESS_KEY = 'pmf-progress'
+const CONTINUE_KEY = 'pmf-continue-watching'
+const HISTORY_KEY = 'pmf-watch-history'
+const PROGRESS_KEY = 'pmf-watch-progress'
 
 const AVATARS = [
-  'https://api.dicebear.com/9.x/thumbs/svg?seed=Prince',
-  'https://api.dicebear.com/9.x/thumbs/svg?seed=Flix',
-  'https://api.dicebear.com/9.x/thumbs/svg?seed=PMF',
-  'https://api.dicebear.com/9.x/thumbs/svg?seed=Cinema',
+  '🎬',
+  '🍿',
+  '🔥',
+  '⭐',
+  '🎭',
+  '🚀',
+  '👑',
+  '🦁',
+  '🌌',
+  '🎞️',
 ]
+
+const DEFAULT_PROFILE: Profile = {
+  name: 'PMF Member',
+  avatar: '🎬',
+}
 
 function readStorage<T>(
   key: string,
   fallback: T,
 ): T {
   try {
-    const value = localStorage.getItem(key)
+    const raw = localStorage.getItem(key)
 
-    if (!value) {
+    if (!raw) {
       return fallback
     }
 
-    return JSON.parse(value) as T
+    return JSON.parse(raw) as T
   } catch {
     return fallback
   }
@@ -95,78 +123,92 @@ function writeStorage(
       JSON.stringify(value),
     )
   } catch {
-    // Ignore storage failures.
+    // Local storage can be unavailable in some environments.
   }
 }
 
-function getMovieId(movie: Movie) {
+function getMovieId(
+  movie: Movie,
+): string {
   return String(movie.id)
 }
 
-function getRating(movie: Movie) {
-  const value = String(
-    movie.rating ?? '',
+function getRating(
+  movie: Movie,
+): number {
+  const value = Number(
+    String(movie.rating ?? '')
+      .replace(/[^0-9.]/g, ''),
   )
 
-  const numeric = Number.parseFloat(
-    value,
-  )
-
-  return Number.isFinite(numeric)
-    ? numeric
+  return Number.isFinite(value)
+    ? value
     : 0
 }
 
-function formatTime(seconds: number) {
-  if (!Number.isFinite(seconds)) {
+function formatTime(
+  seconds: number,
+): string {
+  if (
+    !Number.isFinite(seconds) ||
+    seconds < 0
+  ) {
     return '0:00'
   }
 
-  const safe = Math.max(
-    0,
-    Math.floor(seconds),
-  )
+  const total = Math.floor(seconds)
+  const minutes = Math.floor(total / 60)
+  const remaining = total % 60
 
-  const minutes = Math.floor(
-    safe / 60,
-  )
-
-  const remaining = String(
-    safe % 60,
-  ).padStart(2, '0')
-
-  return `${minutes}:${remaining}`
+  return `${minutes}:${String(
+    remaining,
+  ).padStart(2, '0')}`
 }
 
-function getYouTubeId(url: string) {
-  if (!url) {
+function getYouTubeId(
+  url: string,
+): string {
+  try {
+    const parsed = new URL(url)
+
+    if (
+      parsed.hostname.includes(
+        'youtu.be',
+      )
+    ) {
+      return parsed.pathname
+        .replace('/', '')
+        .split('/')[0]
+    }
+
+    const videoId =
+      parsed.searchParams.get('v')
+
+    if (videoId) {
+      return videoId
+    }
+
+    const match =
+      parsed.pathname.match(
+        /\/embed\/([^/?]+)/,
+      )
+
+    return match?.[1] || ''
+  } catch {
     return ''
   }
-
-  const patterns = [
-    /youtu\.be\/([^?&/]+)/i,
-    /youtube\.com\/watch\?v=([^?&/]+)/i,
-    /youtube\.com\/embed\/([^?&/]+)/i,
-    /youtube\.com\/shorts\/([^?&/]+)/i,
-  ]
-
-  for (const pattern of patterns) {
-    const match = url.match(pattern)
-
-    if (match?.[1]) {
-      return match[1]
-    }
-  }
-
-  return ''
 }
 
-function getVideoUrl(movie: Movie) {
+function getVideoUrl(
+  movie: Movie,
+): string {
   return movie.videoUrl || ''
 }
 
-function isYouTube(movie: Movie) {
-  const url = getVideoUrl(movie)
+function isYouTube(
+  movie: Movie,
+): boolean {
+  const url = movie.videoUrl || ''
 
   return (
     movie.videoType === 'youtube' ||
@@ -174,9 +216,11 @@ function isYouTube(movie: Movie) {
   )
 }
 
-function getYouTubeEmbed(movie: Movie) {
+function getYouTubeEmbed(
+  movie: Movie,
+): string {
   const id = getYouTubeId(
-    getVideoUrl(movie),
+    movie.videoUrl || '',
   )
 
   if (!id) {
@@ -186,10 +230,6 @@ function getYouTubeEmbed(movie: Movie) {
   return `https://www.youtube.com/embed/${id}?autoplay=1&rel=0&modestbranding=1`
 }
 
-export default function App() {
-  return <AppShell />
-}
-
 function AppShell() {
   const [session, setSession] =
     useState<Session | null>(null)
@@ -197,8 +237,41 @@ function AppShell() {
   const [authLoading, setAuthLoading] =
     useState(true)
 
+  useEffect(() => {
+    let mounted = true
+
+    const loadSession = async () => {
+      const { data } =
+        await supabase.auth.getSession()
+
+      if (!mounted) return
+
+      setSession(data.session)
+      setAuthLoading(false)
+    }
+
+    void loadSession()
+
+    const {
+      data: { subscription },
+    } =
+      supabase.auth.onAuthStateChange(
+        (_event, nextSession) => {
+          if (!mounted) return
+
+          setSession(nextSession)
+          setAuthLoading(false)
+        },
+      )
+
+    return () => {
+      mounted = false
+      subscription.unsubscribe()
+    }
+  }, [])
+
   const [section, setSection] =
-    useState<Section>('Home')
+    useState<Section>('home')
 
   const [search, setSearch] =
     useState('')
@@ -210,7 +283,7 @@ function AppShell() {
     useState(true)
 
   const [error, setError] =
-    useState('')
+    useState<string | null>(null)
 
   const [selectedMovie, setSelectedMovie] =
     useState<Movie | null>(null)
@@ -220,18 +293,15 @@ function AppShell() {
 
   const [profile, setProfile] =
     useState<Profile>(() =>
-      readStorage<Profile>(
+      readStorage(
         PROFILE_KEY,
-        {
-          name: 'Prince',
-          avatar: AVATARS[0],
-        },
+        DEFAULT_PROFILE,
       ),
     )
 
   const [myList, setMyList] =
     useState<string[]>(() =>
-      readStorage<string[]>(
+      readStorage(
         MY_LIST_KEY,
         [],
       ),
@@ -239,7 +309,7 @@ function AppShell() {
 
   const [continueWatching, setContinueWatching] =
     useState<string[]>(() =>
-      readStorage<string[]>(
+      readStorage(
         CONTINUE_KEY,
         [],
       ),
@@ -247,26 +317,29 @@ function AppShell() {
 
   const [history, setHistory] =
     useState<HistoryItem[]>(() =>
-      readStorage<HistoryItem[]>(
+      readStorage(
         HISTORY_KEY,
         [],
       ),
     )
 
   const [progress, setProgress] =
-    useState<Progress[]>(() =>
-      readStorage<Progress[]>(
+    useState<
+      Record<string, Progress>
+    >(() =>
+      readStorage(
         PROGRESS_KEY,
-        [],
+        {},
       ),
     )
 
   const [filters, setFilters] =
     useState<Filters>({
       category: 'All',
+      type: 'All',
       year: 'All',
-      rating: 'All',
-      sort: 'Featured',
+      rating: '0',
+      sort: 'featured',
     })
 
   const [showFilters, setShowFilters] =
@@ -305,56 +378,24 @@ function AppShell() {
   const [playerMessage, setPlayerMessage] =
     useState('')
 
+  const [theaterMode, setTheaterMode] =
+    useState(false)
+
   const videoRef =
-    useRef<HTMLVideoElement | null>(null)
+    useRef<HTMLVideoElement | null>(
+      null,
+    )
 
   const playerRef =
-    useRef<HTMLDivElement | null>(null)
+    useRef<HTMLDivElement | null>(
+      null,
+    )
 
   const controlsTimer =
-    useRef<ReturnType<typeof setTimeout> | null>(null)
+    useRef<number | null>(null)
 
   const messageTimer =
-    useRef<ReturnType<typeof setTimeout> | null>(null)
-
-  useEffect(() => {
-    let mounted = true
-
-    const loadSession = async () => {
-      const { data } =
-        await supabase.auth.getSession()
-
-      if (!mounted) {
-        return
-      }
-
-      setSession(data.session)
-      setAuthLoading(false)
-    }
-
-    void loadSession()
-
-    const {
-      data: {
-        subscription,
-      },
-    } =
-      supabase.auth.onAuthStateChange(
-        (_event, nextSession) => {
-          if (!mounted) {
-            return
-          }
-
-          setSession(nextSession)
-          setAuthLoading(false)
-        },
-      )
-
-    return () => {
-      mounted = false
-      subscription.unsubscribe()
-    }
-  }, [])
+    useRef<number | null>(null)
 
   useEffect(() => {
     writeStorage(
@@ -397,7 +438,7 @@ function AppShell() {
     const loadMovies = async () => {
       try {
         setLoading(true)
-        setError('')
+        setError(null)
 
         const result =
           await getMovies()
@@ -433,7 +474,9 @@ function AppShell() {
 
     const channel =
       supabase
-        .channel('pmf-movie-updates')
+        .channel(
+          'pmf-movie-updates',
+        )
         .on(
           'postgres_changes',
           {
@@ -449,6 +492,7 @@ function AppShell() {
 
     return () => {
       active = false
+
       void supabase.removeChannel(
         channel,
       )
@@ -463,38 +507,6 @@ function AppShell() {
         getMovieId(movie) === id,
     )
 
-  const getProgress = (
-    movie: Movie,
-  ) =>
-    progress.find(
-      (item) =>
-        item.id ===
-        getMovieId(movie),
-    )
-
-  const progressPercent = (
-    movie: Movie,
-  ) => {
-    const item =
-      getProgress(movie)
-
-    if (
-      !item ||
-      item.duration <= 0
-    ) {
-      return 0
-    }
-
-    return Math.min(
-      100,
-      Math.round(
-        (item.currentTime /
-          item.duration) *
-          100,
-      ),
-    )
-  }
-
   const isInMyList = (
     movie: Movie,
   ) =>
@@ -505,107 +517,102 @@ function AppShell() {
   const toggleMyList = (
     movie: Movie,
   ) => {
-    const id =
-      getMovieId(movie)
+    const id = getMovieId(movie)
 
     setMyList((current) =>
       current.includes(id)
         ? current.filter(
-            (item) =>
-              item !== id,
+            (item) => item !== id,
           )
         : [id, ...current],
-    )
-
-    showMessage(
-      isInMyList(movie)
-        ? 'Removed from My List'
-        : 'Added to My List',
     )
   }
 
   const addToHistory = (
     movie: Movie,
   ) => {
-    const id =
-      getMovieId(movie)
+    const id = getMovieId(movie)
 
-    setHistory((current) => [
-      {
-        id,
-        watchedAt: Date.now(),
-      },
-      ...current.filter(
-        (item) =>
-          item.id !== id,
-      ),
-    ].slice(0, 30))
+    setHistory((current) =>
+      [
+        {
+          movieId: id,
+          watchedAt: Date.now(),
+        },
+        ...current.filter(
+          (item) =>
+            item.movieId !== id,
+        ),
+      ].slice(0, 50),
+    )
   }
 
   const addToContinueWatching = (
     movie: Movie,
   ) => {
-    const id =
-      getMovieId(movie)
+    const id = getMovieId(movie)
 
     setContinueWatching(
       (current) => [
         id,
         ...current.filter(
-          (item) =>
-            item !== id,
+          (item) => item !== id,
         ),
-      ].slice(0, 20),
+      ],
     )
   }
+
+  const getProgress = (
+    movie: Movie,
+  ): Progress =>
+    progress[getMovieId(movie)] || {
+      currentTime: 0,
+      duration: 0,
+      updatedAt: 0,
+    }
 
   const saveProgress = (
     movie: Movie,
     currentTime: number,
     duration: number,
   ) => {
-    const id =
-      getMovieId(movie)
-
     if (
-      !Number.isFinite(currentTime) ||
-      !Number.isFinite(duration) ||
+      currentTime <= 0 ||
       duration <= 0
     ) {
       return
     }
 
-    setProgress((current) => [
-      {
-        id,
+    setProgress((current) => ({
+      ...current,
+      [getMovieId(movie)]: {
         currentTime,
         duration,
         updatedAt: Date.now(),
       },
-      ...current.filter(
-        (item) =>
-          item.id !== id,
-      ),
-    ].slice(0, 30))
+    }))
   }
 
   const openMovie = (
     movie: Movie,
   ) => {
     setSelectedMovie(movie)
-    setShowProfile(false)
   }
 
   const startWatching = (
     movie: Movie,
   ) => {
+    const saved = getProgress(movie)
+
     setSelectedMovie(null)
     setWatchingMovie(movie)
     setPlayerTime(
-      getProgress(movie)
-        ?.currentTime || 0,
+      saved.currentTime,
     )
-    setPlayerPlaying(true)
+    setPlayerDuration(
+      saved.duration,
+    )
+
     addToHistory(movie)
     addToContinueWatching(movie)
   }
@@ -621,9 +628,23 @@ function AppShell() {
 
     setWatchingMovie(null)
     setPlayerPlaying(false)
-    setPlayerTime(0)
-    setPlayerDuration(0)
     setShowPlayerSettings(false)
+    setTheaterMode(false)
+  }
+
+  const navigate = (
+    next: Section,
+  ) => {
+    setSection(next)
+    setSearch('')
+    setShowFilters(false)
+    setMobileMenu(false)
+    setSelectedMovie(null)
+
+    window.scrollTo({
+      top: 0,
+      behavior: 'smooth',
+    })
   }
 
   const showMessage = (
@@ -632,150 +653,319 @@ function AppShell() {
     setPlayerMessage(message)
 
     if (messageTimer.current) {
-      clearTimeout(
+      window.clearTimeout(
         messageTimer.current,
       )
     }
 
     messageTimer.current =
-      setTimeout(() => {
+      window.setTimeout(() => {
         setPlayerMessage('')
-      }, 2200)
+      }, 1800)
   }
 
-  const playPause = () => {
-    const video =
-      videoRef.current
+  const playPause = async () => {
+    const video = videoRef.current
 
     if (!video) {
-      setPlayerPlaying(
-        (current) => !current,
+      showMessage(
+        'This title does not have a playable video source yet.',
       )
       return
     }
 
-    if (video.paused) {
-      void video.play()
-      setPlayerPlaying(true)
-    } else {
-      video.pause()
-      setPlayerPlaying(false)
+    try {
+      if (video.paused) {
+        await video.play()
+      } else {
+        video.pause()
+      }
+    } catch (playError) {
+      console.error(
+        'PMF playback error:',
+        playError,
+      )
+
+      showMessage(
+        'Playback could not start.',
+      )
     }
   }
 
   const seek = (
-    amount: number,
+    time: number,
   ) => {
-    const video =
-      videoRef.current
+    const video = videoRef.current
 
     if (!video) {
       return
     }
 
-    video.currentTime =
-      Math.max(
-        0,
-        Math.min(
-          video.duration || 0,
-          video.currentTime +
-            amount,
-        ),
-      )
+    const next = Math.max(
+      0,
+      Math.min(
+        playerDuration || 0,
+        time,
+      ),
+    )
+
+    video.currentTime = next
+    setPlayerTime(next)
+  }
+
+  const rewind = () => {
+    seek(playerTime - 10)
+    showMessage('−10 seconds')
+  }
+
+  const forward = () => {
+    seek(playerTime + 10)
+    showMessage('+10 seconds')
+  }
+
+  const toggleMute = () => {
+    const next = !muted
+
+    setMuted(next)
+
+    if (videoRef.current) {
+      videoRef.current.muted = next
+    }
   }
 
   const changeVolume = (
-    nextVolume: number,
+    value: number,
   ) => {
-    const safeVolume =
-      Math.max(
-        0,
-        Math.min(1, nextVolume),
-      )
-
-    setVolume(safeVolume)
-    setMuted(
-      safeVolume === 0,
+    const next = Math.max(
+      0,
+      Math.min(1, value),
     )
 
+    setVolume(next)
+    setMuted(next === 0)
+
     if (videoRef.current) {
-      videoRef.current.volume =
-        safeVolume
+      videoRef.current.volume = next
       videoRef.current.muted =
-        safeVolume === 0
+        next === 0
     }
   }
 
   const changeSpeed = (
-    nextSpeed: number,
+    value: number,
   ) => {
-    setSpeed(nextSpeed)
+    setSpeed(value)
 
     if (videoRef.current) {
       videoRef.current.playbackRate =
-        nextSpeed
+        value
     }
 
     showMessage(
-      `Playback speed ${nextSpeed}x`,
+      `${value}× playback`,
     )
   }
 
-  const navigate = (
-    next: Section,
-  ) => {
-    setSection(next)
-    setSearch('')
-    setSelectedMovie(null)
-    setShowFilters(false)
-    setShowProfile(false)
-    setMobileMenu(false)
-
-    window.scrollTo({
-      top: 0,
-      behavior: 'smooth',
-    })
+  const fullscreen = async () => {
+    try {
+      if (
+        !document.fullscreenElement
+      ) {
+        await playerRef.current?.requestFullscreen()
+      } else {
+        await document.exitFullscreen()
+      }
+    } catch {
+      showMessage(
+        'Fullscreen is unavailable on this device.',
+      )
+    }
   }
 
-  const updateFilter = (
-    key: keyof Filters,
-    value: string,
-  ) => {
-    setFilters(
-      (current) => ({
-        ...current,
-        [key]: value,
-      }),
-    )
-  }
+  const resetPlayerControls = () => {
+    setShowPlayerControls(true)
 
-  const resetFilters = () => {
-    setFilters({
-      category: 'All',
-      year: 'All',
-      rating: 'All',
-      sort: 'Featured',
-    })
+    if (controlsTimer.current) {
+      window.clearTimeout(
+        controlsTimer.current,
+      )
     }
 
-    const filteredMovies = useMemo(() => {
-    let result = [...movies]
+    controlsTimer.current =
+      window.setTimeout(() => {
+        if (playerPlaying) {
+          setShowPlayerControls(false)
+        }
+      }, 3500)
+  }
 
-    if (search.trim()) {
-      const query =
-        search.toLowerCase().trim()
+  useEffect(() => {
+    if (!watchingMovie) {
+      return
+    }
 
+    const handleKey = (
+      event: KeyboardEvent,
+    ) => {
+      if (
+        event.target instanceof
+          HTMLInputElement ||
+        event.target instanceof
+          HTMLTextAreaElement
+      ) {
+        return
+      }
+
+      if (event.key === ' ') {
+        event.preventDefault()
+        void playPause()
+      }
+
+      if (event.key === 'ArrowLeft') {
+        rewind()
+      }
+
+      if (event.key === 'ArrowRight') {
+        forward()
+      }
+
+      if (
+        event.key.toLowerCase() === 'm'
+      ) {
+        toggleMute()
+      }
+
+      if (
+        event.key.toLowerCase() === 'f'
+      ) {
+        void fullscreen()
+      }
+
+      if (event.key === 'Escape') {
+        closePlayer()
+      }
+
+      resetPlayerControls()
+    }
+
+    window.addEventListener(
+      'keydown',
+      handleKey,
+    )
+
+    return () => {
+      window.removeEventListener(
+        'keydown',
+        handleKey,
+      )
+    }
+  }, [
+    watchingMovie,
+    playerTime,
+    playerDuration,
+    muted,
+    playerPlaying,
+  ])
+
+  const categories = useMemo(() => {
+    const values = movies
+      .map((movie) =>
+        String(
+          movie.category || '',
+        ).trim(),
+      )
+      .filter(Boolean)
+
+    return [
+      'All',
+      ...Array.from(
+        new Set(values),
+      ),
+    ]
+  }, [movies])
+
+  const years = useMemo(() => {
+    const values = movies
+      .map((movie) =>
+        Number(movie.year),
+      )
+      .filter((year) =>
+        Number.isFinite(year),
+      )
+
+    return [
+      'All',
+      ...Array.from(
+        new Set(values),
+      )
+        .sort((a, b) => b - a)
+        .map(String),
+    ]
+  }, [movies])
+
+  const typeOptions = useMemo(
+    () => [
+      'All',
+      ...Array.from(
+        new Set(
+          movies
+            .map((movie) =>
+              String(
+                movie.type || '',
+              ).trim(),
+            )
+            .filter(Boolean),
+        ),
+      ),
+    ],
+    [movies],
+  )
+
+  const normalizedSearch =
+    search.trim().toLowerCase()
+
+  const searchableMovies = useMemo(
+    () =>
+      movies.filter((movie) =>
+        [
+          movie.title,
+          movie.description,
+          movie.category,
+          movie.type,
+          movie.year,
+        ]
+          .filter(Boolean)
+          .join(' ')
+          .toLowerCase()
+          .includes(
+            normalizedSearch,
+          ),
+      ),
+    [movies, normalizedSearch],
+  )
+
+  const filteredMovies = useMemo(() => {
+    let result = [
+      ...searchableMovies,
+    ]
+
+    if (section === 'movies') {
       result = result.filter(
         (movie) =>
-          movie.title
-            .toLowerCase()
-            .includes(query) ||
-          movie.category
-            .toLowerCase()
-            .includes(query) ||
-          movie.description
-            .toLowerCase()
-            .includes(query),
+          String(
+            movie.type || '',
+          ).toLowerCase() !==
+          'series',
+      )
+    }
+
+    if (section === 'series') {
+      result = result.filter(
+        (movie) =>
+          String(
+            movie.type || '',
+          ).toLowerCase() ===
+          'series',
       )
     }
 
@@ -784,8 +974,19 @@ function AppShell() {
     ) {
       result = result.filter(
         (movie) =>
-          movie.category ===
-          filters.category,
+          String(
+            movie.category || '',
+          ) === filters.category,
+      )
+    }
+
+    if (filters.type !== 'All') {
+      result = result.filter(
+        (movie) =>
+          String(
+            movie.type || '',
+          ).toLowerCase() ===
+          filters.type.toLowerCase(),
       )
     }
 
@@ -797,306 +998,656 @@ function AppShell() {
       )
     }
 
-    if (filters.rating !== 'All') {
+    const minimumRating =
+      Number(filters.rating)
+
+    if (
+      minimumRating > 0
+    ) {
       result = result.filter(
         (movie) =>
           getRating(movie) >=
-          Number(filters.rating),
+          minimumRating,
       )
     }
 
-    if (filters.sort === 'Newest') {
-      result.sort(
-        (a, b) =>
-          b.year - a.year,
-      )
-    }
+    switch (filters.sort) {
+      case 'newest':
+        result.sort(
+          (a, b) =>
+            Number(b.year || 0) -
+            Number(a.year || 0),
+        )
+        break
 
-    if (filters.sort === 'Oldest') {
-      result.sort(
-        (a, b) =>
-          a.year - b.year,
-      )
-    }
+      case 'oldest':
+        result.sort(
+          (a, b) =>
+            Number(a.year || 0) -
+            Number(b.year || 0),
+        )
+        break
 
-    if (filters.sort === 'A-Z') {
-      result.sort(
-        (a, b) =>
-          a.title.localeCompare(
-            b.title,
-          ),
-      )
-    }
+      case 'rating':
+        result.sort(
+          (a, b) =>
+            getRating(b) -
+            getRating(a),
+        )
+        break
 
-    if (filters.sort === 'Rating') {
-      result.sort(
-        (a, b) =>
-          getRating(b) -
-          getRating(a),
-      )
+      case 'title':
+        result.sort(
+          (a, b) =>
+            a.title.localeCompare(
+              b.title,
+            ),
+        )
+        break
+
+      default:
+        result.sort(
+          (a, b) =>
+            Number(Boolean(b.featured)) -
+            Number(Boolean(a.featured)),
+        )
     }
 
     return result
   }, [
-    movies,
-    search,
+    searchableMovies,
+    section,
     filters,
   ])
 
-  const continueMovies =
-    continueWatching
-      .map(findMovie)
-      .filter(
-        (movie): movie is Movie =>
-          Boolean(movie),
-      )
+  const myListMovies = useMemo(
+    () =>
+      myList
+        .map(findMovie)
+        .filter(
+          (
+            movie,
+          ): movie is Movie =>
+            Boolean(movie),
+        ),
+    [myList, movies],
+  )
 
-  const historyMovies =
-    [...history]
-      .sort(
-        (a, b) =>
-          b.watchedAt -
-          a.watchedAt,
-      )
-      .map(
-        (item) =>
-          findMovie(item.id),
-      )
-      .filter(
-        (movie): movie is Movie =>
-          Boolean(movie),
-      )
+  const continueMovies = useMemo(
+    () =>
+      continueWatching
+        .map(findMovie)
+        .filter(
+          (
+            movie,
+          ): movie is Movie =>
+            Boolean(movie),
+        ),
+    [
+      continueWatching,
+      movies,
+    ],
+  )
 
-  const featuredMovies =
-    movies.filter(
-      (movie) =>
-        movie.featured,
-    )
+  const historyMovies = useMemo(
+    () =>
+      [...history]
+        .sort(
+          (a, b) =>
+            b.watchedAt -
+            a.watchedAt,
+        )
+        .map((item) =>
+          findMovie(
+            item.movieId,
+          ),
+        )
+        .filter(
+          (
+            movie,
+          ): movie is Movie =>
+            Boolean(movie),
+        ),
+    [history, movies],
+  )
 
-  const trendingMovies =
-    [...movies]
-      .sort(
-        (a, b) =>
-          getRating(b) -
-          getRating(a),
-      )
-      .slice(0, 10)
+  const trendingMovies = useMemo(
+    () =>
+      [...movies]
+        .sort(
+          (a, b) =>
+            getRating(b) -
+            getRating(a),
+        )
+        .slice(0, 12),
+    [movies],
+  )
 
-  const latestMovies =
-    [...movies]
-      .sort(
-        (a, b) =>
-          b.year - a.year,
-      )
-      .slice(0, 10)
+  const latestMovies = useMemo(
+    () =>
+      [...movies]
+        .sort(
+          (a, b) =>
+            Number(b.year || 0) -
+            Number(a.year || 0),
+        )
+        .slice(0, 12),
+    [movies],
+  )
+
+  const featuredMovies = useMemo(
+    () =>
+      movies
+        .filter(
+          (movie) =>
+            movie.featured,
+        )
+        .slice(0, 12),
+    [movies],
+  )
 
   const personalizedMovies =
-    movies.filter(
-      (movie) =>
-        historyMovies.some(
-          (watched) =>
-            watched.category ===
-            movie.category,
-        ),
-    )
+    useMemo(() => {
+      const watchedCategories =
+        new Map<
+          string,
+          number
+        >()
 
-  const categories = [
-    'All',
-    ...Array.from(
-      new Set(
-        movies.map(
-          (movie) =>
-            movie.category,
-        ),
-      ),
-    ),
-  ]
+      historyMovies.forEach(
+        (movie, index) => {
+          const category =
+            String(
+              movie.category || '',
+            )
+              .trim()
+              .toLowerCase()
 
-  const years = [
-    'All',
-    ...Array.from(
-      new Set(
-        movies.map(
-          (movie) =>
-            String(movie.year),
-        ),
-      ),
-    ).sort(
-      (a, b) =>
-        b.localeCompare(a),
-    ),
-  ]
+          if (!category) {
+            return
+          }
 
-  const categoryRows =
-    categories
-      .filter(
-        (category) =>
-          category !== 'All',
-      )
-      .map((category) => ({
-        category,
-        items: movies.filter(
-          (movie) =>
-            movie.category ===
+          watchedCategories.set(
             category,
-        ),
-      }))
-      .filter(
-        (row) =>
-          row.items.length > 0,
+            (watchedCategories.get(
+              category,
+            ) || 0) +
+              Math.max(
+                1,
+                10 - index,
+              ),
+          )
+        },
       )
 
-  if (authLoading) {
-    return (
-      <div className="flex min-h-screen items-center justify-center bg-[#050505] text-white">
-        <div className="flex flex-col items-center gap-4">
-          <LoaderCircle
-            size={28}
-            className="animate-spin text-white/50"
-          />
+      const scored = movies
+        .filter(
+          (movie) =>
+            !history.some(
+              (item) =>
+                item.movieId ===
+                getMovieId(movie),
+            ),
+        )
+        .map((movie) => {
+          const category =
+            String(
+              movie.category || '',
+            )
+              .trim()
+              .toLowerCase()
 
-          <p className="text-[9px] font-black uppercase tracking-[0.28em] text-white/30">
-            Loading PMF-Flix
-          </p>
-        </div>
-      </div>
+          const preference =
+            watchedCategories.get(
+              category,
+            ) || 0
+
+          const ratingScore =
+            getRating(movie) * 2
+
+          const featuredScore =
+            movie.featured ? 5 : 0
+
+          const freshnessScore =
+            Number(movie.year || 0) /
+            1000
+
+          return {
+            movie,
+            score:
+              preference +
+              ratingScore +
+              featuredScore +
+              freshnessScore,
+          }
+        })
+        .sort(
+          (a, b) =>
+            b.score - a.score,
+        )
+        .map(
+          (item) =>
+            item.movie,
+        )
+
+      return (
+        scored.length
+          ? scored
+          : trendingMovies
+      ).slice(0, 12)
+    }, [
+      movies,
+      history,
+      historyMovies,
+      trendingMovies,
+    ])
+
+  const categoryRows = useMemo(
+    () => {
+      const seen =
+        new Set<string>()
+
+      return movies
+        .map(
+          (movie) =>
+            String(
+              movie.category || '',
+            ).trim(),
+        )
+        .filter(
+          (category) => {
+            if (
+              !category ||
+              seen.has(category)
+            ) {
+              return false
+            }
+
+            seen.add(category)
+            return true
+          },
+        )
+        .slice(0, 8)
+        .map((category) => ({
+          category,
+          items: movies
+            .filter(
+              (movie) =>
+                String(
+                  movie.category || '',
+                ).toLowerCase() ===
+                category.toLowerCase(),
+            )
+            .slice(0, 10),
+        }))
+    },
+    [movies],
+  )
+
+  const getProgressPercent = (
+    movie: Movie,
+  ) => {
+    const item =
+      getProgress(movie)
+
+    if (
+      item.duration <= 0
+    ) {
+      return 0
+    }
+
+    return Math.min(
+      100,
+      Math.max(
+        0,
+        (item.currentTime /
+          item.duration) *
+          100,
+      ),
     )
   }
 
-  if (!session) {
+  const getNextMovie = () => {
+    if (!watchingMovie) {
+      return null
+    }
+
+    const index =
+      movies.findIndex(
+        (movie) =>
+          getMovieId(movie) ===
+          getMovieId(
+            watchingMovie,
+          ),
+      )
+
+    if (
+      index < 0 ||
+      movies.length < 2
+    ) {
+      return null
+    }
+
     return (
-      <AuthScreen
-        onAuthenticated={(
-          nextSession: Session,
-        ) => {
-          setSession(
-            nextSession,
+      movies[
+        (index + 1) %
+          movies.length
+      ] || null
+    )
+  }
+
+  const playNextMovie = () => {
+    const next =
+      getNextMovie()
+
+    if (!next) {
+      return
+    }
+
+    setWatchingMovie(next)
+    setPlayerTime(
+      getProgress(next)
+        .currentTime,
+    )
+    setPlayerDuration(
+      getProgress(next)
+        .duration,
+    )
+
+    addToHistory(next)
+    addToContinueWatching(next)
+    setPlayerPlaying(false)
+    setShowPlayerSettings(false)
+
+    window.setTimeout(() => {
+      void videoRef.current?.play()
+    }, 150)
+  }
+
+  const handleVideoLoaded = () => {
+    const video =
+      videoRef.current
+
+    if (!video) {
+      return
+    }
+
+    const saved =
+      watchingMovie
+        ? getProgress(
+            watchingMovie,
           )
-        }}
-      />
+        : null
+
+    const duration =
+      Number.isFinite(
+        video.duration,
+      )
+        ? video.duration
+        : 0
+
+    if (duration > 0) {
+      setPlayerDuration(
+        duration,
+      )
+
+      if (
+        saved &&
+        saved.currentTime > 0 &&
+        saved.currentTime <
+          duration - 3
+      ) {
+        video.currentTime =
+          saved.currentTime
+
+        setPlayerTime(
+          saved.currentTime,
+        )
+      }
+    }
+
+    video.volume = volume
+    video.muted = muted
+    video.playbackRate = speed
+  }
+
+  const handleTimeUpdate = () => {
+    const video =
+      videoRef.current
+
+    if (!video) {
+      return
+    }
+
+    setPlayerTime(
+      video.currentTime,
+    )
+
+    if (
+      watchingMovie &&
+      video.duration > 0
+    ) {
+      saveProgress(
+        watchingMovie,
+        video.currentTime,
+        video.duration,
+      )
+    }
+  }
+
+  const handleVideoEnded = () => {
+    if (watchingMovie) {
+      saveProgress(
+        watchingMovie,
+        playerDuration,
+        playerDuration,
+      )
+    }
+
+    setPlayerPlaying(false)
+
+    if (getNextMovie()) {
+      showMessage(
+        'Next story ready',
+      )
+    }
+  }
+
+  const updateFilter = (
+    key: keyof Filters,
+    value: string,
+  ) => {
+    setFilters(
+      (current) => ({
+        ...current,
+        [key]:
+          key === 'sort'
+            ? (value as SortMode)
+            : value,
+      }),
     )
   }
+
+  const resetFilters = () => {
+    setFilters({
+      category: 'All',
+      type: 'All',
+      year: 'All',
+      rating: '0',
+      sort: 'featured',
+    })
+  }
+
+  const clearSearch = () => {
+    setSearch('')
+  }
+
+  const saveProfile = () => {
+    setProfile(
+      (current) => ({
+        ...current,
+        name:
+          current.name.trim() ||
+          'PMF Member',
+        avatar:
+          current.avatar ||
+          '🎬',
+      }),
+    )
+
+    setShowProfile(false)
+  }
+
+  const signOut = async () => {
+    await supabase.auth.signOut()
+      }
 
   const SectionTitle = ({
     eyebrow,
     title,
     subtitle,
+    action,
   }: {
     eyebrow?: string
     title: string
     subtitle?: string
+    action?: ReactNode
   }) => (
-    <div className="mb-5">
-      {eyebrow && (
-        <p className="mb-2 text-[8px] font-black uppercase tracking-[0.24em] text-white/25">
-          {eyebrow}
-        </p>
-      )}
+    <div className="mb-5 flex items-end justify-between gap-4">
+      <div>
+        {eyebrow && (
+          <p className="mb-1 flex items-center gap-2 text-[8px] font-black uppercase tracking-[0.22em] text-white/25">
+            <Sparkles size={10} />
+            {eyebrow}
+          </p>
+        )}
 
-      <div className="flex items-end justify-between gap-4">
-        <div>
-          <h2 className="text-xl font-black tracking-[-0.035em] text-white sm:text-2xl">
-            {title}
-          </h2>
+        <h2 className="text-xl font-black tracking-[-0.03em] text-white sm:text-2xl">
+          {title}
+        </h2>
 
-          {subtitle && (
-            <p className="mt-1 max-w-xl text-[10px] leading-5 text-white/30 sm:text-xs">
-              {subtitle}
-            </p>
-          )}
-        </div>
+        {subtitle && (
+          <p className="mt-1 max-w-2xl text-xs leading-5 text-white/30">
+            {subtitle}
+          </p>
+        )}
       </div>
+
+      {action}
     </div>
   )
 
   const MovieCard = ({
     movie,
+    compact = false,
   }: {
     movie: Movie
+    compact?: boolean
   }) => {
     const percent =
-      progressPercent(movie)
+      getProgressPercent(movie)
+
+    const listed =
+      isInMyList(movie)
 
     return (
-      <article className="group relative w-[145px] shrink-0 sm:w-[175px] md:w-[190px]">
-        <button
-          type="button"
-          onClick={() =>
-            openMovie(movie)
-          }
-          className="block w-full text-left"
-        >
-          <div className="relative aspect-[2/3] overflow-hidden rounded-2xl border border-white/[0.07] bg-white/[0.03] shadow-2xl transition duration-300 group-hover:-translate-y-1 group-hover:border-white/15">
-            <img
-              src={movie.poster}
-              alt={movie.title}
-              className="h-full w-full object-cover transition duration-700 group-hover:scale-[1.045]"
-              loading="lazy"
-            />
+      <article
+        className={`group relative shrink-0 cursor-pointer overflow-hidden rounded-2xl border border-white/[0.07] bg-white/[0.025] transition duration-500 hover:-translate-y-1 hover:border-white/20 hover:bg-white/[0.055] hover:shadow-2xl ${
+          compact
+            ? 'w-[145px] sm:w-[170px]'
+            : 'w-[160px] sm:w-[190px] lg:w-[205px]'
+        }`}
+        onClick={() =>
+          openMovie(movie)
+        }
+      >
+        <div className="relative aspect-[2/3] overflow-hidden bg-white/5">
+          <img
+            src={
+              movie.poster ||
+              heroImage
+            }
+            alt={movie.title}
+            loading="lazy"
+            className="h-full w-full object-cover transition duration-700 group-hover:scale-105"
+          />
 
-            <div className="absolute inset-0 bg-gradient-to-t from-black via-black/10 to-transparent opacity-80" />
+          <div className="absolute inset-0 bg-gradient-to-t from-black via-transparent to-black/10 opacity-70" />
 
-            <div className="absolute left-2.5 top-2.5 flex gap-1.5">
-              <span className="rounded-full border border-white/10 bg-black/65 px-2 py-1 text-[7px] font-black uppercase tracking-[0.12em] text-white/70 backdrop-blur-md">
-                {movie.type}
-              </span>
-
-              {movie.featured && (
-                <span className="rounded-full bg-white px-2 py-1 text-[7px] font-black uppercase tracking-[0.12em] text-black">
-                  PMF
-                </span>
-              )}
+          {movie.featured && (
+            <div className="absolute left-2 top-2 rounded-full border border-white/10 bg-black/55 px-2 py-1 text-[7px] font-black uppercase tracking-[0.14em] text-white backdrop-blur">
+              Featured
             </div>
+          )}
 
-            <div className="absolute inset-x-3 bottom-3">
-              <p className="truncate text-sm font-black text-white">
-                {movie.title}
-              </p>
+          {listed && (
+            <div className="absolute right-2 top-2 flex h-7 w-7 items-center justify-center rounded-full border border-white/10 bg-black/60 text-white backdrop-blur">
+              <Check size={12} />
+            </div>
+          )}
 
-              <div className="mt-1 flex items-center gap-2 text-[8px] font-bold text-white/45">
-                <span>
-                  {movie.year}
-                </span>
+          {percent > 0 && (
+            <div className="absolute bottom-0 left-0 right-0 h-1 bg-white/10">
+              <div
+                className="h-full bg-red-500"
+                style={{
+                  width: `${percent}%`,
+                }}
+              />
+            </div>
+          )}
 
+          <div className="absolute inset-x-0 bottom-0 translate-y-3 p-3 opacity-0 transition duration-300 group-hover:translate-y-0 group-hover:opacity-100">
+            <button
+              type="button"
+              onClick={(event) => {
+                event.stopPropagation()
+                startWatching(movie)
+              }}
+              className="flex h-9 w-9 items-center justify-center rounded-full bg-white text-black shadow-xl"
+              aria-label={`Play ${movie.title}`}
+            >
+              <Play
+                size={14}
+                fill="currentColor"
+              />
+            </button>
+          </div>
+        </div>
+
+        <div className="p-3">
+          <h3 className="truncate text-xs font-black text-white">
+            {movie.title}
+          </h3>
+
+          <div className="mt-1.5 flex items-center gap-2 text-[8px] font-bold text-white/30">
+            <span>{movie.year}</span>
+
+            <span>•</span>
+
+            <span>
+              {movie.type ||
+                'Film'}
+            </span>
+
+            {getRating(movie) >
+              0 && (
+              <>
                 <span>•</span>
 
-                <span>
-                  {movie.category}
+                <span className="inline-flex items-center gap-0.5 text-white/50">
+                  <Star
+                    size={8}
+                    fill="currentColor"
+                  />
+                  {getRating(movie).toFixed(
+                    1,
+                  )}
                 </span>
-              </div>
-            </div>
-
-            {percent > 0 && (
-              <div className="absolute bottom-0 left-0 right-0 h-1 bg-white/10">
-                <div
-                  className="h-full bg-white"
-                  style={{
-                    width: `${percent}%`,
-                  }}
-                />
-              </div>
+              </>
             )}
           </div>
-        </button>
-
-        <button
-          type="button"
-          onClick={() =>
-            toggleMyList(movie)
-          }
-          aria-label={
-            isInMyList(movie)
-              ? 'Remove from My List'
-              : 'Add to My List'
-          }
-          className="absolute right-2.5 top-2.5 z-10 flex h-8 w-8 items-center justify-center rounded-full border border-white/10 bg-black/65 text-white/65 opacity-0 backdrop-blur-md transition group-hover:opacity-100 hover:bg-white hover:text-black"
-        >
-          {isInMyList(movie) ? (
-            <Check size={14} />
-          ) : (
-            <ListPlus size={14} />
-          )}
-        </button>
+        </div>
       </article>
     )
   }
@@ -1124,15 +1675,15 @@ function AppShell() {
           subtitle={subtitle}
         />
 
-        <div className="no-scrollbar flex gap-3 overflow-x-auto pb-3 sm:gap-4">
-          {items.map(
-            (movie) => (
+        <div className="relative">
+          <div className="no-scrollbar flex gap-3 overflow-x-auto pb-3 sm:gap-4">
+            {items.map((movie) => (
               <MovieCard
                 key={getMovieId(movie)}
                 movie={movie}
               />
-            ),
-          )}
+            ))}
+          </div>
         </div>
       </section>
     )
@@ -1156,9 +1707,8 @@ function AppShell() {
           </h3>
 
           <p className="mx-auto mt-2 max-w-md text-xs leading-6 text-white/30">
-            Try another search,
-            category, year or
-            rating.
+            Try another search, category,
+            year or rating.
           </p>
 
           <button
@@ -1174,713 +1724,22 @@ function AppShell() {
 
     return (
       <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 sm:gap-4 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6">
-        {items.map(
-          (movie) => (
-            <div
-              key={getMovieId(movie)}
-              className="min-w-0"
-            >
-              <MovieCard
-                movie={movie}
-              />
-            </div>
-          ),
-        )}
+        {items.map((movie) => (
+          <div
+            key={getMovieId(movie)}
+            className="min-w-0"
+          >
+            <MovieCard
+              movie={movie}
+            />
+          </div>
+        ))}
       </div>
     )
    } 
 
-  const HomePage = () => {
-    const featured =
-      featuredMovies[0] ||
-      movies[0]
-
-    return (
-      <>
-        <section className="relative min-h-[78vh] overflow-hidden bg-[#050505]">
-          {featured && (
-            <>
-              <img
-                src={
-                  featured.poster ||
-                  heroImage
-                }
-                alt=""
-                className="absolute inset-0 h-full w-full object-cover opacity-45"
-              />
-
-              <div className="absolute inset-0 bg-gradient-to-r from-black via-black/75 to-black/20" />
-
-              <div className="absolute inset-0 bg-gradient-to-t from-[#050505] via-transparent to-black/30" />
-            </>
-          )}
-
-          <div className="relative mx-auto flex min-h-[78vh] max-w-[1600px] items-end px-5 pb-20 pt-32 sm:px-10 lg:px-16">
-            <div className="max-w-2xl">
-              <div className="mb-5 flex items-center gap-3">
-                <span className="text-[8px] font-black uppercase tracking-[0.28em] text-white/40">
-                  PMF — Prince Mufasa Flix
-                </span>
-
-                <span className="h-px w-10 bg-white/20" />
-
-                <span className="text-[8px] font-black uppercase tracking-[0.2em] text-white/30">
-                  Featured
-                </span>
-              </div>
-
-              <h1 className="text-5xl font-black leading-[0.9] tracking-[-0.065em] text-white sm:text-7xl lg:text-8xl">
-                {featured
-                  ? featured.title
-                  : 'Your World. Your Stories. Your Flix.'}
-              </h1>
-
-              {featured && (
-                <>
-                  <div className="mt-6 flex flex-wrap items-center gap-3 text-[9px] font-black uppercase tracking-[0.12em] text-white/45">
-                    <span>
-                      {featured.year}
-                    </span>
-
-                    <span>•</span>
-
-                    <span>
-                      {featured.type}
-                    </span>
-
-                    <span>•</span>
-
-                    <span>
-                      {featured.category}
-                    </span>
-
-                    {featured.duration && (
-                      <>
-                        <span>•</span>
-
-                        <span>
-                          {featured.duration}
-                        </span>
-                      </>
-                    )}
-                  </div>
-
-                  <p className="mt-5 max-w-xl text-sm leading-7 text-white/55">
-                    {featured.description}
-                  </p>
-
-                  <div className="mt-8 flex flex-wrap gap-3">
-                    <button
-                      type="button"
-                      onClick={() =>
-                        startWatching(
-                          featured,
-                        )
-                      }
-                      className="inline-flex items-center gap-2 rounded-xl bg-white px-6 py-3.5 text-[9px] font-black uppercase tracking-[0.16em] text-black transition hover:scale-[1.02]"
-                    >
-                      <Play
-                        size={14}
-                        fill="currentColor"
-                      />
-                      Play Now
-                    </button>
-
-                    <button
-                      type="button"
-                      onClick={() =>
-                        openMovie(featured)
-                      }
-                      className="inline-flex items-center gap-2 rounded-xl border border-white/10 bg-white/5 px-6 py-3.5 text-[9px] font-black uppercase tracking-[0.16em] text-white/70 backdrop-blur-md transition hover:bg-white/10 hover:text-white"
-                    >
-                      More Info
-                    </button>
-
-                    <button
-                      type="button"
-                      onClick={() =>
-                        toggleMyList(
-                          featured,
-                        )
-                      }
-                      className="inline-flex items-center gap-2 rounded-xl border border-white/10 bg-black/30 px-5 py-3.5 text-[9px] font-black uppercase tracking-[0.16em] text-white/60 backdrop-blur-md"
-                    >
-                      {isInMyList(
-                        featured,
-                      ) ? (
-                        <Check size={14} />
-                      ) : (
-                        <Heart size={14} />
-                      )}
-
-                      {isInMyList(
-                        featured,
-                      )
-                        ? 'In My List'
-                        : 'My List'}
-                    </button>
-                  </div>
-                </>
-              )}
-            </div>
-          </div>
-        </section>
-
-        <main className="relative mx-auto max-w-[1600px] overflow-hidden px-5 pb-24 pt-12 sm:px-10 lg:px-16">
-          {continueMovies.length >
-            0 && (
-            <MovieRow
-              eyebrow="Pick up where you left off"
-              title="Continue Watching"
-              subtitle="Your unfinished stories, ready when you are."
-              items={
-                continueMovies
-              }
-            />
-          )}
-
-          {featuredMovies.length >
-            1 && (
-            <MovieRow
-              eyebrow="PMF selection"
-              title="Featured"
-              subtitle="Stories selected for the PMF experience."
-              items={
-                featuredMovies
-              }
-            />
-          )}
-
-          {trendingMovies.length >
-            0 && (
-            <MovieRow
-              eyebrow="What's moving"
-              title="Trending Now"
-              subtitle="The titles creating the most excitement on PMF-Flix."
-              items={
-                trendingMovies
-              }
-            />
-          )}
-
-          {personalizedMovies.length >
-            0 && (
-            <MovieRow
-              eyebrow="Made for your journey"
-              title="Made For You"
-              subtitle="Recommendations shaped by your viewing journey."
-              items={
-                personalizedMovies
-              }
-            />
-          )}
-
-          {latestMovies.length >
-            0 && (
-            <MovieRow
-              eyebrow="Fresh from the catalogue"
-              title="New & Noteworthy"
-              subtitle="Fresh stories waiting to be discovered."
-              items={
-                latestMovies
-              }
-            />
-          )}
-
-          {categoryRows.map(
-            (row) => (
-              <MovieRow
-                key={row.category}
-                eyebrow="Explore by category"
-                title={row.category}
-                subtitle={`Discover ${row.category.toLowerCase()} stories on PMF-Flix.`}
-                items={row.items}
-              />
-            ),
-          )}
-
-          {historyMovies.length >
-            0 && (
-            <MovieRow
-              eyebrow="Your activity"
-              title="Recently Watched"
-              subtitle="Your latest PMF-Flix activity."
-              items={
-                historyMovies.slice(
-                  0,
-                  10,
-                )
-              }
-            />
-          )}
-
-          <section className="relative mt-8 overflow-hidden rounded-[2rem] border border-white/10 bg-white/[0.025] px-6 py-12 sm:px-10 lg:px-16">
-            <div className="absolute -right-20 -top-20 h-60 w-60 rounded-full bg-white/[0.035] blur-3xl" />
-
-            <div className="relative max-w-3xl">
-              <div className="mb-4 flex items-center gap-2 text-white/35">
-                <Sparkles
-                  size={15}
-                />
-
-                <span className="text-[8px] font-black uppercase tracking-[0.25em]">
-                  PMF Intelligence
-                </span>
-              </div>
-
-              <h2 className="text-3xl font-black tracking-[-0.05em] text-white sm:text-5xl">
-                Entertainment,
-                <br />
-                shaped around you.
-              </h2>
-
-              <p className="mt-5 max-w-2xl text-sm leading-7 text-white/35">
-                PMF-Flix learns from
-                your journey to help
-                you discover stories
-                that fit your taste,
-                mood and curiosity.
-              </p>
-
-              <button
-                type="button"
-                onClick={() =>
-                  navigate('Movies')
-                }
-                className="mt-7 rounded-xl border border-white/10 bg-white/5 px-5 py-3 text-[8px] font-black uppercase tracking-[0.18em] text-white/65 transition hover:bg-white/10 hover:text-white"
-              >
-                Explore the Universe
-              </button>
-            </div>
-          </section>
-
-          <section className="py-20 text-center">
-            <p className="text-[8px] font-black uppercase tracking-[0.3em] text-white/20">
-              PMF — Prince Mufasa
-              Flix
-            </p>
-
-            <h2 className="mt-4 text-3xl font-black tracking-[-0.05em] text-white/90 sm:text-5xl">
-              Your world.
-              <br />
-              Your stories.
-              <br />
-              Your Flix.
-            </h2>
-
-            <p className="mx-auto mt-5 max-w-xl text-xs leading-6 text-white/25">
-              A cinematic entertainment
-              universe built for stories
-              from everywhere.
-            </p>
-          </section>
-        </main>
-      </>
-    )
-  }
-
-  const CatalogPage = ({
-    type,
-  }: {
-    type: 'Movie' | 'Series'
-  }) => {
-    const catalogItems =
-      filteredMovies.filter(
-        (movie) =>
-          String(
-            movie.type || '',
-          ).toLowerCase() ===
-          type.toLowerCase(),
-      )
-
-    return (
-      <main className="mx-auto min-h-screen max-w-[1600px] px-5 pb-24 pt-32 sm:px-10 lg:px-16">
-        <div className="mb-10">
-          <p className="text-[8px] font-black uppercase tracking-[0.28em] text-white/25">
-            PMF Catalogue
-          </p>
-
-          <h1 className="mt-3 text-4xl font-black tracking-[-0.05em] text-white sm:text-6xl">
-            {type === 'Movie'
-              ? 'Movies'
-              : 'TV Series'}
-          </h1>
-
-          <p className="mt-3 max-w-2xl text-xs leading-6 text-white/30">
-            Discover stories across
-            the PMF entertainment
-            universe.
-          </p>
-        </div>
-
-        <div className="mb-7 flex flex-wrap items-center gap-2">
-          <button
-            type="button"
-            onClick={() =>
-              setShowFilters(
-                (value) =>
-                  !value,
-              )
-            }
-            className="rounded-xl border border-white/10 bg-white/5 px-4 py-3 text-[8px] font-black uppercase tracking-[0.15em] text-white/55"
-          >
-            Filters
-          </button>
-
-          {showFilters && (
-            <>
-              <select
-                value={
-                  filters.category
-                }
-                onChange={(event) =>
-                  updateFilter(
-                    'category',
-                    event.target.value,
-                  )
-                }
-                className="rounded-xl border border-white/10 bg-black px-4 py-3 text-[8px] font-black uppercase tracking-[0.12em] text-white/60 outline-none"
-              >
-                {categories.map(
-                  (category) => (
-                    <option
-                      key={category}
-                      value={
-                        category
-                      }
-                    >
-                      {category}
-                    </option>
-                  ),
-                )}
-              </select>
-
-              <select
-                value={filters.year}
-                onChange={(event) =>
-                  updateFilter(
-                    'year',
-                    event.target.value,
-                  )
-                }
-                className="rounded-xl border border-white/10 bg-black px-4 py-3 text-[8px] font-black uppercase tracking-[0.12em] text-white/60 outline-none"
-              >
-                {years.map(
-                  (year) => (
-                    <option
-                      key={year}
-                      value={year}
-                    >
-                      {year}
-                    </option>
-                  ),
-                )}
-              </select>
-
-              <select
-                value={
-                  filters.sort
-                }
-                onChange={(event) =>
-                  updateFilter(
-                    'sort',
-                    event.target.value,
-                  )
-                }
-                className="rounded-xl border border-white/10 bg-black px-4 py-3 text-[8px] font-black uppercase tracking-[0.12em] text-white/60 outline-none"
-              >
-                <option value="Featured">
-                  Featured
-                </option>
-                <option value="Newest">
-                  Newest
-                </option>
-                <option value="Oldest">
-                  Oldest
-                </option>
-                <option value="A-Z">
-                  A-Z
-                </option>
-                <option value="Rating">
-                  Rating
-                </option>
-              </select>
-
-              <button
-                type="button"
-                onClick={
-                  resetFilters
-                }
-                className="rounded-xl px-4 py-3 text-[8px] font-black uppercase tracking-[0.15em] text-white/30 hover:text-white"
-              >
-                Reset
-              </button>
-            </>
-          )}
-        </div>
-
-        <MovieGrid
-          items={catalogItems}
-        />
-      </main>
-    )
-  }
-
-  const MyListPage = () => {
-    const savedMovies =
-      myList
-        .map(findMovie)
-        .filter(
-          (movie): movie is Movie =>
-            Boolean(movie),
-        )
-
-    return (
-      <main className="mx-auto min-h-screen max-w-[1600px] px-5 pb-24 pt-32 sm:px-10 lg:px-16">
-        <div className="mb-10">
-          <p className="text-[8px] font-black uppercase tracking-[0.28em] text-white/25">
-            Your Collection
-          </p>
-
-          <h1 className="mt-3 text-4xl font-black tracking-[-0.05em] text-white sm:text-6xl">
-            My List
-          </h1>
-
-          <p className="mt-3 max-w-2xl text-xs leading-6 text-white/30">
-            Stories you have saved
-            for later.
-          </p>
-        </div>
-
-        <MovieGrid
-          items={savedMovies}
-        />
-      </main>
-    )
-  }
-
-  const MovieDetails = () => {
-    if (!selectedMovie) {
-      return null
-    }
-
-    const movie =
-      selectedMovie
-
-    const percent =
-      progressPercent(movie)
-
-    const relatedMovies =
-      movies
-        .filter(
-          (item) =>
-            item.id !== movie.id &&
-            item.category ===
-              movie.category,
-        )
-        .slice(0, 6)
-
-    return (
-      <div className="fixed inset-0 z-[60] overflow-y-auto bg-[#050505]">
-        <div className="relative min-h-screen">
-          <img
-            src={movie.poster}
-            alt=""
-            className="absolute inset-x-0 top-0 h-[75vh] w-full object-cover opacity-25"
-          />
-
-          <div className="absolute inset-0 bg-gradient-to-b from-black/20 via-[#050505]/80 to-[#050505]" />
-
-          <div className="relative mx-auto max-w-[1600px] px-5 pb-24 pt-24 sm:px-10 lg:px-16">
-            <button
-              type="button"
-              onClick={() =>
-                setSelectedMovie(null)
-              }
-              className="mb-10 inline-flex items-center gap-2 rounded-xl border border-white/10 bg-black/40 px-4 py-3 text-[8px] font-black uppercase tracking-[0.16em] text-white/55 backdrop-blur-md hover:text-white"
-            >
-              <X size={14} />
-              Close
-            </button>
-
-            <div className="grid items-end gap-10 lg:grid-cols-[280px_1fr]">
-              <div className="mx-auto w-full max-w-[280px]">
-                <div className="overflow-hidden rounded-3xl border border-white/10 shadow-2xl">
-                  <img
-                    src={movie.poster}
-                    alt={movie.title}
-                    className="aspect-[2/3] w-full object-cover"
-                  />
-                </div>
-              </div>
-
-              <div className="max-w-3xl">
-                <div className="flex flex-wrap gap-2">
-                  <span className="rounded-full border border-white/10 bg-white/5 px-3 py-1.5 text-[7px] font-black uppercase tracking-[0.15em] text-white/45">
-                    {movie.type}
-                  </span>
-
-                  <span className="rounded-full border border-white/10 bg-white/5 px-3 py-1.5 text-[7px] font-black uppercase tracking-[0.15em] text-white/45">
-                    {movie.category}
-                  </span>
-
-                  <span className="rounded-full border border-white/10 bg-white/5 px-3 py-1.5 text-[7px] font-black uppercase tracking-[0.15em] text-white/45">
-                    {movie.year}
-                  </span>
-                </div>
-
-                <h1 className="mt-5 text-5xl font-black tracking-[-0.065em] text-white sm:text-7xl">
-                  {movie.title}
-                </h1>
-
-                <div className="mt-5 flex flex-wrap items-center gap-4 text-[9px] font-black uppercase tracking-[0.14em] text-white/40">
-                  {movie.rating && (
-                    <span>
-                      {movie.rating}
-                    </span>
-                  )}
-
-                  {movie.duration && (
-                    <>
-                      <span>•</span>
-                      <span>
-                        {movie.duration}
-                      </span>
-                    </>
-                  )}
-
-                  <span>•</span>
-
-                  <span>
-                    PMF Original
-                  </span>
-                </div>
-
-                <p className="mt-6 max-w-2xl text-sm leading-7 text-white/50">
-                  {movie.description}
-                </p>
-
-                {percent > 0 && (
-                  <div className="mt-7 max-w-xl">
-                    <div className="mb-2 flex items-center justify-between text-[8px] font-black uppercase tracking-[0.15em] text-white/30">
-                      <span>
-                        Continue Watching
-                      </span>
-
-                      <span>
-                        {percent}%
-                      </span>
-                    </div>
-
-                    <div className="h-1.5 overflow-hidden rounded-full bg-white/10">
-                      <div
-                        className="h-full rounded-full bg-white"
-                        style={{
-                          width: `${percent}%`,
-                        }}
-                      />
-                    </div>
-                  </div>
-                )}
-
-                <div className="mt-8 flex flex-wrap gap-3">
-                  <button
-                    type="button"
-                    onClick={() =>
-                      startWatching(movie)
-                    }
-                    className="inline-flex items-center gap-2 rounded-xl bg-white px-6 py-3.5 text-[9px] font-black uppercase tracking-[0.16em] text-black transition hover:scale-[1.02]"
-                  >
-                    <Play
-                      size={14}
-                      fill="currentColor"
-                    />
-
-                    {percent > 0
-                      ? 'Continue Watching'
-                      : 'Play Now'}
-                  </button>
-
-                  <button
-                    type="button"
-                    onClick={() =>
-                      toggleMyList(movie)
-                    }
-                    className="inline-flex items-center gap-2 rounded-xl border border-white/10 bg-white/5 px-6 py-3.5 text-[9px] font-black uppercase tracking-[0.16em] text-white/65 hover:bg-white/10 hover:text-white"
-                  >
-                    {isInMyList(
-                      movie,
-                    ) ? (
-                      <Check
-                        size={14}
-                      />
-                    ) : (
-                      <ListPlus
-                        size={14}
-                      />
-                    )}
-
-                    {isInMyList(movie)
-                      ? 'In My List'
-                      : 'Add To My List'}
-                  </button>
-                </div>
-              </div>
-            </div>
-
-            {relatedMovies.length >
-              0 && (
-              <section className="mt-20">
-                <SectionTitle
-                  eyebrow="Keep exploring"
-                  title="More Like This"
-                  subtitle={`More ${movie.category.toLowerCase()} stories from PMF-Flix.`}
-                />
-
-                <div className="no-scrollbar flex gap-3 overflow-x-auto pb-3 sm:gap-4">
-                  {relatedMovies.map(
-                    (item) => (
-                      <MovieCard
-                        key={getMovieId(
-                          item,
-                        )}
-                        movie={item}
-                      />
-                    ),
-                  )}
-                </div>
               </section>
             )}
-
-            <section className="mt-20 overflow-hidden rounded-[2rem] border border-white/10 bg-white/[0.025] px-6 py-12 sm:px-10 lg:px-16">
-              <div className="flex max-w-3xl items-start gap-4">
-                <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl border border-white/10 bg-white/5">
-                  <Sparkles
-                    size={18}
-                    className="text-white/55"
-                  />
-                </div>
-
-                <div>
-                  <p className="text-[8px] font-black uppercase tracking-[0.25em] text-white/25">
-                    PMF Intelligence
-                  </p>
-
-                  <h2 className="mt-3 text-2xl font-black tracking-[-0.04em] text-white">
-                    A story worth
-                    staying for.
-                  </h2>
-
-                  <p className="mt-3 text-xs leading-6 text-white/30">
-                    Keep discovering,
-                    keep watching, and
-                    build your own
-                    entertainment journey
-                    with PMF-Flix.
-                  </p>
-                </div>
-              </div>
-            </section>
           </div>
         </div>
       </div>
@@ -1893,16 +1752,16 @@ function AppShell() {
     }
 
     return (
-      <div className="fixed inset-0 z-[80] bg-black/70 backdrop-blur-sm">
-        <div className="absolute right-0 top-0 h-full w-full max-w-md overflow-y-auto border-l border-white/10 bg-[#090909] p-6 shadow-2xl sm:p-8">
-          <div className="flex items-center justify-between">
+      <div className="fixed inset-0 z-[90] flex items-end justify-center bg-black/75 p-0 backdrop-blur-sm sm:items-center sm:p-5">
+        <div className="w-full max-w-lg overflow-hidden rounded-t-3xl border border-white/10 bg-[#0b0b0b] shadow-2xl sm:rounded-3xl">
+          <div className="flex items-center justify-between border-b border-white/[0.07] px-5 py-4">
             <div>
-              <p className="text-[8px] font-black uppercase tracking-[0.25em] text-white/25">
-                PMF Account
+              <p className="text-[7px] font-black uppercase tracking-[0.22em] text-white/25">
+                Your account
               </p>
 
-              <h2 className="mt-2 text-2xl font-black tracking-[-0.04em] text-white">
-                Your Profile
+              <h2 className="mt-1 text-lg font-black text-white">
+                PMF Profile
               </h2>
             </div>
 
@@ -1911,99 +1770,105 @@ function AppShell() {
               onClick={() =>
                 setShowProfile(false)
               }
-              className="flex h-10 w-10 items-center justify-center rounded-full border border-white/10 bg-white/5 text-white/50 hover:text-white"
+              className="flex h-9 w-9 items-center justify-center rounded-xl border border-white/10 bg-white/5 text-white/50 hover:bg-white/10 hover:text-white"
+              aria-label="Close profile"
             >
-              <X size={16} />
+              <X size={15} />
             </button>
           </div>
 
-          <div className="mt-10 flex flex-col items-center">
-            <div className="h-24 w-24 overflow-hidden rounded-full border border-white/10 bg-white/5">
-              <img
-                src={profile.avatar}
-                alt="Profile"
-                className="h-full w-full object-cover"
-              />
+          <div className="p-5 sm:p-6">
+            <div className="flex items-center gap-4 rounded-2xl border border-white/[0.07] bg-white/[0.025] p-4">
+              <div className="flex h-16 w-16 shrink-0 items-center justify-center rounded-2xl border border-white/10 bg-white/5 text-3xl">
+                {profile.avatar}
+              </div>
+
+              <div className="min-w-0">
+                <p className="text-[7px] font-black uppercase tracking-[0.18em] text-white/25">
+                  PMF Member
+                </p>
+
+                <p className="mt-1 truncate text-base font-black text-white">
+                  {profile.name ||
+                    'PMF Member'}
+                </p>
+
+                <p className="mt-1 truncate text-xs text-white/30">
+                  {session.user.email}
+                </p>
+              </div>
             </div>
 
-            <h3 className="mt-4 text-xl font-black text-white">
-              {profile.name}
-            </h3>
+            <div className="mt-5 space-y-4">
+              <label className="block">
+                <span className="mb-2 block text-[8px] font-black uppercase tracking-[0.16em] text-white/30">
+                  Display Name
+                </span>
 
-            <p className="mt-1 text-[9px] font-black uppercase tracking-[0.18em] text-white/25">
-              PMF Member
-            </p>
-          </div>
+                <input
+                  value={profile.name}
+                  onChange={(event) =>
+                    setProfile(
+                      (current) => ({
+                        ...current,
+                        name:
+                          event.target.value,
+                      }),
+                    )
+                  }
+                  placeholder="Your name"
+                  className="w-full rounded-xl border border-white/10 bg-white/[0.04] px-4 py-3 text-sm text-white outline-none placeholder:text-white/20 focus:border-white/25"
+                />
+              </label>
 
-          <div className="mt-10">
-            <label className="text-[8px] font-black uppercase tracking-[0.18em] text-white/30">
-              Profile Name
-            </label>
+              <label className="block">
+                <span className="mb-2 block text-[8px] font-black uppercase tracking-[0.16em] text-white/30">
+                  Avatar
+                </span>
 
-            <input
-              value={profile.name}
-              onChange={(event) =>
-                setProfile(
-                  (current) => ({
-                    ...current,
-                    name:
-                      event.target.value,
-                  }),
-                )
-              }
-              className="mt-2 w-full rounded-xl border border-white/10 bg-white/5 px-4 py-3 text-sm text-white outline-none placeholder:text-white/20 focus:border-white/25"
-              placeholder="Your name"
-            />
-          </div>
-
-          <div className="mt-7">
-            <p className="text-[8px] font-black uppercase tracking-[0.18em] text-white/30">
-              Choose Avatar
-            </p>
-
-            <div className="mt-3 grid grid-cols-4 gap-3">
-              {AVATARS.map(
-                (avatar) => (
-                  <button
-                    key={avatar}
-                    type="button"
-                    onClick={() =>
-                      setProfile(
-                        (current) => ({
-                          ...current,
-                          avatar,
-                        }),
-                      )
-                    }
-                    className={`overflow-hidden rounded-2xl border p-1 ${
-                      profile.avatar ===
-                      avatar
-                        ? 'border-white/60'
-                        : 'border-white/10'
-                    }`}
-                  >
-                    <img
-                      src={avatar}
-                      alt=""
-                      className="aspect-square w-full rounded-xl bg-white/5"
-                    />
-                  </button>
-                ),
-              )}
+                <input
+                  value={profile.avatar}
+                  onChange={(event) =>
+                    setProfile(
+                      (current) => ({
+                        ...current,
+                        avatar:
+                          event.target.value,
+                      }),
+                    )
+                  }
+                  maxLength={4}
+                  className="w-full rounded-xl border border-white/10 bg-white/[0.04] px-4 py-3 text-sm text-white outline-none focus:border-white/25"
+                />
+              </label>
             </div>
-          </div>
 
-          <button
-            type="button"
-            onClick={async () => {
-              await supabase.auth.signOut()
-              setShowProfile(false)
-              setSession(null)
-            }}
-            className="mt-10 w-full rounded-xl border border-white/10 bg-white/5 px-5 py-3.5 text-[8px] font-black uppercase tracking-[0.18em] text-white/50 hover:bg-white/10 hover:text-white"
-          >
-            Sign Out
-          </button>
+            <div className="mt-6 grid grid-cols-2 gap-2">
+              <button
+                type="button"
+                onClick={saveProfile}
+                className="rounded-xl bg-white px-4 py-3 text-[8px] font-black uppercase tracking-[0.16em] text-black transition hover:scale-[1.01]"
+              >
+                Save Profile
+              </button>
+
+              <button
+                type="button"
+                onClick={() =>
+                  void signOut()
+                }
+                className="rounded-xl border border-white/10 bg-white/[0.04] px-4 py-3 text-[8px] font-black uppercase tracking-[0.16em] text-white/60 transition hover:bg-white/[0.08] hover:text-white"
+              >
+                Sign Out
+              </button>
+            </div>
+
+            {playerMessage && (
+              <p className="mt-4 text-center text-[9px] font-bold text-white/40">
+                {playerMessage}
+              </p>
+            )}
+          </div>
         </div>
       </div>
     )
@@ -2014,152 +1879,244 @@ function AppShell() {
       return null
     }
 
-    const movie =
-      watchingMovie
+    const hasVideo =
+      Boolean(
+        watchingMovie.videoUrl &&
+          watchingMovie.videoType ===
+            'mp4',
+      )
 
-    const videoUrl =
-      getVideoUrl(movie)
+    const hasYouTubeVideo =
+      Boolean(
+        watchingMovie.videoUrl &&
+          watchingMovie.videoType ===
+            'youtube',
+      )
 
-    const youtube =
-      isYouTube(movie)
-
-    const embedUrl =
-      youtube
-        ? getYouTubeEmbed(movie)
-        : ''
-
-    const resetControlsTimer =
-      () => {
-        setShowPlayerControls(true)
-
-        if (controlsTimer.current) {
-          clearTimeout(
-            controlsTimer.current,
+    const progress =
+      playerDuration > 0
+        ? Math.min(
+            100,
+            Math.max(
+              0,
+              (playerTime /
+                playerDuration) *
+                100,
+            ),
           )
-        }
-
-        controlsTimer.current =
-          setTimeout(() => {
-            setShowPlayerControls(
-              false,
-            )
-          }, 3000)
-      }
+        : 0
 
     return (
-      <div
-        ref={playerRef}
-        className="fixed inset-0 z-[100] flex items-center justify-center bg-black"
-        onMouseMove={
-          resetControlsTimer
-        }
-        onTouchStart={
-          resetControlsTimer
-        }
-      >
-        {youtube && embedUrl ? (
-          <iframe
-            src={embedUrl}
-            title={movie.title}
-            className="h-full w-full"
-            allow="autoplay; encrypted-media; picture-in-picture"
-            allowFullScreen
-          />
-        ) : videoUrl ? (
-          <video
-            ref={videoRef}
-            src={videoUrl}
-            className="h-full w-full object-contain"
-            autoPlay
-            playsInline
-            onLoadedMetadata={
-              (event) => {
-                const duration =
-                  event.currentTarget
-                    .duration
+      <div className="fixed inset-0 z-[100] bg-black">
+        <div
+          ref={playerContainerRef}
+          className={`relative flex h-full w-full flex-col ${
+            theaterMode
+              ? 'bg-black'
+              : ''
+          }`}
+        >
+          <div className="absolute inset-x-0 top-0 z-20 flex items-center justify-between bg-gradient-to-b from-black/90 to-transparent px-4 pb-12 pt-5 sm:px-7">
+            <div className="min-w-0">
+              <p className="text-[7px] font-black uppercase tracking-[0.2em] text-white/30">
+                Now Playing
+              </p>
 
-                setPlayerDuration(
-                  duration,
-                )
+              <h2 className="mt-1 truncate text-sm font-black text-white sm:text-base">
+                {watchingMovie.title}
+              </h2>
+            </div>
 
-                const saved =
-                  getProgress(movie)
-
-                if (
-                  saved &&
-                  saved.currentTime <
-                    duration - 5
-                ) {
-                  event.currentTarget.currentTime =
-                    saved.currentTime
-
-                  setPlayerTime(
-                    saved.currentTime,
+            <div className="flex items-center gap-2">
+              <button
+                type="button"
+                onClick={() =>
+                  setShowPlayerSettings(
+                    (value) => !value,
                   )
                 }
-              }
-            }
-            onTimeUpdate={
-              (event) => {
-                const current =
-                  event.currentTarget
-                    .currentTime
+                className="flex h-9 w-9 items-center justify-center rounded-xl border border-white/10 bg-black/40 text-white/60 backdrop-blur hover:bg-white/10 hover:text-white"
+                aria-label="Player settings"
+              >
+                <Settings
+                  size={15}
+                />
+              </button>
 
-                setPlayerTime(
-                  current,
-                )
-
-                saveProgress(
-                  movie,
-                  current,
-                  event
-                    .currentTarget
-                    .duration,
-                )
-              }
-            }
-            onPlay={() =>
-              setPlayerPlaying(
-                true,
-              )
-            }
-            onPause={() =>
-              setPlayerPlaying(
-                false,
-              )
-            }
-            onEnded={() => {
-              setPlayerPlaying(
-                false,
-              )
-              showMessage(
-                'Movie completed',
-              )
-            }}
-          />
-        ) : (
-          <div className="flex max-w-md flex-col items-center px-6 text-center">
-            <Film
-              size={44}
-              className="text-white/15"
-            />
-
-            <h2 className="mt-5 text-2xl font-black text-white">
-              Video unavailable
-            </h2>
-
-            <p className="mt-3 text-xs leading-6 text-white/30">
-              This title does not
-              have a playable video
-              source yet.
-            </p>
+              <button
+                type="button"
+                onClick={closePlayer}
+                className="flex h-9 w-9 items-center justify-center rounded-xl border border-white/10 bg-black/40 text-white/60 backdrop-blur hover:bg-white/10 hover:text-white"
+                aria-label="Close player"
+              >
+                <X size={16} />
+              </button>
+            </div>
           </div>
-        )}
 
-        {showPlayerControls && (
-          <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/95 via-black/50 to-transparent px-5 pb-6 pt-20 sm:px-10">
-            <div className="mx-auto max-w-6xl">
-              {!youtube && (
+          {showPlayerSettings && (
+            <div className="absolute right-4 top-20 z-30 w-64 rounded-2xl border border-white/10 bg-black/90 p-4 shadow-2xl backdrop-blur-xl sm:right-7">
+              <p className="text-[7px] font-black uppercase tracking-[0.18em] text-white/30">
+                Playback
+              </p>
+
+              <div className="mt-3">
+                <p className="mb-2 text-[8px] font-bold text-white/40">
+                  Speed
+                </p>
+
+                <div className="grid grid-cols-5 gap-1">
+                  {[0.75, 1, 1.25, 1.5, 2].map(
+                    (value) => (
+                      <button
+                        key={value}
+                        type="button"
+                        onClick={() => {
+                          setSpeed(value)
+
+                          if (
+                            videoRef.current
+                          ) {
+                            videoRef.current.playbackRate =
+                              value
+                          }
+                        }}
+                        className={`rounded-lg px-2 py-2 text-[8px] font-black ${
+                          speed === value
+                            ? 'bg-white text-black'
+                            : 'bg-white/5 text-white/50 hover:bg-white/10 hover:text-white'
+                        }`}
+                      >
+                        {value}x
+                      </button>
+                    ),
+                  )}
+                </div>
+              </div>
+
+              <div className="mt-4">
+                <p className="mb-2 text-[8px] font-bold text-white/40">
+                  Volume
+                </p>
+
+                <input
+                  type="range"
+                  min="0"
+                  max="1"
+                  step="0.05"
+                  value={volume}
+                  onChange={(event) => {
+                    const next =
+                      Number(
+                        event.target.value,
+                      )
+
+                    setVolume(next)
+
+                    if (
+                      videoRef.current
+                    ) {
+                      videoRef.current.volume =
+                        next
+                    }
+                  }}
+                  className="w-full"
+                />
+              </div>
+
+              <button
+                type="button"
+                onClick={toggleMute}
+                className="mt-4 flex w-full items-center justify-between rounded-xl border border-white/10 bg-white/5 px-3 py-2 text-[8px] font-black uppercase tracking-[0.14em] text-white/50 hover:bg-white/10 hover:text-white"
+              >
+                <span>
+                  {muted
+                    ? 'Unmute'
+                    : 'Mute'}
+                </span>
+
+                {muted ? (
+                  <VolumeX size={13} />
+                ) : (
+                  <Volume2 size={13} />
+                )}
+              </button>
+            </div>
+          )}
+
+          <div className="relative flex min-h-0 flex-1 items-center justify-center overflow-hidden bg-black">
+            {hasYouTubeVideo ? (
+              <iframe
+                src={getYouTubeEmbedUrl(
+                  watchingMovie.videoUrl,
+                )}
+                title={
+                  watchingMovie.title
+                }
+                className="h-full w-full"
+                allow="autoplay; encrypted-media; picture-in-picture; fullscreen"
+                allowFullScreen
+              />
+            ) : hasVideo ? (
+              <video
+                ref={videoRef}
+                src={
+                  watchingMovie.videoUrl
+                }
+                className="h-full w-full object-contain"
+                playsInline
+                controls={false}
+                onLoadedMetadata={
+                  handleVideoLoaded
+                }
+                onTimeUpdate={
+                  handleTimeUpdate
+                }
+                onEnded={
+                  handleVideoEnded
+                }
+                onPlay={() =>
+                  setPlayerPlaying(true)
+                }
+                onPause={() =>
+                  setPlayerPlaying(false)
+                }
+              />
+            ) : (
+              <div className="flex max-w-md flex-col items-center px-6 text-center">
+                <div className="flex h-20 w-20 items-center justify-center rounded-3xl border border-white/10 bg-white/[0.04]">
+                  <Film
+                    size={28}
+                    className="text-white/25"
+                  />
+                </div>
+
+                <h3 className="mt-6 text-xl font-black text-white">
+                  Playback unavailable
+                </h3>
+
+                <p className="mt-3 text-sm leading-6 text-white/35">
+                  This title does not have a
+                  playable video attached yet.
+                </p>
+              </div>
+            )}
+
+            <div className="pointer-events-none absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent" />
+          </div>
+
+          <div className="absolute inset-x-0 bottom-0 z-20 bg-gradient-to-t from-black via-black/80 to-transparent px-4 pb-5 pt-16 sm:px-7 sm:pb-7">
+            <div className="group relative mb-4">
+              <div className="h-1.5 overflow-hidden rounded-full bg-white/15">
+                <div
+                  className="h-full rounded-full bg-white transition-[width]"
+                  style={{
+                    width: `${progress}%`,
+                  }}
+                />
+              </div>
+
+              {hasVideo && (
                 <input
                   type="range"
                   min="0"
@@ -2167,121 +2124,379 @@ function AppShell() {
                     playerDuration || 0
                   }
                   step="0.1"
-                  value={Math.min(
-                    playerTime,
-                    playerDuration ||
+                  value={
+                    Math.min(
                       playerTime,
-                  )}
-                  onChange={(
-                    event,
-                  ) => {
-                    const value =
+                      playerDuration ||
+                        0,
+                    )
+                  }
+                  onChange={(event) => {
+                    const next =
                       Number(
-                        event.target
-                          .value,
+                        event.target.value,
                       )
 
-                    setPlayerTime(
-                      value,
-                    )
+                    setPlayerTime(next)
 
                     if (
                       videoRef.current
                     ) {
                       videoRef.current.currentTime =
-                        value
+                        next
                     }
                   }}
-                  className="mb-5 w-full accent-white"
+                  className="absolute inset-0 h-4 w-full -translate-y-1.5 cursor-pointer opacity-0"
+                  aria-label="Seek video"
                 />
               )}
+            </div>
 
-              <div className="flex items-center gap-3">
+            <div className="flex items-center justify-between gap-4">
+              <div className="flex items-center gap-2 sm:gap-3">
                 <button
                   type="button"
-                  onClick={
-                    playPause
+                  onClick={() =>
+                    void playPause()
                   }
-                  className="flex h-10 w-10 items-center justify-center rounded-full bg-white text-black"
+                  className="flex h-10 w-10 items-center justify-center rounded-full bg-white text-black transition hover:scale-105"
+                  aria-label={
+                    playerPlaying
+                      ? 'Pause'
+                      : 'Play'
+                  }
                 >
                   {playerPlaying ? (
                     <Pause
-                      size={16}
+                      size={15}
                       fill="currentColor"
                     />
                   ) : (
                     <Play
-                      size={16}
+                      size={15}
                       fill="currentColor"
                     />
                   )}
                 </button>
 
-                {!youtube && (
+                <button
+                  type="button"
+                  onClick={rewind}
+                  className="hidden h-9 w-9 items-center justify-center rounded-full border border-white/10 bg-white/5 text-white/60 hover:bg-white/10 hover:text-white sm:flex"
+                  aria-label="Rewind 10 seconds"
+                >
+                  <RotateCcw
+                    size={14}
+                  />
+                </button>
+
+                <button
+                  type="button"
+                  onClick={forward}
+                  className="hidden h-9 w-9 items-center justify-center rounded-full border border-white/10 bg-white/5 text-white/60 hover:bg-white/10 hover:text-white sm:flex"
+                  aria-label="Forward 10 seconds"
+                >
+                  <RotateCw
+                    size={14}
+                  />
+                </button>
+
+                <button
+                  type="button"
+                  onClick={toggleMute}
+                  className="flex h-9 w-9 items-center justify-center rounded-full border border-white/10 bg-white/5 text-white/60 hover:bg-white/10 hover:text-white"
+                  aria-label={
+                    muted
+                      ? 'Unmute'
+                      : 'Mute'
+                  }
+                >
+                  {muted ? (
+                    <VolumeX
+                      size={14}
+                    />
+                  ) : (
+                    <Volume2
+                      size={14}
+                    />
+                  )}
+                </button>
+
+                <span className="hidden text-[8px] font-bold tabular-nums text-white/35 sm:block">
+                  {formatTime(
+                    playerTime,
+                  )}{' '}
+                  /{' '}
+                  {formatTime(
+                    playerDuration,
+                  )}
+                </span>
+              </div>
+
+              <div className="flex items-center gap-2">
+                <button
+                  type="button"
+                  onClick={playNextMovie}
+                  className="flex h-9 items-center gap-2 rounded-xl border border-white/10 bg-white/5 px-3 text-[8px] font-black uppercase tracking-[0.14em] text-white/50 hover:bg-white/10 hover:text-white"
+                >
+                  <SkipForward
+                    size={13}
+                  />
+                  <span className="hidden sm:inline">
+                    Next
+                  </span>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() =>
+                    setTheaterMode(
+                      (value) => !value,
+                    )
+                  }
+                  className="flex h-9 w-9 items-center justify-center rounded-xl border border-white/10 bg-white/5 text-white/50 hover:bg-white/10 hover:text-white"
+                  aria-label="Toggle theater mode"
+                >
+                  <PanelTop
+                    size={14}
+                  />
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() =>
+                    void fullscreen()
+                  }
+                  className="flex h-9 w-9 items-center justify-center rounded-xl border border-white/10 bg-white/5 text-white/50 hover:bg-white/10 hover:text-white"
+                  aria-label="Fullscreen"
+                >
+                  <Maximize
+                    size={14}
+                  />
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    )
+  }
+
+              />
+            </div>
+
+            <p className="mt-7 text-[8px] font-black uppercase tracking-[0.3em] text-white/25">
+              PMF-FLIX WATCH
+            </p>
+
+            <h2 className="mt-3 text-2xl font-black tracking-tight text-white sm:text-3xl">
+              {watchingMovie.title}
+            </h2>
+
+            <p className="mt-4 max-w-md text-xs leading-6 text-white/40">
+              This title is already part of
+              the PMF-Flix catalogue, but
+              its video source has not been
+              connected yet.
+            </p>
+
+            <div className="mt-7 rounded-2xl border border-white/10 bg-white/[0.035] px-5 py-4">
+              <p className="text-[8px] font-black uppercase tracking-[0.18em] text-white/25">
+                Media connection pending
+              </p>
+
+              <p className="mt-2 text-[10px] leading-5 text-white/35">
+                Your future PMF media-storage
+                layer can be connected here
+                without rebuilding the player.
+              </p>
+            </div>
+          </div>
+        )}
+
+        <div
+          className={`pointer-events-none absolute inset-x-0 top-0 h-32 bg-gradient-to-b from-black/80 to-transparent transition-opacity duration-300 ${
+            showPlayerControls
+              ? 'opacity-100'
+              : 'opacity-0'
+          }`}
+        />
+
+        <div
+          className={`absolute inset-x-0 bottom-0 bg-gradient-to-t from-black via-black/80 to-transparent px-4 pb-5 pt-20 transition-opacity duration-300 sm:px-8 ${
+            showPlayerControls
+              ? 'opacity-100'
+              : 'opacity-0'
+          }`}
+        >
+          <div className="mx-auto max-w-[1400px]">
+            <div className="mb-3 flex items-center justify-between">
+              <div className="min-w-0 pr-4">
+                <h2 className="truncate text-sm font-black text-white sm:text-lg">
+                  {watchingMovie.title}
+                </h2>
+
+                <p className="mt-1 text-[8px] font-black uppercase tracking-[0.14em] text-white/30">
+                  {watchingMovie.year}
+                  {' • '}
+                  {watchingMovie.type ||
+                    'Film'}
+                </p>
+              </div>
+
+              <button
+                type="button"
+                onClick={
+                  closePlayer
+                }
+                className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl border border-white/10 bg-white/5 text-white/60 hover:bg-white/10 hover:text-white"
+                aria-label="Close player"
+              >
+                <X size={15} />
+              </button>
+            </div>
+
+            {hasPlayableVideo &&
+              !youtube && (
+                <input
+                  type="range"
+                  min="0"
+                  max={Math.max(
+                    1,
+                    playerDuration,
+                  )}
+                  value={Math.min(
+                    playerTime,
+                    playerDuration ||
+                      1,
+                  )}
+                  onChange={(
+                    event,
+                  ) => {
+                    seek(
+                      Number(
+                        event.target
+                          .value,
+                      ),
+                    )
+                  }}
+                  className="mb-4 h-1 w-full cursor-pointer accent-white"
+                  style={{
+                    background: `linear-gradient(to right, white ${percent}%, rgba(255,255,255,.15) ${percent}%)`,
+                  }}
+                  aria-label="Playback progress"
+                />
+              )}
+
+            <div className="flex items-center justify-between gap-2">
+              <div className="flex items-center gap-1 sm:gap-2">
+                {hasPlayableVideo && (
+                  <button
+                    type="button"
+                    onClick={
+                      playPause
+                    }
+                    className="flex h-9 w-9 items-center justify-center rounded-full bg-white text-black"
+                    aria-label={
+                      playerPlaying
+                        ? 'Pause'
+                        : 'Play'
+                    }
+                  >
+                    {playerPlaying ? (
+                      <Pause
+                        size={14}
+                        fill="currentColor"
+                      />
+                    ) : (
+                      <Play
+                        size={14}
+                        fill="currentColor"
+                      />
+                    )}
+                  </button>
+                )}
+
+                {hasVideo && (
                   <>
                     <button
                       type="button"
-                      onClick={() =>
-                        seek(-10)
+                      onClick={
+                        rewind
                       }
-                      className="rounded-lg border border-white/10 bg-white/5 px-3 py-2 text-[8px] font-black text-white/60"
+                      className="flex h-8 w-8 items-center justify-center rounded-lg text-white/60 hover:bg-white/10 hover:text-white"
+                      aria-label="Rewind 10 seconds"
                     >
-                      -10
+                      <SkipBack
+                        size={14}
+                      />
                     </button>
 
                     <button
                       type="button"
-                      onClick={() =>
-                        seek(10)
+                      onClick={
+                        forward
                       }
-                      className="rounded-lg border border-white/10 bg-white/5 px-3 py-2 text-[8px] font-black text-white/60"
+                      className="flex h-8 w-8 items-center justify-center rounded-lg text-white/60 hover:bg-white/10 hover:text-white"
+                      aria-label="Forward 10 seconds"
                     >
-                      +10
+                      <SkipForward
+                        size={14}
+                      />
                     </button>
 
-                    <span className="text-[9px] font-bold text-white/35">
-                      {formatTime(
-                        playerTime,
-                      )}{' '}
-                      /{' '}
-                      {formatTime(
-                        playerDuration,
-                      )}
-                    </span>
-                  </>
-                )}
-
-                <div className="ml-auto flex items-center gap-2">
-                  {!youtube && (
                     <button
                       type="button"
-                      onClick={() => {
-                        setMuted(
-                          (current) =>
-                            !current,
-                        )
-
-                        if (
-                          videoRef.current
-                        ) {
-                          videoRef.current.muted =
-                            !muted
-                        }
-                      }}
-                      className="flex h-9 w-9 items-center justify-center rounded-full border border-white/10 bg-white/5 text-white/60"
+                      onClick={
+                        toggleMute
+                      }
+                      className="flex h-8 w-8 items-center justify-center rounded-lg text-white/60 hover:bg-white/10 hover:text-white"
+                      aria-label={
+                        muted
+                          ? 'Unmute'
+                          : 'Mute'
+                      }
                     >
                       {muted ? (
                         <VolumeX
-                          size={15}
+                          size={14}
                         />
                       ) : (
                         <Volume2
-                          size={15}
+                          size={14}
                         />
                       )}
                     </button>
-                  )}
 
+                    <input
+                      type="range"
+                      min="0"
+                      max="1"
+                      step="0.05"
+                      value={
+                        muted
+                          ? 0
+                          : volume
+                      }
+                      onChange={(
+                        event,
+                      ) =>
+                        changeVolume(
+                          Number(
+                            event.target
+                              .value,
+                          ),
+                        )
+                      }
+                      className="hidden w-20 accent-white sm:block"
+                      aria-label="Volume"
+                    />
+                  </>
+                )}
+              </div>
+
+              <div className="flex items-center gap-1 sm:gap-2">
+                {hasVideo && (
                   <button
                     type="button"
                     onClick={() =>
@@ -2290,389 +2505,183 @@ function AppShell() {
                           !value,
                       )
                     }
-                    className="flex h-9 w-9 items-center justify-center rounded-full border border-white/10 bg-white/5 text-white/60"
+                    className="flex h-8 items-center gap-1 rounded-lg px-2 text-[8px] font-black uppercase tracking-[0.12em] text-white/45 hover:bg-white/10 hover:text-white"
                   >
                     <Settings
-                      size={15}
+                      size={12}
                     />
-                  </button>
 
-                  <button
-                    type="button"
-                    onClick={
-                      closePlayer
-                    }
-                    className="flex h-9 w-9 items-center justify-center rounded-full border border-white/10 bg-white/5 text-white/60 hover:text-white"
-                  >
-                    <X size={16} />
+                    <span className="hidden sm:inline">
+                      Speed
+                    </span>
                   </button>
-                </div>
+                )}
+
+                <button
+                  type="button"
+                  onClick={() =>
+                    setTheaterMode(
+                      (value) =>
+                        !value,
+                    )
+                  }
+                  className="hidden h-8 rounded-lg px-2 text-[8px] font-black uppercase tracking-[0.12em] text-white/45 hover:bg-white/10 hover:text-white sm:block"
+                >
+                  Theater
+                </button>
+
+                <button
+                  type="button"
+                  onClick={
+                    fullscreen
+                  }
+                  className="flex h-8 items-center rounded-lg px-2 text-[8px] font-black uppercase tracking-[0.12em] text-white/45 hover:bg-white/10 hover:text-white"
+                >
+                  Fullscreen
+                </button>
               </div>
+            </div>
 
-              {showPlayerSettings && (
-                <div className="mt-4 flex flex-wrap items-center gap-2 rounded-2xl border border-white/10 bg-black/80 p-4 backdrop-blur-xl">
-                  <span className="mr-2 text-[8px] font-black uppercase tracking-[0.16em] text-white/25">
-                    Speed
-                  </span>
-
-                  {[0.75, 1, 1.25, 1.5, 2].map(
-                    (value) => (
-                      <button
-                        key={value}
-                        type="button"
-                        onClick={() =>
-                          changeSpeed(
-                            value,
-                          )
-                        }
-                        className={`rounded-lg px-3 py-2 text-[8px] font-black ${
-                          speed ===
-                          value
-                            ? 'bg-white text-black'
-                            : 'bg-white/5 text-white/50'
-                        }`}
-                      >
-                        {value}x
-                      </button>
-                    ),
-                  )}
-
-                  {!youtube && (
-                    <>
-                      <span className="ml-3 mr-1 text-[8px] font-black uppercase tracking-[0.16em] text-white/25">
-                        Volume
-                      </span>
-
-                      {[0.25, 0.5, 0.75, 1].map(
-                        (value) => (
-                          <button
-                            key={value}
-                            type="button"
-                            onClick={() =>
-                              changeVolume(
-                                value,
-                              )
-                            }
-                            className={`rounded-lg px-3 py-2 text-[8px] font-black ${
-                              volume ===
-                              value
-                                ? 'bg-white text-black'
-                                : 'bg-white/5 text-white/50'
-                            }`}
-                          >
-                            {Math.round(
-                              value *
-                                100,
-                            )}
-                            %
-                          </button>
-                        ),
-                      )}
-                    </>
-                  )}
+            {showPlayerSettings &&
+              hasVideo && (
+                <div className="mt-3 flex justify-end">
+                  <div className="flex items-center gap-1 rounded-xl border border-white/10 bg-black/80 p-1 backdrop-blur">
+                    {[
+                      0.75,
+                      1,
+                      1.25,
+                      1.5,
+                      2,
+                    ].map(
+                      (value) => (
+                        <button
+                          key={value}
+                          type="button"
+                          onClick={() =>
+                            changeSpeed(
+                              value,
+                            )
+                          }
+                          className={`rounded-lg px-3 py-2 text-[8px] font-black ${
+                            speed ===
+                            value
+                              ? 'bg-white text-black'
+                              : 'text-white/45 hover:bg-white/10 hover:text-white'
+                          }`}
+                        >
+                          {value}x
+                        </button>
+                      ),
+                    )}
+                  </div>
                 </div>
               )}
-            </div>
           </div>
-        )}
-
-        {playerMessage && (
-          <div className="absolute bottom-24 left-1/2 -translate-x-1/2 rounded-full border border-white/10 bg-black/85 px-5 py-3 text-[8px] font-black uppercase tracking-[0.15em] text-white/60 backdrop-blur-xl">
-            {playerMessage}
-          </div>
-        )}
+        </div>
       </div>
     )
   }
 
+  const Footer = () => (
+    <footer className="border-t border-white/[0.06] bg-black px-5 py-12 sm:px-10 lg:px-16">
+      <div className="mx-auto flex max-w-[1600px] flex-col gap-8 sm:flex-row sm:items-end sm:justify-between">
+        <div>
+          <div className="flex items-center gap-2">
+            <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-white text-black">
+              <Film size={14} />
+            </div>
+
+            <span className="text-sm font-black text-white">
+              PMF-FLIX
+            </span>
+          </div>
+
+          <p className="mt-4 max-w-sm text-[10px] leading-5 text-white/25">
+            Prince Mufasa Flix — a cinematic
+            home for stories from Nigeria,
+            Africa and the world.
+          </p>
+        </div>
+
+        <div className="text-left sm:text-right">
+          <p className="text-[7px] font-black uppercase tracking-[0.2em] text-white/20">
+            Your World. Your Stories. Your Flix.
+          </p>
+
+          <p className="mt-2 text-[8px] text-white/15">
+            © {new Date().getFullYear()} PMF-Flix
+          </p>
+        </div>
+      </div>
+    </footer>
+  )
+
+  if (!session) {
+    return (
+      <AuthScreen
+        onAuthenticated={(
+          nextSession: Session,
+        ) => {
+          setSession(
+            nextSession,
+          )
+        }}
+      />
+    )
+  }
+
   return (
-    <div className="min-h-screen bg-[#050505] text-white">
-      <header className="fixed inset-x-0 top-0 z-50 border-b border-white/[0.06] bg-black/55 backdrop-blur-xl">
-        <div className="mx-auto flex h-20 max-w-[1600px] items-center gap-6 px-5 sm:px-10 lg:px-16">
-          <button
-            type="button"
-            onClick={() =>
-              navigate('Home')
-            }
-            className="shrink-0 text-left"
-          >
-            <p className="text-lg font-black tracking-[-0.06em] text-white">
-              PMF<span className="text-white/30">-FLIX</span>
-            </p>
+    <div className="min-h-screen bg-[#050505] text-white selection:bg-white selection:text-black">
+      <Header />
 
-            <p className="hidden text-[6px] font-black uppercase tracking-[0.28em] text-white/20 sm:block">
-              Prince Mufasa Flix
-            </p>
-          </button>
-
-          <nav className="hidden items-center gap-6 md:flex">
-            {(
-              [
-                'Home',
-                'Movies',
-                'TV Series',
-                'My List',
-              ] as Section[]
-            ).map(
-              (item) => (
-                <button
-                  key={item}
-                  type="button"
-                  onClick={() =>
-                    navigate(item)
-                  }
-                  className={`text-[8px] font-black uppercase tracking-[0.17em] transition ${
-                    section === item
-                      ? 'text-white'
-                      : 'text-white/30 hover:text-white'
-                  }`}
-                >
-                  {item}
-                </button>
-              ),
-            )}
-          </nav>
-
-          <div className="ml-auto flex items-center gap-2">
-            <div className="hidden items-center rounded-xl border border-white/10 bg-white/5 px-3 sm:flex">
-              <Search
-                size={14}
-                className="text-white/25"
-              />
-
-              <input
-                value={search}
-                onChange={(event) =>
-                  setSearch(
-                    event.target.value,
-                  )
-                }
-                placeholder="Search PMF..."
-                className="w-36 bg-transparent px-2 py-2.5 text-[9px] text-white outline-none placeholder:text-white/20"
-              />
-            </div>
-
-            <button
-              type="button"
-              onClick={() =>
-                setShowProfile(true)
-              }
-              className="flex h-10 w-10 items-center justify-center overflow-hidden rounded-full border border-white/10 bg-white/5"
-            >
-              <img
-                src={profile.avatar}
-                alt="Profile"
-                className="h-full w-full object-cover"
-              />
-            </button>
-
-            <button
-              type="button"
-              onClick={() =>
-                setMobileMenu(
-                  (value) =>
-                    !value,
-                )
-              }
-              className="flex h-10 w-10 items-center justify-center rounded-xl border border-white/10 bg-white/5 md:hidden"
-            >
-              {mobileMenu ? (
-                <X size={16} />
-              ) : (
-                <Menu size={16} />
-              )}
-            </button>
-          </div>
-        </div>
-
-        {mobileMenu && (
-          <div className="border-t border-white/[0.06] bg-black/95 px-5 py-4 md:hidden">
-            <div className="grid grid-cols-2 gap-2">
-              {(
-                [
-                  'Home',
-                  'Movies',
-                  'TV Series',
-                  'My List',
-                ] as Section[]
-              ).map(
-                (item) => (
-                  <button
-                    key={item}
-                    type="button"
-                    onClick={() =>
-                      navigate(item)
-                    }
-                    className={`rounded-xl border px-4 py-3 text-left text-[8px] font-black uppercase tracking-[0.15em] ${
-                      section === item
-                        ? 'border-white/20 bg-white text-black'
-                        : 'border-white/10 bg-white/5 text-white/50'
-                    }`}
-                  >
-                    {item}
-                  </button>
-                ),
-              )}
-            </div>
-
-            <div className="mt-3 flex items-center rounded-xl border border-white/10 bg-white/5 px-3">
-              <Search
-                size={14}
-                className="text-white/25"
-              />
-
-              <input
-                value={search}
-                onChange={(event) =>
-                  setSearch(
-                    event.target.value,
-                  )
-                }
-                placeholder="Search PMF..."
-                className="w-full bg-transparent px-2 py-3 text-[9px] text-white outline-none placeholder:text-white/20"
-              />
-            </div>
-          </div>
-        )}
-      </header>
-
-      {loading && (
-        <div className="fixed left-1/2 top-24 z-[55] -translate-x-1/2 rounded-full border border-white/10 bg-black/80 px-4 py-2 text-[8px] font-black uppercase tracking-[0.16em] text-white/35 backdrop-blur-xl">
-          <span className="inline-flex items-center gap-2">
-            <LoaderCircle
-              size={12}
-              className="animate-spin"
-            />
-            Loading catalogue
-          </span>
-        </div>
-      )}
-
-      {error && (
-        <div className="fixed left-1/2 top-24 z-[55] w-[calc(100%-2rem)] max-w-lg -translate-x-1/2 rounded-2xl border border-white/10 bg-black/90 px-5 py-4 text-center text-[9px] font-black uppercase tracking-[0.12em] text-white/50 backdrop-blur-xl">
-          {error}
-        </div>
-      )}
-
-      {section === 'Home' && (
-        <HomePage />
-      )}
-
-      {section === 'Movies' && (
-        <CatalogPage
-          type="Movie"
-        />
-      )}
-
-      {section === 'TV Series' && (
-        <CatalogPage
-          type="Series"
-        />
-      )}
-
-      {section === 'My List' && (
-        <MyListPage />
-      )}
-
-      {search.trim() &&
-        section !== 'Movies' &&
-        section !== 'TV Series' && (
-          <div className="fixed inset-x-0 top-20 z-40 mx-auto max-w-2xl px-5 pt-3">
-            <div className="rounded-2xl border border-white/10 bg-black/95 p-4 shadow-2xl backdrop-blur-xl">
-              <div className="mb-4 flex items-center justify-between">
-                <p className="text-[8px] font-black uppercase tracking-[0.18em] text-white/25">
-                  Search Results
-                </p>
-
-                <button
-                  type="button"
-                  onClick={() =>
-                    setSearch('')
-                  }
-                  className="text-white/30 hover:text-white"
-                >
-                  <X size={14} />
-                </button>
-              </div>
-
-              {filteredMovies
-                .slice(0, 6)
-                .map((movie) => (
-                  <button
-                    key={getMovieId(
-                      movie,
-                    )}
-                    type="button"
-                    onClick={() =>
-                      openMovie(
-                        movie,
-                      )
-                    }
-                    className="flex w-full items-center gap-3 rounded-xl p-2 text-left hover:bg-white/5"
-                  >
-                    <img
-                      src={
-                        movie.poster
-                      }
-                      alt=""
-                      className="h-14 w-10 rounded-lg object-cover"
-                    />
-
-                    <div>
-                      <p className="text-xs font-black text-white">
-                        {movie.title}
-                      </p>
-
-                      <p className="mt-1 text-[8px] font-bold uppercase tracking-[0.12em] text-white/25">
-                        {movie.year} •{' '}
-                        {
-                          movie.category
-                        }
-                      </p>
-                    </div>
-                  </button>
-                ))}
-
-              {!filteredMovies
-                .length && (
-                <p className="py-8 text-center text-[9px] font-black uppercase tracking-[0.16em] text-white/25">
-                  No stories found
-                </p>
-              )}
-            </div>
-          </div>
-        )}
+      <MobileSearchResults />
 
       {playerMessage &&
-        !watchingMovie &&
         !showProfile && (
           <div className="fixed bottom-5 left-1/2 z-[75] -translate-x-1/2 rounded-full border border-white/10 bg-black/85 px-5 py-3 text-[8px] font-black uppercase tracking-[0.14em] text-white/65 shadow-2xl backdrop-blur-xl">
             {playerMessage}
           </div>
         )}
 
-      <footer className="border-t border-white/[0.06] bg-[#050505] px-5 py-10 sm:px-10 lg:px-16">
-        <div className="mx-auto flex max-w-[1600px] flex-col gap-5 sm:flex-row sm:items-center sm:justify-between">
-          <div>
-            <p className="text-sm font-black tracking-[-0.04em] text-white">
-              PMF-FLIX
-            </p>
+      {section === 'home' && (
+        <>
+          <HomeContent />
+          <Footer />
+        </>
+      )}
 
-            <p className="mt-1 text-[7px] font-black uppercase tracking-[0.2em] text-white/20">
-              Prince Mufasa Flix
-            </p>
-          </div>
+      {(section === 'movies' ||
+        section === 'series') && (
+        <CatalogPage
+          type={
+            section === 'movies'
+              ? 'Movie'
+              : 'Series'
+          }
+        />
+      )}
 
-          <p className="text-[8px] font-black uppercase tracking-[0.14em] text-white/20">
-            Your World. Your
-            Stories. Your Flix.
-          </p>
-        </div>
-      </footer>
+      {section === 'my-list' && (
+        <MyListPage />
+      )}
 
-      <MovieDetails />
-      <ProfilePanel />
-      <Player />
+      {selectedMovie && (
+        <MovieDetails
+          movie={selectedMovie}
+        />
+      )}
+
+      {showProfile && (
+        <ProfilePanel />
+      )}
+
+            {watchingMovie && (
+        <Player />
+      )}
     </div>
   )
+}
+
+export default function App() {
+  return <AppShell />
 }
