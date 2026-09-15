@@ -199,6 +199,12 @@ function getYouTubeId(
   }
 }
 
+function getVideoUrl(
+  movie: Movie,
+): string {
+  return movie.videoUrl || ''
+}
+
 function isYouTube(
   movie: Movie,
 ): boolean {
