@@ -1738,6 +1738,344 @@ function AppShell() {
     )
   }
 
+  const CatalogPage = ({
+    type,
+  }: {
+    type: 'Movie' | 'Series'
+  }) => {
+    const catalogItems = filteredMovies.filter(
+      (movie) => {
+        const movieType = String(
+          movie.type || '',
+        ).toLowerCase()
+
+        return (
+          movieType ===
+          type.toLowerCase()
+        )
+      },
+    )
+
+    return (
+      <main className="min-h-screen bg-[#050505] px-5 pb-24 pt-32 sm:px-10 lg:px-16">
+        <div className="mx-auto max-w-[1600px]">
+          <div className="mb-10">
+            <p className="text-[9px] font-black uppercase tracking-[0.35em] text-white/30">
+              PMF Discovery
+            </p>
+
+            <div className="mt-3 flex flex-col gap-5 lg:flex-row lg:items-end lg:justify-between">
+              <div>
+                <h1 className="text-4xl font-black tracking-[-0.05em] text-white sm:text-5xl lg:text-6xl">
+                  {type === 'Movie'
+                    ? 'Movies'
+                    : 'TV Series'}
+                </h1>
+
+                <p className="mt-3 max-w-2xl text-sm leading-7 text-white/40">
+                  Explore the PMF catalogue and
+                  discover your next story.
+                </p>
+              </div>
+
+              <div className="flex flex-wrap gap-2">
+                <button
+                  type="button"
+                  onClick={() =>
+                    setShowFilters(
+                      (current) => !current,
+                    )
+                  }
+                  className="rounded-full border border-white/10 bg-white/[0.04] px-5 py-3 text-[8px] font-black uppercase tracking-[0.16em] text-white/70 transition hover:bg-white/[0.08] hover:text-white"
+                >
+                  {showFilters
+                    ? 'Hide Filters'
+                    : 'Filters'}
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() =>
+                    navigate('home')
+                  }
+                  className="rounded-full bg-white px-5 py-3 text-[8px] font-black uppercase tracking-[0.16em] text-black transition hover:scale-105"
+                >
+                  Back Home
+                </button>
+              </div>
+            </div>
+          </div>
+
+          {showFilters && (
+            <section className="mb-10 rounded-3xl border border-white/[0.07] bg-white/[0.025] p-5 sm:p-6">
+              <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+                <label className="block">
+                  <span className="mb-2 block text-[8px] font-black uppercase tracking-[0.16em] text-white/30">
+                    Category
+                  </span>
+
+                  <select
+                    value={filters.category}
+                    onChange={(event) =>
+                      setFilters(
+                        (current) => ({
+                          ...current,
+                          category:
+                            event.target.value,
+                        }),
+                      )
+                    }
+                    className="w-full rounded-xl border border-white/10 bg-black px-4 py-3 text-xs text-white outline-none"
+                  >
+                    <option value="All">
+                      All
+                    </option>
+
+                    {Array.from(
+                      new Set(
+                        movies
+                          .map(
+                            (movie) =>
+                              movie.category,
+                          )
+                          .filter(Boolean)
+                          .map(String),
+                      ),
+                    ).map((category) => (
+                      <option
+                        key={category}
+                        value={category}
+                      >
+                        {category}
+                      </option>
+                    ))}
+                  </select>
+                </label>
+
+                <label className="block">
+                  <span className="mb-2 block text-[8px] font-black uppercase tracking-[0.16em] text-white/30">
+                    Year
+                  </span>
+
+                  <select
+                    value={filters.year}
+                    onChange={(event) =>
+                      setFilters(
+                        (current) => ({
+                          ...current,
+                          year:
+                            event.target.value,
+                        }),
+                      )
+                    }
+                    className="w-full rounded-xl border border-white/10 bg-black px-4 py-3 text-xs text-white outline-none"
+                  >
+                    <option value="All">
+                      All
+                    </option>
+
+                    {Array.from(
+                      new Set(
+                        movies
+                          .map(
+                            (movie) =>
+                              String(
+                                movie.year ||
+                                  '',
+                              ),
+                          )
+                          .filter(Boolean),
+                      ),
+                    )
+                      .sort(
+                        (a, b) =>
+                          Number(b) -
+                          Number(a),
+                      )
+                      .map((year) => (
+                        <option
+                          key={year}
+                          value={year}
+                        >
+                          {year}
+                        </option>
+                      ))}
+                  </select>
+                </label>
+
+                <label className="block">
+                  <span className="mb-2 block text-[8px] font-black uppercase tracking-[0.16em] text-white/30">
+                    Rating
+                  </span>
+
+                  <select
+                    value={filters.rating}
+                    onChange={(event) =>
+                      setFilters(
+                        (current) => ({
+                          ...current,
+                          rating:
+                            event.target.value,
+                        }),
+                      )
+                    }
+                    className="w-full rounded-xl border border-white/10 bg-black px-4 py-3 text-xs text-white outline-none"
+                  >
+                    <option value="0">
+                      Any Rating
+                    </option>
+
+                    <option value="5">
+                      5+
+                    </option>
+
+                    <option value="7">
+                      7+
+                    </option>
+
+                    <option value="8">
+                      8+
+                    </option>
+
+                    <option value="9">
+                      9+
+                    </option>
+                  </select>
+                </label>
+
+                <label className="block">
+                  <span className="mb-2 block text-[8px] font-black uppercase tracking-[0.16em] text-white/30">
+                    Sort
+                  </span>
+
+                  <select
+                    value={filters.sort}
+                    onChange={(event) =>
+                      setFilters(
+                        (current) => ({
+                          ...current,
+                          sort:
+                            event.target
+                              .value as SortMode,
+                        }),
+                      )
+                    }
+                    className="w-full rounded-xl border border-white/10 bg-black px-4 py-3 text-xs text-white outline-none"
+                  >
+                    <option value="featured">
+                      Featured
+                    </option>
+
+                    <option value="newest">
+                      Newest
+                    </option>
+
+                    <option value="oldest">
+                      Oldest
+                    </option>
+
+                    <option value="rating">
+                      Rating
+                    </option>
+
+                    <option value="title">
+                      Title
+                    </option>
+                  </select>
+                </label>
+              </div>
+
+              <button
+                type="button"
+                onClick={resetFilters}
+                className="mt-5 rounded-xl border border-white/10 bg-white/[0.04] px-5 py-3 text-[8px] font-black uppercase tracking-[0.16em] text-white/50 transition hover:bg-white/[0.08] hover:text-white"
+              >
+                Reset Filters
+              </button>
+            </section>
+          )}
+
+          <div className="mb-6 flex items-center justify-between">
+            <p className="text-[9px] font-black uppercase tracking-[0.18em] text-white/25">
+              {catalogItems.length}{' '}
+              {type === 'Movie'
+                ? 'movies'
+                : 'series'}{' '}
+              available
+            </p>
+          </div>
+
+          <MovieGrid
+            items={catalogItems}
+          />
+        </div>
+      </main>
+    )
+  }
+
+  const MyListPage = () => {
+    const savedMovies = myList
+      .map((id) => findMovie(id))
+      .filter(
+        (movie): movie is Movie =>
+          Boolean(movie),
+      )
+
+    return (
+      <main className="min-h-screen bg-[#050505] px-5 pb-24 pt-32 sm:px-10 lg:px-16">
+        <div className="mx-auto max-w-[1600px]">
+          <div className="mb-10">
+            <p className="text-[9px] font-black uppercase tracking-[0.35em] text-white/30">
+              Your collection
+            </p>
+
+            <h1 className="mt-3 text-4xl font-black tracking-[-0.05em] text-white sm:text-5xl lg:text-6xl">
+              My List
+            </h1>
+
+            <p className="mt-3 max-w-2xl text-sm leading-7 text-white/40">
+              The stories you saved for
+              later.
+            </p>
+          </div>
+
+          {savedMovies.length ? (
+            <MovieGrid
+              items={savedMovies}
+            />
+          ) : (
+            <div className="rounded-3xl border border-white/[0.07] bg-white/[0.02] px-6 py-20 text-center">
+              <ListPlus
+                size={34}
+                className="mx-auto text-white/15"
+              />
+
+              <h2 className="mt-5 text-2xl font-black tracking-[-0.03em] text-white">
+                Your list is waiting.
+              </h2>
+
+              <p className="mx-auto mt-3 max-w-md text-xs leading-6 text-white/30">
+                Save movies and series you
+                want to watch later and they
+                will appear here.
+              </p>
+
+              <button
+                type="button"
+                onClick={() =>
+                  navigate('movies')
+                }
+                className="mt-7 rounded-full bg-white px-6 py-3 text-[8px] font-black uppercase tracking-[0.16em] text-black transition hover:scale-105"
+              >
+                Discover Something
+              </button>
+            </div>
+          )}
+        </div>
+      </main>
+    )
+  }
+  
   const Hero = () => {
     const featured =
       featuredMovies[0] ||
