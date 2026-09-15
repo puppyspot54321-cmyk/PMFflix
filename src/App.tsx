@@ -1,3 +1,4 @@
+import WowHome from './components/WowHome'
 import heroImage from './assets/hero.png'
 import {
   useEffect,
@@ -2243,75 +2244,170 @@ function AppShell() {
   }
 
   const HomeContent = () => (
-    <>
-      <Hero />
+  <>
+    {/* CINEMATIC HERO */}
+    <Hero />
 
-      <main className="mx-auto max-w-[1600px] px-5 pb-24 sm:px-10 lg:px-16">
-        {continueMovies.length > 0 && (
+    {/* PMF HOME EXPERIENCE */}
+    <main className="relative mx-auto max-w-[1600px] overflow-hidden px-5 pb-24 sm:px-10 lg:px-16">
+
+      {/* Atmospheric glow */}
+      <div
+        aria-hidden="true"
+        className="pointer-events-none absolute left-1/2 top-0 h-[420px] w-[900px] -translate-x-1/2 rounded-full bg-white/[0.025] blur-[140px]"
+      />
+
+      {/* CONTINUE WATCHING */}
+      {continueMovies.length > 0 && (
+        <section className="relative">
           <MovieRow
             eyebrow="Pick up where you left off"
             title="Continue Watching"
             subtitle="Your unfinished stories, ready when you are."
             items={continueMovies}
           />
-        )}
+        </section>
+      )}
 
-        {featuredMovies.length > 1 && (
+      {/* FEATURED */}
+      {featuredMovies.length > 1 && (
+        <section className="relative">
           <MovieRow
             eyebrow="PMF selection"
             title="Featured"
             subtitle="Stories selected for the PMF experience."
             items={featuredMovies}
           />
-        )}
+        </section>
+      )}
 
-        <MovieRow
-          eyebrow="What's moving"
-          title="Trending Now"
-          subtitle="The titles creating the most excitement on PMF-Flix."
-          items={trendingMovies}
-        />
+      {/* TRENDING */}
+      {trendingMovies.length > 0 && (
+        <section className="relative">
+          <MovieRow
+            eyebrow="What's moving"
+            title="Trending Now"
+            subtitle="The titles creating the most excitement on PMF-Flix."
+            items={trendingMovies}
+          />
+        </section>
+      )}
 
-        <MovieRow
-          eyebrow="Made for your journey"
-          title="Made For You"
-          subtitle="Recommendations shaped by your viewing journey."
-          items={personalizedMovies}
-        />
+      {/* PERSONALIZED */}
+      {personalizedMovies.length > 0 && (
+        <section className="relative">
+          <MovieRow
+            eyebrow="Made for your journey"
+            title="Made For You"
+            subtitle="Recommendations shaped by your viewing journey."
+            items={personalizedMovies}
+          />
+        </section>
+      )}
 
-        <MovieRow
-          eyebrow="Fresh from the catalogue"
-          title="New & Noteworthy"
-          subtitle="Fresh stories waiting to be discovered."
-          items={latestMovies}
-        />
+      {/* NEW RELEASES */}
+      {latestMovies.length > 0 && (
+        <section className="relative">
+          <MovieRow
+            eyebrow="Fresh from the catalogue"
+            title="New & Noteworthy"
+            subtitle="Fresh stories waiting to be discovered."
+            items={latestMovies}
+          />
+        </section>
+      )}
 
-        {categoryRows.map(
-          (row) => (
+      {/* CATEGORY DISCOVERY */}
+      {categoryRows.length > 0 && (
+        <section className="relative">
+          {categoryRows.map((row) => (
             <MovieRow
               key={row.category}
               eyebrow="Explore by category"
               title={row.category}
+              subtitle={`Discover ${row.category.toLowerCase()} stories on PMF-Flix.`}
               items={row.items}
             />
-          ),
-        )}
+          ))}
+        </section>
+      )}
 
-        {historyMovies.length > 0 && (
+      {/* WATCH HISTORY */}
+      {historyMovies.length > 0 && (
+        <section className="relative">
           <MovieRow
             eyebrow="Your activity"
             title="Recently Watched"
             subtitle="Your latest PMF-Flix activity."
-            items={historyMovies.slice(
-              0,
-              10,
-            )}
+            items={historyMovies.slice(0, 10)}
           />
-        )}
-      </main>
-    </>
-  )
+        </section>
+      )}
 
+      {/* PMF UNIVERSE */}
+      <section className="relative mt-16 overflow-hidden rounded-[2rem] border border-white/10 bg-white/[0.025] px-6 py-12 sm:px-10 lg:px-16">
+        <div
+          aria-hidden="true"
+          className="pointer-events-none absolute -right-32 -top-32 h-72 w-72 rounded-full bg-white/[0.05] blur-[100px]"
+        />
+
+        <div className="relative max-w-3xl">
+          <p className="mb-3 text-[9px] font-black uppercase tracking-[0.35em] text-white/40">
+            The PMF Universe
+          </p>
+
+          <h2 className="text-3xl font-black tracking-[-0.04em] text-white sm:text-4xl lg:text-5xl">
+            Your world.
+            <br />
+            Your stories.
+            <br />
+            Your Flix.
+          </h2>
+
+          <p className="mt-5 max-w-2xl text-sm leading-7 text-white/50 sm:text-base">
+            Discover stories from every corner of the entertainment world —
+            from global cinema and African stories to PMF Originals and the
+            next title waiting to become your favourite.
+          </p>
+
+          <div className="mt-8 flex flex-wrap gap-3">
+            <button
+              type="button"
+              onClick={() => navigate('movies')}
+              className="rounded-full bg-white px-6 py-3 text-[9px] font-black uppercase tracking-[0.18em] text-black transition-transform duration-300 hover:scale-105"
+            >
+              Explore the Universe
+            </button>
+
+            <button
+              type="button"
+              onClick={() => navigate('movies')}
+              className="rounded-full border border-white/15 bg-white/[0.04] px-6 py-3 text-[9px] font-black uppercase tracking-[0.18em] text-white/70 transition-colors duration-300 hover:bg-white/[0.08] hover:text-white"
+            >
+              Browse Movies
+            </button>
+          </div>
+        </div>
+      </section>
+
+      {/* FINAL DISCOVERY STATEMENT */}
+      <section className="relative py-20 text-center">
+        <p className="text-[8px] font-black uppercase tracking-[0.4em] text-white/25">
+          PMF-Flix
+        </p>
+
+        <h2 className="mt-4 text-2xl font-black tracking-[-0.04em] text-white/90 sm:text-3xl">
+          There is always another story.
+        </h2>
+
+        <p className="mx-auto mt-3 max-w-xl text-xs leading-6 text-white/35 sm:text-sm">
+          Keep exploring. Keep discovering. Keep watching.
+        </p>
+      </section>
+    </main>
+  </>
+)
+  
   const LibraryContent = () => (
     <main className="mx-auto max-w-[1600px] px-5 pb-24 pt-28 sm:px-10 lg:px-16">
       <DiscoveryToolbar />
