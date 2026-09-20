@@ -1,6 +1,4 @@
 import {
-  ArrowDownAZ,
-  ArrowUpAZ,
   ChevronDown,
   Filter,
   RotateCcw,
@@ -11,12 +9,11 @@ import {
 import { useState } from 'react'
 
 export type DiscoverySort =
-  | 'relevance'
+  | 'featured'
   | 'newest'
   | 'oldest'
-  | 'title-asc'
-  | 'title-desc'
-  | 'rating-desc'
+  | 'rating'
+  | 'title'
 
 export type DiscoveryToolbarProps = {
   searchQuery?: string
@@ -103,12 +100,11 @@ const SORT_OPTIONS: Array<{
   value: DiscoverySort
   label: string
 }> = [
-  { value: 'relevance', label: 'Relevance' },
+  { value: 'featured', label: 'Featured' },
   { value: 'newest', label: 'Newest' },
   { value: 'oldest', label: 'Oldest' },
-  { value: 'title-asc', label: 'Title A–Z' },
-  { value: 'title-desc', label: 'Title Z–A' },
-  { value: 'rating-desc', label: 'Highest Rated' },
+  { value: 'rating', label: 'Highest Rated' },
+  { value: 'title', label: 'Title A–Z' },
 ]
 
 function SelectControl({
@@ -205,7 +201,7 @@ export default function DiscoveryToolbar({
   rating = '',
   onRatingChange,
 
-  sort = 'relevance',
+  sort = 'featured',
   onSortChange,
 
   contentTypes = DEFAULT_CONTENT_TYPES,
@@ -233,7 +229,7 @@ export default function DiscoveryToolbar({
     Boolean(genre) ||
     Boolean(year) ||
     Boolean(rating) ||
-    sort !== 'relevance'
+    sort !== 'featured'
 
   const activeFilterCount = [
     contentType,
@@ -254,7 +250,6 @@ export default function DiscoveryToolbar({
       className={`w-full ${className}`}
     >
       <div className="rounded-2xl border border-white/[0.08] bg-black/20 p-3 shadow-xl backdrop-blur-xl sm:p-4">
-        {/* Search + mobile filter button */}
         <div className="flex items-center gap-2">
           {showSearch && (
             <div className="relative min-w-0 flex-1">
@@ -300,7 +295,10 @@ export default function DiscoveryToolbar({
               }`}
             >
               <SlidersHorizontal className="h-4 w-4" />
-              <span className="hidden sm:inline">Filters</span>
+
+              <span className="hidden sm:inline">
+                Filters
+              </span>
 
               {activeFilterCount > 0 && (
                 <span className="flex h-5 min-w-5 items-center justify-center rounded-full bg-white px-1.5 text-[10px] font-black text-black">
@@ -311,7 +309,6 @@ export default function DiscoveryToolbar({
           )}
         </div>
 
-        {/* Filters */}
         <div
           id="pmf-discovery-filters"
           className={`${
@@ -386,7 +383,6 @@ export default function DiscoveryToolbar({
           </div>
         </div>
 
-        {/* Active state indicator */}
         {hasActiveFilters && (
           <div className="mt-3 flex items-center gap-2 text-[11px] text-white/40">
             <Filter className="h-3.5 w-3.5" />
@@ -399,15 +395,11 @@ export default function DiscoveryToolbar({
                 : 'Search or sorting active'}
             </span>
 
-            {sort !== 'relevance' && (
+            {sort !== 'featured' && (
               <>
-                <span aria-hidden="true">•</span>
-
-                {sort === 'title-asc' ? (
-                  <ArrowDownAZ className="h-3.5 w-3.5" />
-                ) : sort === 'title-desc' ? (
-                  <ArrowUpAZ className="h-3.5 w-3.5" />
-                ) : null}
+                <span aria-hidden="true">
+                  •
+                </span>
 
                 <span>
                   {
@@ -423,4 +415,4 @@ export default function DiscoveryToolbar({
       </div>
     </section>
   )
-  }
+}
