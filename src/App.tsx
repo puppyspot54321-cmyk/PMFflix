@@ -247,9 +247,12 @@ function AppShell() {
 
       if (!mounted) return
 
-      setSession(data.session)
+      if (data.session) {
+       setSession(data.session)
+      }
+
       setAuthLoading(false)
-    }
+     }
 
     void loadSession()
 
