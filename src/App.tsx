@@ -245,6 +245,47 @@ function AppShell() {
       const { data } =
         await supabase.auth.getSession()
 
+      useEffect(() => {
+  let active = true
+
+  const checkStudioAccess = async () => {
+    if (!session?.user?.id) {
+      setIsStudioAdmin(false)
+      setShowStudio(false)
+      return
+    }
+
+    const { data, error } = await supabase
+      .from('media_admins')
+      .select('role')
+      .eq('user_id', session.user.id)
+      .maybeSingle()
+
+    if (!active) {
+      return
+    }
+
+    const allowed =
+      !error &&
+      data &&
+      ['owner', 'admin', 'editor'].includes(
+        String(data.role),
+      )
+
+    setIsStudioAdmin(Boolean(allowed))
+
+    if (!allowed) {
+      setShowStudio(false)
+    }
+  }
+
+  void checkStudioAccess()
+
+  return () => {
+    active = false
+  }
+}, [session])
+
       if (!mounted) return
 
       setSession(data.session)
