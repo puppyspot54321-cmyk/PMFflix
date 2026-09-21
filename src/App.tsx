@@ -2422,7 +2422,23 @@ function AppShell() {
               ),
             )}
           </div>
-        </div>
+
+         {isStudioAdmin && (
+  <button
+    type="button"
+    onClick={() => {
+      setShowStudio(true)
+      setMobileMenu(false)
+    }}
+    className="rounded-xl border border-white/10 bg-white/[0.025] px-4 py-3 text-left text-[8px] font-black uppercase tracking-[0.16em] text-white/35 transition hover:bg-white/10 hover:text-white"
+  >
+    <span className="inline-flex items-center gap-2">
+      <Film size={13} />
+      PMF Studio
+    </span>
+  </button>
+)}       
+      </div>
       )}
     </header>
   )
