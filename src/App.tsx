@@ -3227,7 +3227,7 @@ function AppShell() {
         </div>
 
         <div className="no-scrollbar flex gap-3 overflow-x-auto">
-          {searchResults
+          {filteredMovies
             .slice(0, 8)
             .map((movie) => (
               <MovieCard
