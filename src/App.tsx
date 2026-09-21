@@ -13,6 +13,7 @@ import { mapCanonicalMovieToLegacy } from './utils/movieMapper'
 import { supabase } from './supabase'
 import type { Session } from '@supabase/supabase-js'
 import AuthScreen from './Auth'
+import AdminStudio from './AdminStudio'
 import {
   Check,
   ChevronLeft,
@@ -347,6 +348,8 @@ function AppShell() {
 
   const [showProfile, setShowProfile] =
     useState(false)
+
+  const [showStudio, setShowStudio] = useState(false)
 
   const [mobileMenu, setMobileMenu] =
     useState(false)
