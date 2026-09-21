@@ -3857,13 +3857,19 @@ function AppShell() {
         />
       )}
 
-      {showProfile && (
-        <ProfilePanel />
-      )}
+{showProfile && (
+  <ProfilePanel />
+)}
 
-      {watchingMovie && (
-        <Player />
-      )}
+{showStudio && (
+  <AdminStudio
+    onClose={() => setShowStudio(false)}
+  />
+)}
+
+{watchingMovie && (
+  <Player />
+)}
     </div>
   )
 }
