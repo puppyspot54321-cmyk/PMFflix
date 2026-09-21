@@ -2348,15 +2348,17 @@ function AppShell() {
             {profile.avatar}
           </button>
 
-          <button
-         type="button"
-         onClick={() => setShowStudio(true)}
-         className="hidden h-9 items-center gap-2 rounded-xl border border-white/10 bg-white/5 px-3 text-[8px] font-black uppercase tracking-[0.14em] text-white/45 transition hover:bg-white/10 hover:text-white lg:flex"
-        aria-label="Open PMF Studio"
-        >
-         <Film size={13} />
-         Studio
-        </button>
+          {isStudioAdmin && (
+  <button
+    type="button"
+    onClick={() => setShowStudio(true)}
+    className="hidden h-9 items-center gap-2 rounded-xl border border-white/10 bg-white/5 px-3 text-[8px] font-black uppercase tracking-[0.14em] text-white/45 transition hover:bg-white/10 hover:text-white lg:flex"
+    aria-label="Open PMF Studio"
+  >
+    <Film size={13} />
+    Studio
+  </button>
+)}
           
           <button
             type="button"
