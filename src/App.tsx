@@ -351,6 +351,8 @@ function AppShell() {
 
   const [showStudio, setShowStudio] = useState(false)
 
+  const [isStudioAdmin, setIsStudioAdmin] = useState(false)
+
   const [mobileMenu, setMobileMenu] =
     useState(false)
 
