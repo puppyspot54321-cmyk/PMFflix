@@ -33,7 +33,7 @@ export default function AuthScreen({
   const [errorMessage, setErrorMessage] = useState('')
   const [successMessage, setSuccessMessage] = useState('')
 
-  const resetMessages = () => {
+    const resetMessages = () => {
     setErrorMessage('')
     setSuccessMessage('')
   }
