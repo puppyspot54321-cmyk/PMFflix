@@ -238,39 +238,51 @@ function AppShell() {
   const [authLoading, setAuthLoading] =
     useState(true)
 
-  useEffect(() => {
+    useEffect(() => {
     let mounted = true
 
-    const loadSession = async () => {
-      const { data } =
+    const {
+      data: { subscription },
+    } = supabase.auth.onAuthStateChange(
+      (event, nextSession) => {
+        if (!mounted) return
+
+        if (
+          event === 'INITIAL_SESSION' ||
+          event === 'SIGNED_IN' ||
+          event === 'TOKEN_REFRESHED' ||
+          event === 'USER_UPDATED'
+        ) {
+          setSession(nextSession)
+          setAuthLoading(false)
+          return
+        }
+
+        if (event === 'SIGNED_OUT') {
+          setSession(null)
+          setAuthLoading(false)
+        }
+      },
+    )
+
+    const loadInitialSession = async () => {
+      const { data, error } =
         await supabase.auth.getSession()
 
-      if (!mounted) return
+      if (!mounted || error) {
+        if (mounted) {
+          setAuthLoading(false)
+        }
 
-      setSession(data.session)
-
-      setAuthLoading(false)
-     }
-
-    void loadSession()
-
-   const {
-  data: { subscription },
-} =
-  supabase.auth.onAuthStateChange(
-    (event, nextSession) => {
-      if (!mounted) return
-
-      if (nextSession) {
-        setSession(nextSession)
-      } else if (event === 'SIGNED_OUT') {
-        setSession(null)
+        return
       }
 
+      setSession(data.session)
       setAuthLoading(false)
-    },
-  )
-    
+    }
+
+    void loadInitialSession()
+
     return () => {
       mounted = false
       subscription.unsubscribe()
