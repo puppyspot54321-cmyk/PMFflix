@@ -247,27 +247,30 @@ function AppShell() {
 
       if (!mounted) return
 
-      if (data.session) {
-  setSession(data.session)
-      }
+      setSession(data.session)
 
       setAuthLoading(false)
      }
 
     void loadSession()
 
-    const {
-      data: { subscription },
-    } =
-      supabase.auth.onAuthStateChange(
-        (_event, nextSession) => {
-          if (!mounted) return
+   const {
+  data: { subscription },
+} =
+  supabase.auth.onAuthStateChange(
+    (event, nextSession) => {
+      if (!mounted) return
 
-          setSession(nextSession)
-          setAuthLoading(false)
-        },
-      )
+      if (nextSession) {
+        setSession(nextSession)
+      } else if (event === 'SIGNED_OUT') {
+        setSession(null)
+      }
 
+      setAuthLoading(false)
+    },
+  )
+    
     return () => {
       mounted = false
       subscription.unsubscribe()
