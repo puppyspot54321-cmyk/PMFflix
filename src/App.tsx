@@ -248,7 +248,7 @@ function AppShell() {
       if (!mounted) return
 
       if (data.session) {
-       setSession(data.session)
+  setSession(data.session)
       }
 
       setAuthLoading(false)
