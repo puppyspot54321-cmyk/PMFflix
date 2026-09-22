@@ -3869,19 +3869,37 @@ function AppShell() {
     </footer>
   )
 
-  if (!session) {
-    return (
-      <AuthScreen
-        onAuthenticated={(
-          nextSession: Session,
-        ) => {
-          setSession(
-            nextSession,
-          )
-        }}
-      />
-    )
-  }
+  if (authLoading) {
+  return (
+    <div className="flex min-h-screen items-center justify-center bg-[#050505] text-white">
+      <div className="text-center">
+        <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-2xl bg-white text-black">
+          <Film size={20} />
+        </div>
+
+        <p className="mt-5 text-[9px] font-black uppercase tracking-[0.3em] text-white/35">
+          PMF-FLIX
+        </p>
+
+        <p className="mt-2 text-xs text-white/30">
+          Restoring your session...
+        </p>
+      </div>
+    </div>
+  )
+}
+
+if (!session) {
+  return (
+    <AuthScreen
+      onAuthenticated={(
+        nextSession: Session,
+      ) => {
+        setSession(nextSession)
+      }}
+    />
+  )
+}
 
   return (
     <div className="min-h-screen bg-[#050505] text-white selection:bg-white selection:text-black">
