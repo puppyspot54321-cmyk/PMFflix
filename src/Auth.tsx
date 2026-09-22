@@ -1,4 +1,4 @@
-import { useEffect, useState, type FormEvent } from 'react'
+import { useState, type FormEvent } from 'react'
 import {
   ArrowRight,
   Eye,
@@ -39,34 +39,6 @@ export default function AuthScreen({
    */
   useEffect(() => {
     let mounted = true
-
-    const recoverSession = async () => {
-      const { data, error } = await supabase.auth.getSession()
-
-      if (!mounted || error) return
-
-      if (data.session && onAuthenticated) {
-        onAuthenticated(data.session)
-      }
-    }
-
-    recoverSession()
-
-    const {
-      data: { subscription },
-    } = supabase.auth.onAuthStateChange((_event, nextSession) => {
-      if (!mounted) return
-
-      if (nextSession && onAuthenticated) {
-        onAuthenticated(nextSession)
-      }
-    })
-
-    return () => {
-      mounted = false
-      subscription.unsubscribe()
-    }
-  }, [onAuthenticated])
 
   const resetMessages = () => {
     setErrorMessage('')
