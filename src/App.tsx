@@ -2189,4 +2189,94 @@ function AppShell() {
                   Back
                 </button>
 
-                
+                <div className="flex flex-wrap items-center gap-2">
+                  {selectedMovie.year && (
+                    <span className="text-xs font-bold text-white/50">
+                      {selectedMovie.year}
+                    </span>
+                  )}
+
+                  {selectedMovie.type && (
+                    <>
+                      <span className="text-white/20">
+                        •
+                      </span>
+                      <span className="text-xs font-bold text-white/50">
+                        {selectedMovie.type}
+                      </span>
+                    </>
+                  )}
+
+                  {selectedMovie.category && (
+                    <>
+                      <span className="text-white/20">
+                        •
+                      </span>
+                      <span className="text-xs font-bold text-white/50">
+                        {selectedMovie.category}
+                      </span>
+                    </>
+                  )}
+                </div>
+
+                <h1 className="mt-3 text-4xl font-black tracking-[-0.05em] text-white sm:text-6xl">
+                  {selectedMovie.title}
+                </h1>
+
+                {selectedMovie.description && (
+                  <p className="mt-4 text-sm leading-6 text-white/55 sm:text-base">
+                    {selectedMovie.description}
+                  </p>
+                )}
+
+                <div className="mt-7 flex flex-wrap gap-3">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setSelectedMovie(
+                        null,
+                      )
+                      setWatchingMovie(
+                        selectedMovie,
+                      )
+                    }}
+                    className="inline-flex items-center gap-2 rounded-full bg-white px-5 py-3 text-xs font-black text-black"
+                  >
+                    <Play
+                      size={15}
+                      fill="currentColor"
+                    />
+                    Watch now
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() =>
+                      toggleMyList(
+                        selectedMovie,
+                      )
+                    }
+                    className="inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/[0.06] px-5 py-3 text-xs font-bold text-white"
+                  >
+                    <Heart
+                      size={15}
+                      fill={
+                        inList
+                          ? 'currentColor'
+                          : 'none'
+                      }
+                    />
+                    {inList
+                      ? 'In My List'
+                      : 'Add to My List'}
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    )
+  }
+
+  
