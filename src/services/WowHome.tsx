@@ -45,13 +45,11 @@ function uniqueMovies(movies: Movie[]) {
 function MovieCard({
   movie,
   onOpenMovie,
-  onPlayMovie,
   onToggleMyList,
   isInMyList,
 }: {
   movie: Movie
   onOpenMovie: (movie: Movie) => void
-  onPlayMovie: (movie: Movie) => void
   onToggleMyList: (movie: Movie) => void
   isInMyList: boolean
 }) {
@@ -197,7 +195,6 @@ function Row({
   eyebrow,
   movies,
   onOpenMovie,
-  onPlayMovie,
   onToggleMyList,
   isInMyList,
   onMore,
@@ -206,7 +203,6 @@ function Row({
   eyebrow?: string
   movies: Movie[]
   onOpenMovie: (movie: Movie) => void
-  onPlayMovie: (movie: Movie) => void
   onToggleMyList: (movie: Movie) => void
   isInMyList: (movie: Movie) => boolean
   onMore?: () => void
@@ -273,7 +269,6 @@ function Row({
             key={movieId(movie)}
             movie={movie}
             onOpenMovie={onOpenMovie}
-            onPlayMovie={onPlayMovie}
             onToggleMyList={onToggleMyList}
             isInMyList={isInMyList(movie)}
           />
@@ -705,7 +700,6 @@ export default function WowHome({
               : discovery
           }
           onOpenMovie={onOpenMovie}
-          onPlayMovie={onPlayMovie}
           onToggleMyList={onToggleMyList}
           isInMyList={isInMyList}
           onMore={onBrowseMovies}
@@ -716,7 +710,6 @@ export default function WowHome({
           eyebrow="New stories"
           movies={newest}
           onOpenMovie={onOpenMovie}
-          onPlayMovie={onPlayMovie}
           onToggleMyList={onToggleMyList}
           isInMyList={isInMyList}
           onMore={onBrowseMovies}
@@ -728,7 +721,6 @@ export default function WowHome({
             eyebrow="Go beyond the ordinary"
             movies={adventure}
             onOpenMovie={onOpenMovie}
-            onPlayMovie={onPlayMovie}
             onToggleMyList={onToggleMyList}
             isInMyList={isInMyList}
           />
@@ -740,7 +732,6 @@ export default function WowHome({
             eyebrow="Action & adrenaline"
             movies={action}
             onOpenMovie={onOpenMovie}
-            onPlayMovie={onPlayMovie}
             onToggleMyList={onToggleMyList}
             isInMyList={isInMyList}
           />
@@ -752,7 +743,6 @@ export default function WowHome({
             eyebrow="Thrillers & mysteries"
             movies={thriller}
             onOpenMovie={onOpenMovie}
-            onPlayMovie={onPlayMovie}
             onToggleMyList={onToggleMyList}
             isInMyList={isInMyList}
           />
@@ -763,7 +753,6 @@ export default function WowHome({
           eyebrow="Audience favourites"
           movies={highestRated}
           onOpenMovie={onOpenMovie}
-          onPlayMovie={onPlayMovie}
           onToggleMyList={onToggleMyList}
           isInMyList={isInMyList}
           onMore={onBrowseMovies}
@@ -841,10 +830,11 @@ export default function WowHome({
             >
               Enter the Catalogue
               <ChevronRight size={14} />
-            </button>
+              </button>
           </div>
         </section>
       </div>
     </main>
   )
 }
+    
