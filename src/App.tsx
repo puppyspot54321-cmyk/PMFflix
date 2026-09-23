@@ -2278,8 +2278,7 @@ function AppShell() {
       </div>
     )
   }
-
-  }
+}
 
 export default function App() {
   return <AppShell />
