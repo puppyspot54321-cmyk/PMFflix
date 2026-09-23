@@ -87,14 +87,6 @@ const inputClass =
 const buttonClass =
   "inline-flex items-center justify-center gap-2 rounded-xl px-4 py-3 text-sm font-semibold transition disabled:cursor-not-allowed disabled:opacity-50";
 
-function slugify(value: string) {
-  return value
-    .toLowerCase()
-    .trim()
-    .replace(/[^a-z0-9]+/g, "-")
-    .replace(/^-+|-+$/g, "");
-}
-
 function AdminStudio({ onClose }: AdminStudioProps) {
   const [checkingAccess, setCheckingAccess] = useState(true);
   const [authorized, setAuthorized] = useState(false);
@@ -316,7 +308,11 @@ function AdminStudio({ onClose }: AdminStudioProps) {
     await loadStudio();
 
     setSaving(false);
-    setNotice(editingId ? "Title updated successfully." : "Title created successfully.");
+    setNotice(
+      editingId
+        ? "Title updated successfully."
+        : "Title created successfully.",
+    );
     resetForm();
   };
 
@@ -529,7 +525,9 @@ function AdminStudio({ onClose }: AdminStudioProps) {
                 </p>
 
                 <h2 className="mt-2 text-2xl font-black">
-                  {editingId ? "Update catalogue entry" : "Create catalogue entry"}
+                  {editingId
+                    ? "Update catalogue entry"
+                    : "Create catalogue entry"}
                 </h2>
               </div>
 
@@ -775,7 +773,8 @@ function AdminStudio({ onClose }: AdminStudioProps) {
             </div>
 
             <span className="text-xs text-white/35">
-              {movies.length} catalogue {movies.length === 1 ? "title" : "titles"}
+              {movies.length} catalogue{" "}
+              {movies.length === 1 ? "title" : "titles"}
             </span>
           </div>
 
@@ -840,7 +839,9 @@ function AdminStudio({ onClose }: AdminStudioProps) {
                       <div className="mt-1 flex flex-wrap gap-x-3 gap-y-1 text-xs text-white/40">
                         {movie.year && <span>{movie.year}</span>}
                         {movie.type && <span>{movie.type}</span>}
-                        {movie.category && <span>{movie.category}</span>}
+                        {movie.category && (
+                          <span>{movie.category}</span>
+                        )}
                         {movie.rating && <span>{movie.rating}</span>}
                       </div>
 
@@ -893,7 +894,7 @@ function AdminStudio({ onClose }: AdminStudioProps) {
           )}
         </section>
 
-                <section className="mt-7 rounded-3xl border border-white/10 bg-white/[0.025] overflow-hidden">
+        <section className="mt-7 rounded-3xl border border-white/10 bg-white/[0.025] overflow-hidden">
           <div className="border-b border-white/10 px-5 py-5 md:px-7">
             <p className="text-xs font-bold uppercase tracking-[0.2em] text-amber-400">
               Media Core
@@ -1041,4 +1042,3 @@ function AdminStudio({ onClose }: AdminStudioProps) {
 }
 
 export default AdminStudio;
-                 
