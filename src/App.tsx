@@ -210,48 +210,80 @@ function getYouTubeEmbed(
 }
 
 function AppShell() {
-  const [session, setSession] =
-    useState<Session | null>(null)
+const [session, setSession] =
+  useState<Session | null>(null)
 
-  const [, setAuthLoading] =
-    useState(true)
+const [authLoading, setAuthLoading] =
+  useState(true)
 
-  useEffect(() => {
-    let mounted = true
+useEffect(() => {
+  let mounted = true
 
-    const loadSession = async () => {
-      const { data } =
-        await supabase.auth.getSession()
+  const {
+    data: { subscription },
+  } = supabase.auth.onAuthStateChange(
+    (event, nextSession) => {
+      if (!mounted) {
+        return
+      }
+
+      if (
+        event === 'INITIAL_SESSION' ||
+        event === 'SIGNED_IN' ||
+        event === 'TOKEN_REFRESHED' ||
+        event === 'USER_UPDATED'
+      ) {
+        setSession(nextSession)
+        setAuthLoading(false)
+        return
+      }
+
+      if (event === 'SIGNED_OUT') {
+        setSession(null)
+        setAuthLoading(false)
+      }
+    },
+  )
+
+  const restoreSession = async () => {
+    try {
+      const {
+        data: { session: currentSession },
+        error,
+      } = await supabase.auth.getSession()
 
       if (!mounted) {
         return
       }
 
-      setSession(data.session)
+      if (error) {
+        console.error(
+          'PMF session restoration error:',
+          error,
+        )
+      }
+
+      setSession(currentSession)
       setAuthLoading(false)
-    }
-
-    void loadSession()
-
-    const {
-      data: { subscription },
-    } =
-      supabase.auth.onAuthStateChange(
-        (_event, nextSession) => {
-          if (!mounted) {
-            return
-          }
-
-          setSession(nextSession)
-          setAuthLoading(false)
-        },
+    } catch (error) {
+      console.error(
+        'PMF session restoration failed:',
+        error,
       )
 
-    return () => {
-      mounted = false
-      subscription.unsubscribe()
+      if (mounted) {
+        setAuthLoading(false)
+      }
     }
-  }, [])
+  }
+
+  void restoreSession()
+
+  return () => {
+    mounted = false
+    subscription.unsubscribe()
+  }
+}, [])
 
   const [section, setSection] =
     useState<Section>('home')
