@@ -813,3 +813,657 @@ function AppShell() {
         value
     }
   }
+
+  const fullscreen = async () => {
+    try {
+      if (
+        !document.fullscreenElement
+      ) {
+        await playerRef.current?.requestFullscreen()
+      } else {
+        await document.exitFullscreen()
+      }
+    } catch {
+      showMessage(
+        'Fullscreen is unavailable on this device.',
+      )
+    }
+  }
+
+  const resetPlayerControls = () => {
+    setShowPlayerControls(true)
+
+    if (controlsTimer.current) {
+      window.clearTimeout(
+        controlsTimer.current,
+      )
+    }
+
+    controlsTimer.current =
+      window.setTimeout(() => {
+        if (playerPlaying) {
+          setShowPlayerControls(false)
+        }
+      }, 3500)
+  }
+
+  useEffect(() => {
+    if (!watchingMovie) {
+      return
+    }
+
+    const handleKey = (
+      event: globalThis.KeyboardEvent,
+    ) => {
+      if (
+        event.target instanceof
+          HTMLInputElement ||
+        event.target instanceof
+          HTMLTextAreaElement
+      ) {
+        return
+      }
+
+      if (event.key === ' ') {
+        event.preventDefault()
+        void playPause()
+      }
+
+      if (event.key === 'ArrowLeft') {
+        rewind()
+      }
+
+      if (event.key === 'ArrowRight') {
+        forward()
+      }
+
+      if (
+        event.key.toLowerCase() === 'm'
+      ) {
+        toggleMute()
+      }
+
+      if (
+        event.key.toLowerCase() === 'f'
+      ) {
+        void fullscreen()
+      }
+
+      if (event.key === 'Escape') {
+        closePlayer()
+      }
+
+      resetPlayerControls()
+    }
+
+    window.addEventListener(
+      'keydown',
+      handleKey,
+    )
+
+    return () => {
+      window.removeEventListener(
+        'keydown',
+        handleKey,
+      )
+    }
+  }, [
+    watchingMovie,
+    playerTime,
+    playerDuration,
+    muted,
+    playerPlaying,
+  ])
+
+  const categories = useMemo(() => {
+    const values = movies
+      .map((movie) =>
+        String(
+          movie.category || '',
+        ).trim(),
+      )
+      .filter(Boolean)
+
+    return [
+      'All',
+      ...Array.from(
+        new Set(values),
+      ),
+    ]
+  }, [movies])
+
+  const years = useMemo(() => {
+    const values = movies
+      .map((movie) =>
+        Number(movie.year),
+      )
+      .filter((year) =>
+        Number.isFinite(year),
+      )
+
+    return [
+      'All',
+      ...Array.from(
+        new Set(values),
+      )
+        .sort((a, b) => b - a)
+        .map(String),
+    ]
+  }, [movies])
+
+  const typeOptions = useMemo(
+    () => [
+      'All',
+      ...Array.from(
+        new Set(
+          movies
+            .map((movie) =>
+              String(
+                movie.type || '',
+              ).trim(),
+            )
+            .filter(Boolean),
+        ),
+      ),
+    ],
+    [movies],
+  )
+
+  const normalizedSearch =
+    search.trim().toLowerCase()
+
+  const searchableMovies = useMemo(
+    () =>
+      movies.filter((movie) =>
+        [
+          movie.title,
+          movie.description,
+          movie.category,
+          movie.type,
+          movie.year,
+        ]
+          .filter(Boolean)
+          .join(' ')
+          .toLowerCase()
+          .includes(
+            normalizedSearch,
+          ),
+      ),
+    [movies, normalizedSearch],
+  )
+
+  const filteredMovies = useMemo(() => {
+    let result = [
+      ...searchableMovies,
+    ]
+
+    if (section === 'movies') {
+      result = result.filter(
+        (movie) =>
+          String(
+            movie.type || '',
+          ).toLowerCase() !==
+          'series',
+      )
+    }
+
+    if (section === 'series') {
+      result = result.filter(
+        (movie) =>
+          String(
+            movie.type || '',
+          ).toLowerCase() ===
+          'series',
+      )
+    }
+
+    if (
+      filters.category !== 'All'
+    ) {
+      result = result.filter(
+        (movie) =>
+          String(
+            movie.category || '',
+          ) === filters.category,
+      )
+    }
+
+    if (filters.type !== 'All') {
+      result = result.filter(
+        (movie) =>
+          String(
+            movie.type || '',
+          ).toLowerCase() ===
+          filters.type.toLowerCase(),
+      )
+    }
+
+    if (filters.year !== 'All') {
+      result = result.filter(
+        (movie) =>
+          String(movie.year) ===
+          filters.year,
+      )
+    }
+
+    const minimumRating =
+      Number(filters.rating)
+
+    if (
+      minimumRating > 0
+    ) {
+      result = result.filter(
+        (movie) =>
+          getRating(movie) >=
+          minimumRating,
+      )
+    }
+
+    switch (filters.sort) {
+      case 'newest':
+        result.sort(
+          (a, b) =>
+            Number(b.year || 0) -
+            Number(a.year || 0),
+        )
+        break
+
+      case 'oldest':
+        result.sort(
+          (a, b) =>
+            Number(a.year || 0) -
+            Number(b.year || 0),
+        )
+        break
+
+      case 'rating':
+        result.sort(
+          (a, b) =>
+            getRating(b) -
+            getRating(a),
+        )
+        break
+
+      case 'title':
+        result.sort(
+          (a, b) =>
+            a.title.localeCompare(
+              b.title,
+            ),
+        )
+        break
+
+      default:
+        result.sort(
+          (a, b) =>
+            Number(Boolean(b.featured)) -
+            Number(Boolean(a.featured)),
+        )
+    }
+
+    return result
+  }, [
+    searchableMovies,
+    section,
+    filters,
+  ])
+
+  const myListMovies = useMemo(
+    () =>
+      myList
+        .map(findMovie)
+        .filter(
+          (
+            movie,
+          ): movie is Movie =>
+            Boolean(movie),
+        ),
+    [myList, movies],
+  )
+
+  const continueMovies = useMemo(
+    () =>
+      continueWatching
+        .map(findMovie)
+        .filter(
+          (
+            movie,
+          ): movie is Movie =>
+            Boolean(movie),
+        ),
+    [
+      continueWatching,
+      movies,
+    ],
+  )
+
+  const historyMovies = useMemo(
+    () =>
+      [...history]
+        .sort(
+          (a, b) =>
+            b.watchedAt -
+            a.watchedAt,
+        )
+        .map((item) =>
+          findMovie(
+            item.movieId,
+          ),
+        )
+        .filter(
+          (
+            movie,
+          ): movie is Movie =>
+            Boolean(movie),
+        ),
+    [history, movies],
+  )
+
+  const trendingMovies = useMemo(
+    () =>
+      [...movies]
+        .sort(
+          (a, b) =>
+            getRating(b) -
+            getRating(a),
+        )
+        .slice(0, 12),
+    [movies],
+  )
+
+  const latestMovies = useMemo(
+    () =>
+      [...movies]
+        .sort(
+          (a, b) =>
+            Number(b.year || 0) -
+            Number(a.year || 0),
+        )
+        .slice(0, 12),
+    [movies],
+  )
+
+  const featuredMovies = useMemo(
+    () =>
+      movies
+        .filter(
+          (movie) =>
+            movie.featured,
+        )
+        .slice(0, 12),
+    [movies],
+  )
+
+  const personalizedMovies =
+    useMemo(() => {
+      const watchedCategories =
+        new Map<
+          string,
+          number
+        >()
+
+      historyMovies.forEach(
+        (movie, index) => {
+          const category =
+            String(
+              movie.category || '',
+            )
+              .trim()
+              .toLowerCase()
+
+          if (!category) {
+            return
+          }
+
+          watchedCategories.set(
+            category,
+            (watchedCategories.get(
+              category,
+            ) || 0) +
+              Math.max(
+                1,
+                10 - index,
+              ),
+          )
+        },
+      )
+
+      const scored = movies
+        .filter(
+          (movie) =>
+            !history.some(
+              (item) =>
+                item.movieId ===
+                getMovieId(movie),
+            ),
+        )
+        .map((movie) => {
+          const category =
+            String(
+              movie.category || '',
+            )
+              .trim()
+              .toLowerCase()
+
+          const preference =
+            watchedCategories.get(
+              category,
+            ) || 0
+
+          const ratingScore =
+            getRating(movie) * 2
+
+          const featuredScore =
+            movie.featured ? 5 : 0
+
+          const freshnessScore =
+            Number(movie.year || 0) /
+            1000
+
+          return {
+            movie,
+            score:
+              preference +
+              ratingScore +
+              featuredScore +
+              freshnessScore,
+          }
+        })
+        .sort(
+          (a, b) =>
+            b.score - a.score,
+        )
+        .map(
+          (item) =>
+            item.movie,
+        )
+
+      return (
+        scored.length
+          ? scored
+          : trendingMovies
+      ).slice(0, 12)
+    }, [
+      movies,
+      history,
+      historyMovies,
+      trendingMovies,
+    ])
+
+  const categoryRows = useMemo(
+    () => {
+      const seen =
+        new Set<string>()
+
+      return movies
+        .map(
+          (movie) =>
+            String(
+              movie.category || '',
+            ).trim(),
+        )
+        .filter(
+          (category) => {
+            if (
+              !category ||
+              seen.has(category)
+            ) {
+              return false
+            }
+
+            seen.add(category)
+            return true
+          },
+        )
+        .slice(0, 8)
+        .map((category) => ({
+          category,
+          items: movies
+            .filter(
+              (movie) =>
+                String(
+                  movie.category || '',
+                ).toLowerCase() ===
+                category.toLowerCase(),
+            )
+            .slice(0, 10),
+        }))
+    },
+    [movies],
+  )
+
+  const getProgressPercent = (
+    movie: Movie,
+  ) => {
+    const item =
+      getProgress(movie)
+
+    if (
+      item.duration <= 0
+    ) {
+      return 0
+    }
+
+    return Math.min(
+      100,
+      Math.max(
+        0,
+        (item.currentTime /
+          item.duration) *
+          100,
+      ),
+    )
+  }
+
+  const getNextMovie = () => {
+    if (!watchingMovie) {
+      return null
+    }
+
+    const index =
+      movies.findIndex(
+        (movie) =>
+          getMovieId(movie) ===
+          getMovieId(
+            watchingMovie,
+          ),
+      )
+
+    if (
+      index < 0 ||
+      movies.length < 2
+    ) {
+      return null
+    }
+
+    return (
+      movies[
+        (index + 1) %
+          movies.length
+      ] || null
+    )
+  }
+
+  const updateFilter = (
+    key: keyof Filters,
+    value: string,
+  ) => {
+    setFilters(
+      (current) => ({
+        ...current,
+        [key]:
+          key === 'sort'
+            ? (value as SortMode)
+            : value,
+      }),
+    )
+  }
+
+  const resetFilters = () => {
+    setFilters({
+      category: 'All',
+      type: 'All',
+      year: 'All',
+      rating: '0',
+      sort: 'featured',
+    })
+  }
+
+  const clearSearch = () => {
+    setSearch('')
+  }
+
+  const saveProfile = () => {
+    setProfile(
+      (current) => ({
+        ...current,
+        name:
+          current.name.trim() ||
+          'PMF Member',
+        avatar:
+          current.avatar ||
+          '🎬',
+      }),
+    )
+
+    setShowProfile(false)
+  }
+
+  const signOut = async () => {
+    await supabase.auth.signOut()
+  }
+
+  const SectionTitle = ({
+    eyebrow,
+    title,
+    subtitle,
+    action,
+  }: {
+    eyebrow?: string
+    title: string
+    subtitle?: string
+    action?: ReactNode
+  }) => (
+    <div className="mb-5 flex items-end justify-between gap-4">
+      <div>
+        {eyebrow && (
+          <p className="mb-1 flex items-center gap-2 text-[8px] font-black uppercase tracking-[0.22em] text-white/25">
+            <Sparkles size={10} />
+            {eyebrow}
+          </p>
+        )}
+
+        <h2 className="text-xl font-black tracking-[-0.03em] text-white sm:text-2xl">
+          {title}
+        </h2>
+
+        {subtitle && (
+          <p className="mt-1 max-w-2xl text-xs leading-5 text-white/30">
+            {subtitle}
+          </p>
+        )}
+      </div>
+
+      {action}
+    </div>
+  )
