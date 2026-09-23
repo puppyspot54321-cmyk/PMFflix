@@ -1467,3 +1467,291 @@ function AppShell() {
       {action}
     </div>
   )
+
+    const MovieCard = ({
+    movie,
+    compact = false,
+  }: {
+    movie: Movie
+    compact?: boolean
+  }) => {
+    const progress =
+      getProgressPercent(movie)
+
+    return (
+      <button
+        type="button"
+        onClick={() =>
+          setSelectedMovie(movie)
+        }
+        className={`group relative overflow-hidden rounded-2xl border border-white/[0.07] bg-white/[0.025] text-left transition duration-300 hover:-translate-y-1 hover:border-white/[0.16] hover:bg-white/[0.05] ${
+          compact
+            ? 'w-[150px] shrink-0 sm:w-[175px]'
+            : ''
+        }`}
+      >
+        <div className="relative aspect-[2/3] overflow-hidden bg-white/[0.04]">
+          {movie.poster_url ? (
+            <img
+              src={movie.poster_url}
+              alt={movie.title}
+              className="h-full w-full object-cover transition duration-500 group-hover:scale-105"
+              loading="lazy"
+            />
+          ) : (
+            <div className="flex h-full items-center justify-center bg-white/[0.04]">
+              <Film
+                size={28}
+                className="text-white/20"
+              />
+            </div>
+          )}
+
+          <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-black/10 opacity-70" />
+
+          {movie.featured && (
+            <div className="absolute left-2 top-2 rounded-full border border-white/10 bg-black/60 px-2 py-1 text-[8px] font-black uppercase tracking-[0.16em] text-white backdrop-blur">
+              Featured
+            </div>
+          )}
+
+          <div className="absolute bottom-0 left-0 right-0 p-3">
+            <p className="truncate text-sm font-black text-white">
+              {movie.title}
+            </p>
+
+            <div className="mt-1 flex items-center gap-2 text-[9px] font-bold text-white/55">
+              <span>
+                {movie.year}
+              </span>
+
+              {movie.category && (
+                <>
+                  <span>•</span>
+                  <span className="truncate">
+                    {movie.category}
+                  </span>
+                </>
+              )}
+            </div>
+          </div>
+        </div>
+
+        {progress > 0 && (
+          <div className="absolute bottom-0 left-0 right-0 h-1 bg-white/10">
+            <div
+              className="h-full bg-white"
+              style={{
+                width: `${progress}%`,
+              }}
+            />
+          </div>
+        )}
+      </button>
+    )
+  }
+
+  const MovieRow = ({
+    title,
+    eyebrow,
+    movies: rowMovies,
+    subtitle,
+  }: {
+    title: string
+    eyebrow?: string
+    movies: Movie[]
+    subtitle?: string
+  }) => {
+    if (!rowMovies.length) {
+      return null
+    }
+
+    return (
+      <section className="mb-10">
+        <SectionTitle
+          eyebrow={eyebrow}
+          title={title}
+          subtitle={subtitle}
+        />
+
+        <div className="flex gap-3 overflow-x-auto pb-3 scrollbar-hide">
+          {rowMovies.map(
+            (movie) => (
+              <MovieCard
+                key={getMovieId(movie)}
+                movie={movie}
+                compact
+              />
+            ),
+          )}
+        </div>
+      </section>
+    )
+  }
+
+  const Hero = () => {
+    const heroMovie =
+      featuredMovies[0] ||
+      movies[0]
+
+    if (!heroMovie) {
+      return null
+    }
+
+    return (
+      <section className="relative min-h-[520px] overflow-hidden rounded-[2rem] border border-white/[0.06] bg-white/[0.025]">
+        {heroMovie.backdrop_url ||
+        heroMovie.poster_url ? (
+          <img
+            src={
+              heroMovie.backdrop_url ||
+              heroMovie.poster_url ||
+              ''
+            }
+            alt=""
+            className="absolute inset-0 h-full w-full object-cover"
+          />
+        ) : null}
+
+        <div className="absolute inset-0 bg-gradient-to-r from-black via-black/75 to-black/10" />
+        <div className="absolute inset-0 bg-gradient-to-t from-black via-transparent to-black/20" />
+
+        <div className="relative flex min-h-[520px] max-w-2xl items-end px-6 py-10 sm:px-10 sm:py-14">
+          <div>
+            <div className="mb-4 flex flex-wrap items-center gap-2">
+              <span className="rounded-full border border-white/10 bg-white/[0.08] px-3 py-1 text-[8px] font-black uppercase tracking-[0.2em] text-white/80 backdrop-blur">
+                PMF-Flix Original
+              </span>
+
+              {heroMovie.year && (
+                <span className="text-xs font-bold text-white/50">
+                  {heroMovie.year}
+                </span>
+              )}
+
+              {heroMovie.rating && (
+                <span className="text-xs font-bold text-white/50">
+                  {heroMovie.rating}
+                </span>
+              )}
+            </div>
+
+            <h1 className="max-w-2xl text-4xl font-black tracking-[-0.05em] text-white sm:text-6xl">
+              {heroMovie.title}
+            </h1>
+
+            {heroMovie.description && (
+              <p className="mt-4 max-w-xl text-sm leading-6 text-white/55 sm:text-base">
+                {heroMovie.description}
+              </p>
+            )}
+
+            <div className="mt-7 flex flex-wrap gap-3">
+              <button
+                type="button"
+                onClick={() =>
+                  setWatchingMovie(
+                    heroMovie,
+                  )
+                }
+                className="inline-flex items-center gap-2 rounded-full bg-white px-5 py-3 text-xs font-black text-black transition hover:scale-[1.02]"
+              >
+                <Play
+                  size={15}
+                  fill="currentColor"
+                />
+                Watch now
+              </button>
+
+              <button
+                type="button"
+                onClick={() =>
+                  setSelectedMovie(
+                    heroMovie,
+                  )
+                }
+                className="inline-flex items-center gap-2 rounded-full border border-white/15 bg-black/30 px-5 py-3 text-xs font-black text-white backdrop-blur transition hover:bg-white/10"
+              >
+                <Info size={15} />
+                Details
+              </button>
+            </div>
+          </div>
+        </div>
+      </section>
+    )
+  }
+
+  const HomeContent = () => (
+    <div className="space-y-10">
+      <Hero />
+
+      {continueMovies.length > 0 && (
+        <MovieRow
+          eyebrow="Keep watching"
+          title="Continue Watching"
+          subtitle="Pick up exactly where you left off."
+          movies={continueMovies}
+        />
+      )}
+
+      <MovieRow
+        eyebrow="Discover"
+        title="Trending Now"
+        movies={trendingMovies}
+      />
+
+      <MovieRow
+        eyebrow="Fresh on PMF"
+        title="Latest Releases"
+        movies={latestMovies}
+      />
+
+      {personalizedMovies.length > 0 && (
+        <MovieRow
+          eyebrow="For you"
+          title="Made For Your Journey"
+          subtitle="A selection shaped by what you've been watching."
+          movies={personalizedMovies}
+        />
+      )}
+
+      {categoryRows.map(
+        (row) => (
+          <MovieRow
+            key={row.category}
+            title={row.category}
+            movies={row.items}
+          />
+        ),
+      )}
+    </div>
+  )
+
+  const CatalogContent = () => (
+    <div>
+      <SectionTitle
+        eyebrow="Explore"
+        title={
+          section === 'series'
+            ? 'TV Series'
+            : 'Movies'
+        }
+        subtitle={`${filteredMovies.length} title${
+          filteredMovies.length === 1
+            ? ''
+            : 's'
+        } available`}
+      />
+
+      <div className="mb-7 rounded-2xl border border-white/[0.07] bg-white/[0.025] p-4">
+        <div className="flex flex-col gap-3 lg:flex-row">
+          <div className="relative flex-1">
+            <Search
+              size={15}
+              className="absolute left-3 top-1/2 -translate-y-1/2 text-white/25"
+            />
+
+            <input
+              value={search}
+              onChange={(
