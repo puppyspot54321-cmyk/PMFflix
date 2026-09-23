@@ -1754,4 +1754,439 @@ function AppShell() {
 
             <input
               value={search}
-              onChange={(
+              onChange={(event) =>
+                setSearch(
+                  event.target.value,
+                )
+              }
+              placeholder="Search titles, genres, years..."
+              className="h-10 w-full rounded-xl border border-white/[0.07] bg-black/20 pl-9 pr-9 text-xs text-white outline-none placeholder:text-white/20 focus:border-white/20"
+            />
+
+            {search && (
+              <button
+                type="button"
+                onClick={clearSearch}
+                className="absolute right-3 top-1/2 -translate-y-1/2 text-white/30 hover:text-white"
+                aria-label="Clear search"
+              >
+                <X size={14} />
+              </button>
+            )}
+          </div>
+
+          <select
+            value={filters.category}
+            onChange={(event) =>
+              updateFilter(
+                'category',
+                event.target.value,
+              )
+            }
+            className="h-10 rounded-xl border border-white/[0.07] bg-black/30 px-3 text-xs text-white outline-none"
+          >
+            {categories.map(
+              (category) => (
+                <option
+                  key={category}
+                  value={category}
+                >
+                  {category}
+                </option>
+              ),
+            )}
+          </select>
+
+          <select
+            value={filters.type}
+            onChange={(event) =>
+              updateFilter(
+                'type',
+                event.target.value,
+              )
+            }
+            className="h-10 rounded-xl border border-white/[0.07] bg-black/30 px-3 text-xs text-white outline-none"
+          >
+            {typeOptions.map(
+              (type) => (
+                <option
+                  key={type}
+                  value={type}
+                >
+                  {type}
+                </option>
+              ),
+            )}
+          </select>
+
+          <select
+            value={filters.year}
+            onChange={(event) =>
+              updateFilter(
+                'year',
+                event.target.value,
+              )
+            }
+            className="h-10 rounded-xl border border-white/[0.07] bg-black/30 px-3 text-xs text-white outline-none"
+          >
+            {years.map(
+              (year) => (
+                <option
+                  key={year}
+                  value={year}
+                >
+                  {year}
+                </option>
+              ),
+            )}
+          </select>
+
+          <select
+            value={filters.rating}
+            onChange={(event) =>
+              updateFilter(
+                'rating',
+                event.target.value,
+              )
+            }
+            className="h-10 rounded-xl border border-white/[0.07] bg-black/30 px-3 text-xs text-white outline-none"
+          >
+            <option value="0">
+              Any rating
+            </option>
+            <option value="5">
+              5+
+            </option>
+            <option value="6">
+              6+
+            </option>
+            <option value="7">
+              7+
+            </option>
+            <option value="8">
+              8+
+            </option>
+            <option value="9">
+              9+
+            </option>
+          </select>
+
+          <select
+            value={filters.sort}
+            onChange={(event) =>
+              updateFilter(
+                'sort',
+                event.target.value,
+              )
+            }
+            className="h-10 rounded-xl border border-white/[0.07] bg-black/30 px-3 text-xs text-white outline-none"
+          >
+            <option value="featured">
+              Featured
+            </option>
+            <option value="newest">
+              Newest
+            </option>
+            <option value="oldest">
+              Oldest
+            </option>
+            <option value="rating">
+              Rating
+            </option>
+            <option value="title">
+              Title
+            </option>
+          </select>
+
+          <button
+            type="button"
+            onClick={resetFilters}
+            className="inline-flex h-10 items-center justify-center gap-2 rounded-xl border border-white/[0.07] px-4 text-xs font-bold text-white/55 transition hover:bg-white/[0.06] hover:text-white"
+          >
+            <RotateCcw size={13} />
+            Reset
+          </button>
+        </div>
+      </div>
+
+      {filteredMovies.length ? (
+        <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6">
+          {filteredMovies.map(
+            (movie) => (
+              <MovieCard
+                key={getMovieId(movie)}
+                movie={movie}
+              />
+            ),
+          )}
+        </div>
+      ) : (
+        <div className="rounded-3xl border border-dashed border-white/[0.08] px-6 py-16 text-center">
+          <Search
+            size={30}
+            className="mx-auto text-white/15"
+          />
+
+          <h3 className="mt-4 text-lg font-black text-white">
+            No titles found
+          </h3>
+
+          <p className="mt-2 text-xs text-white/30">
+            Try another search or clear your filters.
+          </p>
+
+          <button
+            type="button"
+            onClick={() => {
+              clearSearch()
+              resetFilters()
+            }}
+            className="mt-5 rounded-full border border-white/10 px-4 py-2 text-xs font-bold text-white/70 hover:bg-white/10"
+          >
+            Clear filters
+          </button>
+        </div>
+      )}
+    </div>
+  )
+
+  const MyListPage = () => (
+    <div>
+      <SectionTitle
+        eyebrow="Your collection"
+        title="My List"
+        subtitle="Titles you've saved for later."
+      />
+
+      {myListMovies.length ? (
+        <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6">
+          {myListMovies.map(
+            (movie) => (
+              <MovieCard
+                key={getMovieId(movie)}
+                movie={movie}
+              />
+            ),
+          )}
+        </div>
+      ) : (
+        <div className="rounded-3xl border border-dashed border-white/[0.08] px-6 py-16 text-center">
+          <Heart
+            size={30}
+            className="mx-auto text-white/15"
+          />
+
+          <h3 className="mt-4 text-lg font-black text-white">
+            Your list is empty
+          </h3>
+
+          <p className="mt-2 text-xs text-white/30">
+            Save titles from their details page and they'll appear here.
+          </p>
+        </div>
+      )}
+    </div>
+  )
+
+  const HistoryPage = () => (
+    <div>
+      <SectionTitle
+        eyebrow="Your activity"
+        title="Watch History"
+        subtitle="Recently watched titles."
+      />
+
+      {historyMovies.length ? (
+        <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6">
+          {historyMovies.map(
+            (movie) => (
+              <MovieCard
+                key={getMovieId(movie)}
+                movie={movie}
+              />
+            ),
+          )}
+        </div>
+      ) : (
+        <div className="rounded-3xl border border-dashed border-white/[0.08] px-6 py-16 text-center">
+          <Clock3
+            size={30}
+            className="mx-auto text-white/15"
+          />
+
+          <h3 className="mt-4 text-lg font-black text-white">
+            No watch history yet
+          </h3>
+
+          <p className="mt-2 text-xs text-white/30">
+            Movies and series you watch will appear here.
+          </p>
+        </div>
+      )}
+    </div>
+  )
+
+  const ProfilePanel = () => (
+    <div className="fixed inset-0 z-[80] flex items-center justify-center bg-black/70 p-4 backdrop-blur-sm">
+      <div className="w-full max-w-md rounded-3xl border border-white/[0.08] bg-[#101010] p-6 shadow-2xl">
+        <div className="flex items-center justify-between">
+          <div>
+            <p className="text-[9px] font-black uppercase tracking-[0.2em] text-white/25">
+              Account
+            </p>
+
+            <h2 className="mt-1 text-xl font-black text-white">
+              Your Profile
+            </h2>
+          </div>
+
+          <button
+            type="button"
+            onClick={() =>
+              setShowProfile(false)
+            }
+            className="rounded-full p-2 text-white/40 hover:bg-white/10 hover:text-white"
+            aria-label="Close profile"
+          >
+            <X size={18} />
+          </button>
+        </div>
+
+        <div className="mt-6">
+          <label className="text-[10px] font-bold uppercase tracking-[0.15em] text-white/30">
+            Display name
+          </label>
+
+          <input
+            value={profile.name}
+            onChange={(event) =>
+              setProfile(
+                (current) => ({
+                  ...current,
+                  name: event.target.value,
+                }),
+              )
+            }
+            className="mt-2 h-11 w-full rounded-xl border border-white/[0.08] bg-white/[0.03] px-3 text-sm text-white outline-none placeholder:text-white/20 focus:border-white/20"
+            placeholder="Your name"
+          />
+        </div>
+
+        <div className="mt-5">
+          <label className="text-[10px] font-bold uppercase tracking-[0.15em] text-white/30">
+            Avatar
+          </label>
+
+          <div className="mt-2 flex gap-2">
+            {[
+              '🎬',
+              '🍿',
+              '🎥',
+              '🌍',
+              '⭐',
+              '🔥',
+            ].map(
+              (avatar) => (
+                <button
+                  type="button"
+                  key={avatar}
+                  onClick={() =>
+                    setProfile(
+                      (current) => ({
+                        ...current,
+                        avatar,
+                      }),
+                    )
+                  }
+                  className={`flex h-10 w-10 items-center justify-center rounded-xl border text-lg ${
+                    profile.avatar === avatar
+                      ? 'border-white/30 bg-white/10'
+                      : 'border-white/[0.06] bg-white/[0.03]'
+                  }`}
+                >
+                  {avatar}
+                </button>
+              ),
+            )}
+          </div>
+        </div>
+
+        <div className="mt-7 flex gap-3">
+          <button
+            type="button"
+            onClick={() =>
+              setShowProfile(false)
+            }
+            className="flex-1 rounded-xl border border-white/10 py-3 text-xs font-bold text-white/60 hover:bg-white/5"
+          >
+            Cancel
+          </button>
+
+          <button
+            type="button"
+            onClick={saveProfile}
+            className="flex-1 rounded-xl bg-white py-3 text-xs font-black text-black hover:bg-white/90"
+          >
+            Save profile
+          </button>
+        </div>
+
+        <button
+          type="button"
+          onClick={signOut}
+          className="mt-3 flex w-full items-center justify-center gap-2 rounded-xl border border-red-500/10 py-3 text-xs font-bold text-red-300/70 hover:bg-red-500/10"
+        >
+          <LogOut size={14} />
+          Sign out
+        </button>
+      </div>
+    </div>
+  )
+
+  const MovieDetails = () => {
+    if (!selectedMovie) {
+      return null
+    }
+
+    const inList =
+      myList.includes(
+        getMovieId(selectedMovie),
+      )
+
+    return (
+      <div className="fixed inset-0 z-[70] overflow-y-auto bg-black/90 backdrop-blur-md">
+        <div className="mx-auto min-h-screen w-full max-w-5xl">
+          <div className="relative min-h-[75vh] overflow-hidden">
+            {selectedMovie.backdrop_url ||
+            selectedMovie.poster_url ? (
+              <img
+                src={
+                  selectedMovie.backdrop_url ||
+                  selectedMovie.poster_url ||
+                  ''
+                }
+                alt=""
+                className="absolute inset-0 h-full w-full object-cover opacity-50"
+              />
+            ) : null}
+
+            <div className="absolute inset-0 bg-gradient-to-t from-black via-black/60 to-black/10" />
+
+            <div className="relative flex min-h-[75vh] items-end px-5 py-8 sm:px-10 sm:py-12">
+              <div className="max-w-2xl">
+                <button
+                  type="button"
+                  onClick={() =>
+                    setSelectedMovie(
+                      null,
+                    )
+                  }
+                  className="mb-8 inline-flex items-center gap-2 rounded-full border border-white/10 bg-black/30 px-4 py-2 text-xs font-bold text-white/60 backdrop-blur hover:bg-white/10 hover:text-white"
+                >
+                  <ArrowLeft
+                    size={14}
+                  />
+                  Back
+                </button>
+
+                
