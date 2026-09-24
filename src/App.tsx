@@ -4,6 +4,7 @@ import {
   ChevronLeft,
   ChevronRight,
   Filter,
+  Film,
   Info,
   LogOut,
   Menu,
@@ -22,6 +23,7 @@ import { getMovies } from './services/movieService'
 import { mapCanonicalMovieToLegacy } from './utils/movieMapper'
 import { supabase } from './supabase'
 import AuthScreen from './Auth'
+import AdminStudio from './AdminStudio'
 
 type Section = 'home' | 'movies' | 'series' | 'my-list'
 
@@ -47,6 +49,12 @@ function AuthenticatedApp({
 }) {
   const [activeSection, setActiveSection] =
     useState<Section>('home')
+
+  const [showStudio, setShowStudio] =
+    useState(false)
+
+  const [isStudioAdmin, setIsStudioAdmin] =
+    useState(false)
 
   const [searchQuery, setSearchQuery] =
     useState('')
@@ -191,6 +199,48 @@ function AuthenticatedApp({
       void supabase.removeChannel(channel)
     }
   }, [])
+
+  useEffect(() => {
+    let mounted = true
+
+    const checkStudioAccess = async () => {
+      try {
+        const { data, error } =
+          await supabase
+            .from('media_admins')
+            .select('role')
+            .eq('user_id', session.user.id)
+            .maybeSingle()
+
+        if (error) {
+          console.error(
+            'PMF Studio access check error:',
+            error,
+          )
+          return
+        }
+
+        if (!mounted) return
+
+        setIsStudioAdmin(
+          data?.role === 'owner' ||
+            data?.role === 'admin' ||
+            data?.role === 'editor',
+        )
+      } catch (error) {
+        console.error(
+          'PMF Studio access check error:',
+          error,
+        )
+      }
+    }
+
+    void checkStudioAccess()
+
+    return () => {
+      mounted = false
+    }
+  }, [session.user.id])
 
   const saveMyList = (list: number[]) => {
     try {
@@ -868,7 +918,7 @@ function AuthenticatedApp({
             <div className="flex items-center gap-2">
               {accent && (
                 <span className="h-2 w-2 rounded-full bg-red-600 shadow-lg shadow-red-600/50" />
-              )}
+                      )}
 
               <h2 className="text-xl font-black tracking-tight text-white sm:text-2xl">
                 {title}
@@ -998,7 +1048,8 @@ function AuthenticatedApp({
             className="group flex items-center gap-2"
             aria-label="PMF-Flix home"
           >
-            <span className="text-2xl font-black tracking-[-0.08em] text-white sm:text-3xl">
+
+                        <span className="text-2xl font-black tracking-[-0.08em] text-white sm:text-3xl">
               PMF
               <span className="text-red-600 transition group-hover:text-red-500">
                 LIX
@@ -1038,6 +1089,20 @@ function AuthenticatedApp({
                 )}
               </button>
             ))}
+
+            {isStudioAdmin && (
+              <button
+                type="button"
+                onClick={() => {
+                  setShowStudio(true)
+                  setMobileMenu(false)
+                }}
+                className="flex items-center gap-1.5 text-xs font-bold text-amber-300/80 transition hover:text-amber-300"
+              >
+                <Film size={13} />
+                PMF Studio
+              </button>
+            )}
           </nav>
 
           <div className="flex items-center gap-2">
@@ -1170,6 +1235,20 @@ function AuthenticatedApp({
                   {label}
                 </button>
               ))}
+
+              {isStudioAdmin && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    setShowStudio(true)
+                    setMobileMenu(false)
+                  }}
+                  className="flex items-center gap-2 rounded-xl border border-amber-300/15 bg-amber-300/[0.08] px-4 py-3 text-left text-sm font-bold text-amber-300"
+                >
+                  <Film size={16} />
+                  PMF Studio
+                </button>
+              )}
             </div>
 
             <button
@@ -1184,7 +1263,7 @@ function AuthenticatedApp({
         )}
       </header>
 
-            {activeSection === 'home' &&
+      {activeSection === 'home' &&
         !searchQuery &&
         !selectedMovie && (
           <section className="relative min-h-[680px] overflow-hidden pt-16 sm:min-h-[760px] sm:pt-[72px]">
@@ -1506,7 +1585,7 @@ function AuthenticatedApp({
                   </select>
                 </div>
 
-                {hasActiveFilters && (
+                   {hasActiveFilters && (
                   <button
                     type="button"
                     onClick={resetFilters}
@@ -1614,7 +1693,7 @@ function AuthenticatedApp({
                   items={latestMovies}
                 />
 
-                                {recommendedMovies.length > 0 && (
+                {recommendedMovies.length > 0 && (
                   <MovieRail
                     title="Because You Might Like This"
                     subtitle="More stories from the same cinematic world."
@@ -1648,7 +1727,8 @@ function AuthenticatedApp({
                 ))}
               </div>
             )}
-          </section>
+
+                      </section>
         )}
 
         {selectedMovie && (
@@ -2059,5 +2139,5 @@ export default function App() {
     <AuthenticatedApp
       session={session}
     />
-  )
-}
+   )
+  }
