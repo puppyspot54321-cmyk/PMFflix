@@ -11,6 +11,7 @@ import {
   ShieldCheck,
   Sparkles,
   Video,
+  X,
 } from 'lucide-react'
 import { supabase } from './supabase'
 
@@ -27,12 +28,28 @@ type StudioMovie = {
 
 type StudioAsset = {
   id: string
+  movie_id: number | null
   title: string
+  slug: string
+  description: string | null
   media_type: string | null
+  category: string | null
+  year: number | null
+  languages: string[]
+  countries: string[]
+  duration_seconds: number | null
+  rating: string | null
+  poster_url: string | null
+  backdrop_url: string | null
+  trailer_url: string | null
   status: string | null
   processing_status: string | null
   featured: boolean
+  downloadable: boolean
+  active_variant_id: string | null
+  created_by: string | null
   created_at: string | null
+  updated_at: string | null
 }
 
 type AdminStudioProps = {
@@ -75,6 +92,47 @@ function isReadyStatus(
   )
 }
 
+function formatDuration(
+  seconds: number | null | undefined,
+) {
+  if (
+    seconds === null ||
+    seconds === undefined ||
+    !Number.isFinite(seconds) ||
+    seconds < 0
+  ) {
+    return 'Not available'
+  }
+
+  const totalSeconds = Math.floor(seconds)
+  const hours = Math.floor(totalSeconds / 3600)
+  const minutes = Math.floor(
+    (totalSeconds % 3600) / 60,
+  )
+  const remainingSeconds =
+    totalSeconds % 60
+
+  if (hours > 0) {
+    return `${hours}h ${minutes}m ${remainingSeconds}s`
+  }
+
+  return `${minutes}m ${remainingSeconds}s`
+}
+
+function formatDate(
+  value: string | null | undefined,
+) {
+  if (!value) return 'Not available'
+
+  const date = new Date(value)
+
+  if (Number.isNaN(date.getTime())) {
+    return 'Not available'
+  }
+
+  return date.toLocaleString()
+}
+
 export default function AdminStudio({
   onClose,
 }: AdminStudioProps) {
@@ -88,6 +146,9 @@ export default function AdminStudio({
   const [assets, setAssets] = useState<
     StudioAsset[]
   >([])
+
+  const [selectedAsset, setSelectedAsset] =
+    useState<StudioAsset | null>(null)
 
   const [loading, setLoading] =
     useState(true)
@@ -126,6 +187,7 @@ export default function AdminStudio({
           setRole(null)
           setMovies([])
           setAssets([])
+          setSelectedAsset(null)
           setError(
             'No active session was found.',
           )
@@ -153,6 +215,7 @@ export default function AdminStudio({
           setRole(null)
           setMovies([])
           setAssets([])
+          setSelectedAsset(null)
           return
         }
 
@@ -175,7 +238,7 @@ export default function AdminStudio({
           supabase
             .from('media_assets')
             .select(
-              'id,title,media_type,status,processing_status,featured,created_at',
+              'id,movie_id,title,slug,description,media_type,category,year,languages,countries,duration_seconds,rating,poster_url,backdrop_url,trailer_url,status,processing_status,featured,downloadable,active_variant_id,created_by,created_at,updated_at',
             )
             .order('created_at', {
               ascending: false,
@@ -270,6 +333,7 @@ export default function AdminStudio({
       <div className="flex min-h-screen items-center justify-center bg-[#08090d] text-white">
         <div className="flex flex-col items-center gap-4">
           <Loader2 className="h-9 w-9 animate-spin text-amber-300" />
+
           <p className="text-sm text-white/50">
             Opening PMF Studio…
           </p>
@@ -385,6 +449,7 @@ export default function AdminStudio({
                   : 'h-3.5 w-3.5'
               }
             />
+
             <span className="hidden sm:inline">
               Refresh
             </span>
@@ -555,9 +620,13 @@ export default function AdminStudio({
                       isReadyStatus(status)
 
                     return (
-                      <div
+                      <button
                         key={asset.id}
-                        className="px-5 py-4"
+                        type="button"
+                        onClick={() =>
+                          setSelectedAsset(asset)
+                        }
+                        className="block w-full px-5 py-4 text-left transition hover:bg-white/[0.04] focus:outline-none focus:ring-1 focus:ring-inset focus:ring-amber-300/40"
                       >
                         <div className="flex items-start justify-between gap-3">
                           <div className="min-w-0">
@@ -582,7 +651,19 @@ export default function AdminStudio({
                             {formatStatus(status)}
                           </span>
                         </div>
-                      </div>
+
+                        <div className="mt-3 flex items-center justify-between gap-3 text-[10px] text-white/25">
+                          <span>
+                            {asset.movie_id
+                              ? `Movie #${asset.movie_id}`
+                              : 'Not linked'}
+                          </span>
+
+                          <span>
+                            View details →
+                          </span>
+                        </div>
+                      </button>
                     )
                   },
                 )}
@@ -601,7 +682,7 @@ export default function AdminStudio({
               </h3>
 
               <p className="mt-1 text-xs leading-5 text-white/35">
-                This first layer is intentionally
+                This layer is intentionally
                 read-only. Editing, ingestion and
                 publishing controls will be added
                 separately.
@@ -610,6 +691,15 @@ export default function AdminStudio({
           </div>
         </section>
       </main>
+
+      {selectedAsset && (
+        <AssetDetailPanel
+          asset={selectedAsset}
+          onClose={() =>
+            setSelectedAsset(null)
+          }
+        />
+      )}
     </div>
   )
 }
@@ -652,4 +742,320 @@ function EmptyState({
       {label}
     </div>
   )
- }
+}
+
+function AssetDetailPanel({
+  asset,
+  onClose,
+}: {
+  asset: StudioAsset
+  onClose: () => void
+}) {
+  const status =
+    asset.processing_status ||
+    asset.status
+
+  const ready = isReadyStatus(status)
+
+  return (
+    <div
+      className="fixed inset-0 z-50 flex items-end justify-center bg-black/75 p-3 backdrop-blur-sm sm:items-center sm:p-6"
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="asset-detail-title"
+    >
+      <div className="max-h-[92vh] w-full max-w-3xl overflow-y-auto rounded-[28px] border border-white/10 bg-[#0c0d12] shadow-2xl">
+        <div className="sticky top-0 z-10 flex items-center justify-between gap-4 border-b border-white/10 bg-[#0c0d12]/95 px-5 py-4 backdrop-blur-xl sm:px-6">
+          <div className="min-w-0">
+            <p className="text-[10px] font-semibold uppercase tracking-[0.22em] text-amber-300/80">
+              Media Core Asset
+            </p>
+
+            <h3
+              id="asset-detail-title"
+              className="mt-1 truncate text-lg font-semibold sm:text-xl"
+            >
+              {asset.title}
+            </h3>
+          </div>
+
+          <button
+            type="button"
+            onClick={onClose}
+            aria-label="Close asset details"
+            className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-white/10 bg-white/[0.04] text-white/60 transition hover:bg-white/[0.08] hover:text-white"
+          >
+            <X className="h-4 w-4" />
+          </button>
+        </div>
+
+        <div className="p-5 sm:p-6">
+          <div className="flex flex-wrap gap-2">
+            <StatusBadge
+              label={formatStatus(
+                asset.media_type,
+              )}
+            />
+
+            <StatusBadge
+              label={formatStatus(status)}
+              success={ready}
+            />
+
+            {asset.featured && (
+              <StatusBadge
+                label="Featured"
+                success
+              />
+            )}
+
+            {asset.downloadable && (
+              <StatusBadge
+                label="Downloadable"
+              />
+            )}
+          </div>
+
+          {asset.poster_url && (
+            <div className="mt-5 overflow-hidden rounded-2xl border border-white/10 bg-black/30">
+              <img
+                src={asset.poster_url}
+                alt=""
+                className="max-h-72 w-full object-cover object-center"
+              />
+            </div>
+          )}
+
+          <div className="mt-5 grid gap-3 sm:grid-cols-2">
+            <DetailItem
+              label="Asset ID"
+              value={asset.id}
+            />
+
+            <DetailItem
+              label="Slug"
+              value={asset.slug}
+            />
+
+            <DetailItem
+              label="Movie"
+              value={
+                asset.movie_id
+                  ? `Movie #${asset.movie_id}`
+                  : 'Not linked'
+              }
+            />
+
+            <DetailItem
+              label="Category"
+              value={
+                asset.category ||
+                'Not available'
+              }
+            />
+
+            <DetailItem
+              label="Year"
+              value={
+                asset.year
+                  ? String(asset.year)
+                  : 'Not available'
+              }
+            />
+
+            <DetailItem
+              label="Rating"
+              value={
+                asset.rating ||
+                'Not available'
+              }
+            />
+
+            <DetailItem
+              label="Duration"
+              value={formatDuration(
+                asset.duration_seconds,
+              )}
+            />
+
+            <DetailItem
+              label="Languages"
+              value={
+                asset.languages.length > 0
+                  ? asset.languages.join(', ')
+                  : 'Not available'
+              }
+            />
+
+            <DetailItem
+              label="Countries"
+              value={
+                asset.countries.length > 0
+                  ? asset.countries.join(', ')
+                  : 'Not available'
+              }
+            />
+
+            <DetailItem
+              label="Publishing"
+              value={formatStatus(
+                asset.status,
+              )}
+            />
+
+            <DetailItem
+              label="Processing"
+              value={formatStatus(
+                asset.processing_status,
+              )}
+            />
+
+            <DetailItem
+              label="Created"
+              value={formatDate(
+                asset.created_at,
+              )}
+            />
+
+            <DetailItem
+              label="Updated"
+              value={formatDate(
+                asset.updated_at,
+              )}
+            />
+
+            <DetailItem
+              label="Active variant"
+              value={
+                asset.active_variant_id ||
+                'Not assigned'
+              }
+            />
+
+            <DetailItem
+              label="Created by"
+              value={
+                asset.created_by ||
+                'Not available'
+              }
+            />
+          </div>
+
+          {asset.description && (
+            <section className="mt-4 rounded-2xl border border-white/10 bg-white/[0.025] p-4">
+              <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-white/30">
+                Description
+              </p>
+
+              <p className="mt-2 text-sm leading-6 text-white/65">
+                {asset.description}
+              </p>
+            </section>
+          )}
+
+          <section className="mt-4 rounded-2xl border border-white/10 bg-white/[0.025] p-4">
+            <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-white/30">
+              Media references
+            </p>
+
+            <div className="mt-3 space-y-3">
+              <UrlRow
+                label="Poster"
+                value={asset.poster_url}
+              />
+
+              <UrlRow
+                label="Backdrop"
+                value={asset.backdrop_url}
+              />
+
+              <UrlRow
+                label="Trailer"
+                value={asset.trailer_url}
+              />
+            </div>
+          </section>
+
+          <div className="mt-5 flex items-center gap-3 rounded-2xl border border-emerald-400/10 bg-emerald-400/[0.04] p-4">
+            <CheckCircle2 className="h-5 w-5 shrink-0 text-emerald-300" />
+
+            <p className="text-xs leading-5 text-white/45">
+              Asset information is currently
+              read-only. Management controls
+              will be introduced in a separate
+              Studio layer.
+            </p>
+          </div>
+
+          <button
+            type="button"
+            onClick={onClose}
+            className="mt-5 w-full rounded-xl border border-white/10 bg-white/[0.04] px-4 py-3 text-sm font-medium text-white/70 transition hover:bg-white/[0.08] hover:text-white"
+          >
+            Close details
+          </button>
+        </div>
+      </div>
+    </div>
+  )
+}
+
+function DetailItem({
+  label,
+  value,
+}: {
+  label: string
+  value: string
+}) {
+  return (
+    <div className="rounded-2xl border border-white/10 bg-white/[0.025] p-4">
+      <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-white/30">
+        {label}
+      </p>
+
+      <p className="mt-2 break-all text-sm text-white/80">
+        {value}
+      </p>
+    </div>
+  )
+}
+
+function StatusBadge({
+  label,
+  success = false,
+}: {
+  label: string
+  success?: boolean
+}) {
+  return (
+    <span
+      className={
+        success
+          ? 'rounded-full border border-emerald-400/15 bg-emerald-400/10 px-3 py-1.5 text-[9px] font-semibold uppercase tracking-wider text-emerald-300'
+          : 'rounded-full border border-amber-300/15 bg-amber-300/10 px-3 py-1.5 text-[9px] font-semibold uppercase tracking-wider text-amber-300'
+      }
+    >
+      {label}
+    </span>
+  )
+}
+
+function UrlRow({
+  label,
+  value,
+}: {
+  label: string
+  value: string | null
+}) {
+  return (
+    <div className="rounded-xl border border-white/[0.06] bg-black/10 p-3">
+      <p className="text-[10px] font-semibold uppercase tracking-wider text-white/25">
+        {label}
+      </p>
+
+      <p className="mt-1 break-all text-xs text-white/50">
+        {value || 'Not available'}
+      </p>
+    </div>
+  )
+}
