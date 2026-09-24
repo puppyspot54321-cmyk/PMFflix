@@ -34,7 +34,6 @@ type StudioMovie = {
   featured: boolean
   downloadable: boolean
   created_at: string | null
-  updated_at: string | null
 }
 
 type StudioAsset = {
@@ -319,8 +318,8 @@ export default function AdminStudio({
           supabase
             .from('movies')
             .select(
-              'id,title,year,description,category,type,duration,rating,poster_url,video_url,trailer_url,featured,downloadable,created_at,updated_at',
-            )
+              'id,title,year,description,category,type,duration,rating,poster_url,video_url,trailer_url,featured,downloadable,created_at',
+              )
             .order('created_at', {
               ascending: false,
             }),
