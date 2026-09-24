@@ -1038,6 +1038,14 @@ function AuthenticatedApp({
     )
   }
 
+  if (showStudio) {
+    return (
+      <AdminStudio
+        onClose={() => setShowStudio(false)}
+      />
+    )
+  }
+  
   return (
     <div className="min-h-screen overflow-x-hidden bg-[#050505] text-white selection:bg-red-600 selection:text-white">
       <header className="fixed inset-x-0 top-0 z-50 border-b border-white/[0.06] bg-black/65 backdrop-blur-2xl">
