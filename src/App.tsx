@@ -1994,14 +1994,23 @@ function AuthenticatedApp({
                   />
                 ) : (
                   <video
-                    src={getVideoUrl(
-                      watchingMovie,
-                    )}
-                    className="h-full w-full"
-                    controls
-                    autoPlay
-                    playsInline
-                  />
+  src={getVideoUrl(
+    watchingMovie,
+  )}
+  className="h-full w-full"
+  controls
+  autoPlay
+  playsInline
+  preload="auto"
+  fetchPriority="high"
+  onCanPlay={(event) => {
+    const video = event.currentTarget
+
+    if (video.paused) {
+      void video.play().catch(() => {})
+    }
+  }}
+/>
                 )
               ) : (
                 <div className="flex h-full flex-col items-center justify-center px-6 text-center">
