@@ -2002,8 +2002,7 @@ function AuthenticatedApp({
   autoPlay
   playsInline
   preload="auto"
-  fetchPriority="high"
-  onCanPlay={(event) => {
+onCanPlay={(event) => {
     const video = event.currentTarget
 
     if (video.paused) {
