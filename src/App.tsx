@@ -3371,150 +3371,173 @@ function AppShell() {
             />
           ) : hasVideo ? (
             <video
-              ref={videoRef}
-              src={videoUrl}
-              poster={
-                watchingMovie.poster ||
-                heroImage
-              }
-              className="max-h-full max-w-full object-contain"
-              playsInline
-              preload="metadata"
-              onLoadedMetadata={(
-                event,
-              ) => {
-                const duration =
-                  event.currentTarget
-                    .duration
+  ref={videoRef}
+  src={videoUrl}
+  poster={
+    watchingMovie.poster ||
+    heroImage
+  }
+  className="max-h-full max-w-full object-contain"
+  playsInline
+  autoPlay
+  muted
+  preload="auto"
+  onCanPlay={(event) => {
+    const video =
+      event.currentTarget
 
-                const safeDuration =
-                  Number.isFinite(
-                    duration,
-                  )
-                    ? duration
-                    : 0
+    if (video.paused) {
+      video.muted = true
 
-                setPlayerDuration(
-                  safeDuration,
-                )
+      void video.play().catch(
+        (playError) => {
+          console.debug(
+            'PMF autoplay waiting for user interaction:',
+            playError,
+          )
+        },
+      )
+    }
+  }}
+  onLoadedMetadata={(
+    event,
+  ) => {
+    const duration =
+      event.currentTarget
+        .duration
 
-                const saved =
-                  getProgress(
-                    watchingMovie,
-                  )
+    const safeDuration =
+      Number.isFinite(duration)
+        ? duration
+        : 0
 
-                if (
-                  saved.currentTime >
-                    0 &&
-                  saved.currentTime <
-                    safeDuration - 5
-                ) {
-                  event.currentTarget.currentTime =
-                    saved.currentTime
+    setPlayerDuration(
+      safeDuration,
+    )
 
-                  setPlayerTime(
-                    saved.currentTime,
-                  )
-                }
+    const saved =
+      getProgress(
+        watchingMovie,
+      )
 
-                event.currentTarget.volume =
-                  volume
+    if (
+      saved.currentTime > 0 &&
+      saved.currentTime <
+        safeDuration - 5
+    ) {
+      event.currentTarget.currentTime =
+        saved.currentTime
 
-                event.currentTarget.muted =
-                  muted
+      setPlayerTime(
+        saved.currentTime,
+      )
+    }
 
-                event.currentTarget.playbackRate =
-                  speed
-              }}
-              onTimeUpdate={(
-                event,
-              ) => {
-                const current =
-                  event.currentTarget
-                    .currentTime
+    event.currentTarget.volume =
+      volume
 
-                const duration =
-                  event.currentTarget
-                    .duration
+    /*
+     * Start muted so mobile browsers
+     * can permit automatic playback.
+     * The viewer can unmute immediately
+     * with the volume control.
+     */
+    event.currentTarget.muted =
+      true
 
-                setPlayerTime(
-                  current,
-                )
+    event.currentTarget.playbackRate =
+      speed
+  }}
+  onTimeUpdate={(
+    event,
+  ) => {
+    const current =
+      event.currentTarget
+        .currentTime
 
-                if (
-                  Number.isFinite(
-                    duration,
-                  ) &&
-                  duration > 0
-                ) {
-                  saveProgress(
-                    watchingMovie,
-                    current,
-                    duration,
-                  )
-                }
+    const duration =
+      event.currentTarget
+        .duration
 
-                if (
-                  current > 10
-                ) {
-                  addToContinueWatching(
-                    watchingMovie,
-                  )
-                }
-              }}
-              onPlay={() => {
-                setPlayerPlaying(
-                  true,
-                )
+    setPlayerTime(
+      current,
+    )
 
-                resetPlayerControls()
-              }}
-              onPause={() => {
-                setPlayerPlaying(
-                  false,
-                )
+    if (
+      Number.isFinite(
+        duration,
+      ) &&
+      duration > 0
+    ) {
+      saveProgress(
+        watchingMovie,
+        current,
+        duration,
+      )
+    }
 
-                setShowPlayerControls(
-                  true,
-                )
-              }}
-              onEnded={() => {
-                saveProgress(
-                  watchingMovie,
-                  0,
-                  0,
-                )
+    if (
+      current > 10
+    ) {
+      addToContinueWatching(
+        watchingMovie,
+      )
+    }
+  }}
+  onPlay={() => {
+    setPlayerPlaying(
+      true,
+    )
 
-                setPlayerPlaying(
-                  false,
-                )
+    resetPlayerControls()
+  }}
+  onPause={() => {
+    setPlayerPlaying(
+      false,
+    )
 
-                setPlayerTime(0)
+    setShowPlayerControls(
+      true,
+    )
+  }}
+  onEnded={() => {
+    saveProgress(
+      watchingMovie,
+      0,
+      0,
+    )
 
-                setShowPlayerControls(
-                  true,
-                )
+    setPlayerPlaying(
+      false,
+    )
 
-                if (nextMovie) {
-                  showMessage(
-                    `Up next: ${nextMovie.title}`,
-                  )
-                }
-              }}
-              onError={() => {
-                setPlayerPlaying(
-                  false,
-                )
+    setPlayerTime(0)
 
-                setShowPlayerControls(
-                  true,
-                )
+    setShowPlayerControls(
+      true,
+    )
 
-                showMessage(
-                  'This video could not be played.',
-                )
-              }}
-            />
+    if (nextMovie) {
+      showMessage(
+        `Up next: ${nextMovie.title}`,
+      )
+    }
+  }}
+  onError={() => {
+    setPlayerPlaying(
+      false,
+    )
+
+    setShowPlayerControls(
+      true,
+    )
+
+    showMessage(
+      'This video could not be played.',
+    )
+  }}
+/>
+                
           ) : (
             <div className="flex max-w-lg flex-col items-center px-6 text-center">
 
