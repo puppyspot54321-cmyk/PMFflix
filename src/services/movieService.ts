@@ -38,21 +38,6 @@ const uniqueStrings = (
   )
 }
 
-const emptyRelationships =
-  (): Record<
-    RelationKey,
-    MetadataRelationRow[]
-  > => ({
-    genres: [],
-    subgenres: [],
-    countries: [],
-    regions: [],
-    industries: [],
-    languages: [],
-    tags: [],
-    collections: [],
-  })
-
 const getRelationshipRows = async (
   table: string,
 ): Promise<MetadataRelationRow[]> => {
