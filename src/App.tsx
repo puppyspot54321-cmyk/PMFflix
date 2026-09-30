@@ -2466,7 +2466,7 @@ const Header = () => (
                 ['series', 'TV Series'],
                 ['my-list', 'My List'],
               ] as const
-            ).map(2(d
+             ).map(
               ([key, label]) => (
                 <button
                   key={key}
