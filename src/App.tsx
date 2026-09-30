@@ -308,6 +308,9 @@ function AppShell() {
   const [, setError] =
     useState<string | null>(null)
 
+  const [, setLoading] =
+  useState(true)
+
   const [selectedMovie, setSelectedMovie] =
     useState<Movie | null>(null)
 
@@ -896,60 +899,6 @@ function AppShell() {
     playerPlaying,
   ])
 
-  const categories = useMemo(() => {
-    const values = movies
-      .map((movie) =>
-        String(
-          movie.category || '',
-        ).trim(),
-      )
-      .filter(Boolean)
-
-    return [
-      'All',
-      ...Array.from(
-        new Set(values),
-      ),
-    ]
-  }, [movies])
-
-  const years = useMemo(() => {
-    const values = movies
-      .map((movie) =>
-        Number(movie.year),
-      )
-      .filter((year) =>
-        Number.isFinite(year),
-      )
-
-    return [
-      'All',
-      ...Array.from(
-        new Set(values),
-      )
-        .sort((a, b) => b - a)
-        .map(String),
-    ]
-  }, [movies])
-
-  const typeOptions = useMemo(
-    () => [
-      'All',
-      ...Array.from(
-        new Set(
-          movies
-            .map((movie) =>
-              String(
-                movie.type || '',
-              ).trim(),
-            )
-            .filter(Boolean),
-        ),
-      ),
-    ],
-    [movies],
-  )
-
   const normalizedSearch =
     search.trim().toLowerCase()
 
@@ -1360,16 +1309,6 @@ function AppShell() {
     await supabase.auth.signOut()
   }
   
-  const updateFilter = (
-    key: keyof Filters,
-    value: string,
-  ) => {
-    setFilters((current) => ({
-      ...current,
-      [key]: value,
-    }))
-  }
-
     const resetFilters = () => {
     setFilters({
       category: 'All',
@@ -1427,165 +1366,6 @@ function AppShell() {
       ),
     )
   }
-
-const Header = () => (
-    <header className="sticky top-0 z-50 border-b border-white/[0.06] bg-[#050505]/90 backdrop-blur-xl">
-      <div className="mx-auto flex h-16 max-w-[1600px] items-center gap-3 px-4 sm:px-8">
-        <button
-          type="button"
-          onClick={() =>
-            navigate('home')
-          }
-          className="flex shrink-0 items-center gap-2"
-          aria-label="PMF-Flix home"
-        >
-          <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-white text-black">
-            <Film size={17} />
-          </div>
-
-          <span className="hidden text-sm font-black tracking-[-0.04em] text-white sm:block">
-            PMF<span className="text-white/35">-FLIX</span>
-          </span>
-        </button>
-
-        <nav className="hidden items-center gap-1 md:flex">
-          {[
-            ['home', 'Home'],
-            ['movies', 'Movies'],
-            ['series', 'TV Series'],
-            ['my-list', 'My List'],
-          ].map(
-            ([value, label]) => (
-              <button
-                key={value}
-                type="button"
-                onClick={() =>
-                  navigate(
-                    value as Section,
-                  )
-                }
-                className={`rounded-lg px-3 py-2 text-[9px] font-black uppercase tracking-[0.12em] transition ${
-                  section === value
-                    ? 'bg-white text-black'
-                    : 'text-white/45 hover:bg-white/5 hover:text-white'
-                }`}
-              >
-                {label}
-              </button>
-            ),
-          )}
-        </nav>
-
-           <div className="ml-auto hidden min-w-0 flex-1 max-w-md lg:block">
-          <div className="relative">
-            <Search
-              size={14}
-              className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-white/25"
-            />
-
-            <input
-              value={search}
-              onChange={(event) =>
-                setSearch(
-                  event.target.value,
-                )
-              }
-              placeholder="Search PMF-Flix..."
-              className="h-9 w-full rounded-xl border border-white/10 bg-white/[0.035] pl-9 pr-3 text-xs text-white outline-none placeholder:text-white/20 focus:border-white/20"
-              aria-label="Search PMF-Flix"
-            />
-          </div>
-        </div>
-
-        <button
-          type="button"
-          onClick={() =>
-            setShowProfile(true)
-          }
-          className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full border border-white/10 bg-white/[0.04] text-sm"
-          aria-label="Open profile"
-        >
-          {profile.avatar}
-        </button>
-
-        <button
-          type="button"
-          onClick={() =>
-            setMobileMenu(
-              (value) => !value,
-            )
-          }
-          className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl border border-white/10 bg-white/[0.04] text-white/60 md:hidden"
-          aria-label="Open menu"
-        >
-          <Menu size={16} />
-        </button>
-      </div>
-
-      {mobileMenu && (
-        <div className="border-t border-white/[0.06] bg-[#070707] px-4 py-4 md:hidden">
-          <div className="mb-3 relative">
-            <Search
-              size={14}
-              className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-white/25"
-            />
-
-            <input
-              value={search}
-              onChange={(event) =>
-                setSearch(
-                  event.target.value,
-                )
-              }
-              placeholder="Search PMF-Flix..."
-              className="h-10 w-full rounded-xl border border-white/10 bg-white/[0.035] pl-9 pr-3 text-xs text-white outline-none placeholder:text-white/20"
-            />
-          </div>
-
-            <div className="grid grid-cols-2 gap-2">
-            {[
-              ['home', 'Home'],
-              ['movies', 'Movies'],
-              ['series', 'TV Series'],
-              ['my-list', 'My List'],
-            ].map(
-              ([value, label]) => (
-                <button
-                  key={value}
-                  type="button"
-                  onClick={() =>
-                    navigate(
-                      value as Section,
-                    )
-                  }
-                  className={`rounded-xl border px-3 py-3 text-[9px] font-black uppercase tracking-[0.12em] ${
-                    section === value
-                      ? 'border-white bg-white text-black'
-                      : 'border-white/10 bg-white/[0.03] text-white/50'
-                  }`}
-                >
-                  {label}
-                </button>
-              ),
-            )}
-          </div>
-
-          {isStudioAdmin && (
-            <button
-              type="button"
-              onClick={() => {
-                setMobileMenu(false)
-                setShowStudio(true)
-              }}
-              className="mt-2 w-full rounded-xl border border-white/10 bg-white/[0.03] px-3 py-3 text-[9px] font-black uppercase tracking-[0.12em] text-white/60"
-            >
-              PMF Studio
-            </button>
-          )}
-        </div>
-      )}
-    </header>
-  )
 
   const MovieCard = ({
     movie,
