@@ -1276,7 +1276,7 @@ function AppShell() {
       trendingMovies,
     ])
 
-  const categoryRows = useMemo(
+    const categoryRows = useMemo(
     () => {
       const seen =
         new Set<string>()
@@ -1288,24 +1288,53 @@ function AppShell() {
               movie.category || '',
             ).trim(),
         )
-        .filter((category) => {
-          if (
-            !category ||
-            seen.has(category)
-          ) {
-            return false
-          }
+        .filter(
+          (category) => {
+            if (
+              !category ||
+              seen.has(category)
+            ) {
+              return false
+            }
 
-          seen.add(category)
-          return true
-        })
+            seen.add(category)
+            return true
+          },
+        )
         .slice(0, 8)
+        .map((category) => ({
+          category,
+          items: movies
+            .filter(
+              (movie) =>
+                String(
+                  movie.category || '',
+                ).toLowerCase() ===
+                category.toLowerCase(),
+            )
+            .slice(0, 10),
+        }))
     },
     [movies],
   )
-
-  const getNextMovie = () => {
+    const getNextMovie = () => {
     if (!watchingMovie) {
+      return null
+    }
+
+    const index =
+      movies.findIndex(
+        (movie) =>
+          getMovieId(movie) ===
+          getMovieId(
+            watchingMovie,
+          ),
+      )
+
+    if (
+      index < 0 ||
+      movies.length < 2
+    ) {
       return null
     }
 
@@ -1315,8 +1344,27 @@ function AppShell() {
           movies.length
       ] || null
     )
+    }
+  const saveProfile = () => {
+    setProfile(
+      (current) => ({
+        ...current,
+        name:
+          current.name.trim() ||
+          'PMF Member',
+        avatar:
+          current.avatar ||
+          '🎬',
+      }),
+    )
+
+    setShowProfile(false)
   }
 
+  const signOut = async () => {
+    await supabase.auth.signOut()
+  }
+  
   const updateFilter = (
     key: keyof Filters,
     value: string,
@@ -1341,13 +1389,7 @@ function AppShell() {
     setSearch('')
   }
 
-  const clearHistory = () => {
-    setHistory([])
-    setContinueWatching([])
-    setProgress({})
-  }
-
-  const getMoviePoster = (
+ const getMoviePoster = (
     movie: Movie,
   ) =>
     movie.poster ||
@@ -1648,48 +1690,42 @@ const Header = () => (
     )
   }
 
-  const MovieRow = ({
+    const MovieRow = ({
     title,
-    movies: rowMovies,
     subtitle,
+    items,
+    eyebrow,
   }: {
     title: string
-    movies: Movie[]
     subtitle?: string
+    items: Movie[]
+    eyebrow?: string
   }) => {
-    if (!rowMovies.length) {
+    if (!items.length) {
       return null
     }
 
     return (
-      <section className="mt-10">
-        <div className="mb-4 flex items-end justify-between gap-4">
-          <div>
-            <h2 className="text-lg font-black tracking-tight text-white sm:text-xl">
-              {title}
-            </h2>
+      <section className="mb-12">
+        <SectionTitle
+          eyebrow={eyebrow}
+          title={title}
+          subtitle={subtitle}
+        />
 
-            {subtitle && (
-              <p className="mt-1 text-[9px] uppercase tracking-[0.16em] text-white/25">
-                {subtitle}
-              </p>
-            )}
-          </div>
-        </div>
-
-        <div className="no-scrollbar flex gap-3 overflow-x-auto pb-2 sm:gap-4">
-          {rowMovies.map(
-            (movie) => (
+        <div className="relative">
+          <div className="no-scrollbar flex gap-3 overflow-x-auto pb-3 sm:gap-4">
+            {items.map((movie) => (
               <MovieCard
                 key={getMovieId(movie)}
                 movie={movie}
               />
-            ),
-          )}
+            ))}
+          </div>
         </div>
       </section>
     )
-  }
+    }
 
   const MovieGrid = ({
     items,
