@@ -16,9 +16,7 @@ import AdminStudio from './AdminStudio'
 import {
   Check,
   Film,
-  Heart,
   ListPlus,
-  LoaderCircle,
   Menu,
   Pause,
   Play,
@@ -306,9 +304,6 @@ function AppShell() {
 
   const [movies, setMovies] =
     useState<Movie[]>([])
-
-  const [loading, setLoading] =
-    useState(true)
 
   const [, setError] =
     useState<string | null>(null)
@@ -1375,7 +1370,7 @@ function AppShell() {
     }))
   }
 
-  const clearFilters = () => {
+    const resetFilters = () => {
     setFilters({
       category: 'All',
       type: 'All',
@@ -1383,7 +1378,7 @@ function AppShell() {
       rating: '0',
       sort: 'featured',
     })
-  }
+   }
 
   const clearSearch = () => {
     setSearch('')
@@ -1394,12 +1389,6 @@ function AppShell() {
   ) =>
     movie.poster ||
     heroImage
-
-const getMovieDescription = (
-    movie: Movie,
-  ) =>
-    movie.description ||
-    'A cinematic PMF-Flix title waiting to be discovered.'
 
   const getMovieMeta = (
     movie: Movie,
@@ -1690,6 +1679,41 @@ const Header = () => (
     )
   }
 
+  const SectionTitle = ({
+    eyebrow,
+    title,
+    subtitle,
+    action,
+  }: {
+    eyebrow?: string
+    title: string
+    subtitle?: string
+    action?: ReactNode
+  }) => (
+    <div className="mb-5 flex items-end justify-between gap-4">
+      <div>
+        {eyebrow && (
+          <p className="mb-1 flex items-center gap-2 text-[8px] font-black uppercase tracking-[0.22em] text-white/25">
+            <Sparkles size={10} />
+            {eyebrow}
+          </p>
+        )}
+
+        <h2 className="text-xl font-black tracking-[-0.03em] text-white sm:text-2xl">
+          {title}
+        </h2>
+
+        {subtitle && (
+          <p className="mt-1 max-w-2xl text-xs leading-5 text-white/30">
+            {subtitle}
+          </p>
+        )}
+      </div>
+
+      {action}
+    </div>
+  )
+  
     const MovieRow = ({
     title,
     subtitle,
@@ -2442,7 +2466,7 @@ const Header = () => (
                 ['series', 'TV Series'],
                 ['my-list', 'My List'],
               ] as const
-            ).map(
+            ).map(2(d
               ([key, label]) => (
                 <button
                   key={key}
@@ -2482,218 +2506,7 @@ const Header = () => (
     </header>
   )
 
-  const DiscoveryToolbar = () => (
-    <div className="mb-7 flex flex-wrap items-center justify-between gap-3">
-      <div>
-        <p className="text-[8px] font-black uppercase tracking-[0.22em] text-white/25">
-          Explore the universe
-        </p>
-
-        <h1 className="mt-1 text-2xl font-black tracking-[-0.04em] text-white">
-          {section === 'movies'
-            ? 'Movies'
-            : section === 'series'
-              ? 'TV Series'
-              : section === 'my-list'
-                ? 'My List'
-                : 'Discover'}
-        </h1>
-      </div>
-
-      <button
-        type="button"
-        onClick={() =>
-          setShowFilters(
-            (value) => !value,
-          )
-        }
-        className="inline-flex items-center gap-2 rounded-xl border border-white/10 bg-white/[0.04] px-4 py-3 text-[8px] font-black uppercase tracking-[0.16em] text-white/55 hover:bg-white/10 hover:text-white"
-      >
-        <Settings size={13} />
-        Filters
-      </button>
-    </div>
-  )
-
-  const FilterPanel = () => {
-    if (!showFilters) {
-      return null
-    }
-
-    return (
-      <div className="mb-8 rounded-2xl border border-white/[0.07] bg-white/[0.025] p-4 sm:p-5">
-        <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-5">
-          <label>
-            <span className="mb-2 block text-[7px] font-black uppercase tracking-[0.16em] text-white/25">
-              Category
-            </span>
-
-            <select
-              value={
-                filters.category
-              }
-              onChange={(event) =>
-                updateFilter(
-                  'category',
-                  event.target.value,
-                )
-              }
-              className="w-full rounded-xl border border-white/10 bg-black px-3 py-3 text-xs text-white outline-none"
-            >
-              {categories.map(
-                (item) => (
-                  <option
-                    key={item}
-                    value={item}
-                  >
-                    {item}
-                  </option>
-                ),
-              )}
-            </select>
-          </label>
-
-          <label>
-            <span className="mb-2 block text-[7px] font-black uppercase tracking-[0.16em] text-white/25">
-              Type
-            </span>
-
-            <select
-              value={filters.type}
-              onChange={(event) =>
-                updateFilter(
-                  'type',
-                  event.target.value,
-                )
-              }
-              className="w-full rounded-xl border border-white/10 bg-black px-3 py-3 text-xs text-white outline-none"
-            >
-              {typeOptions.map(
-                (item) => (
-                  <option
-                    key={item}
-                    value={item}
-                  >
-                    {item}
-                  </option>
-                ),
-              )}
-            </select>
-          </label>
-
-          <label>
-            <span className="mb-2 block text-[7px] font-black uppercase tracking-[0.16em] text-white/25">
-              Year
-            </span>
-
-            <select
-              value={filters.year}
-              onChange={(event) =>
-                updateFilter(
-                  'year',
-                  event.target.value,
-                )
-              }
-              className="w-full rounded-xl border border-white/10 bg-black px-3 py-3 text-xs text-white outline-none"
-            >
-              {years.map(
-                (item) => (
-                  <option
-                    key={item}
-                    value={item}
-                  >
-                    {item}
-                  </option>
-                ),
-              )}
-            </select>
-          </label>
-
-          <label>
-            <span className="mb-2 block text-[7px] font-black uppercase tracking-[0.16em] text-white/25">
-              Minimum Rating
-            </span>
-
-            <select
-              value={filters.rating}
-              onChange={(event) =>
-                updateFilter(
-                  'rating',
-                  event.target.value,
-                )
-              }
-              className="w-full rounded-xl border border-white/10 bg-black px-3 py-3 text-xs text-white outline-none"
-            >
-              {[
-                '0',
-                '5',
-                '6',
-                '7',
-                '8',
-                '9',
-              ].map(
-                (item) => (
-                  <option
-                    key={item}
-                    value={item}
-                  >
-                    {item === '0'
-                      ? 'Any rating'
-                      : `${item}+`}
-                  </option>
-                ),
-              )}
-            </select>
-          </label>
-
-          <label>
-            <span className="mb-2 block text-[7px] font-black uppercase tracking-[0.16em] text-white/25">
-              Sort
-            </span>
-
-            <select
-              value={filters.sort}
-              onChange={(event) =>
-                updateFilter(
-                  'sort',
-                  event.target.value,
-                )
-              }
-              className="w-full rounded-xl border border-white/10 bg-black px-3 py-3 text-xs text-white outline-none"
-            >
-              <option value="featured">
-                Featured
-              </option>
-              <option value="newest">
-                Newest
-              </option>
-              <option value="oldest">
-                Oldest
-              </option>
-              <option value="rating">
-                Highest Rated
-              </option>
-              <option value="title">
-                A–Z
-              </option>
-            </select>
-          </label>
-        </div>
-
-        <div className="mt-4 flex justify-end">
-          <button
-            type="button"
-            onClick={resetFilters}
-            className="text-[8px] font-black uppercase tracking-[0.16em] text-white/30 hover:text-white"
-          >
-            Reset all filters
-          </button>
-        </div>
-      </div>
-    )
-  }
-
-  const HomeContent = () => (
+    const HomeContent = () => (
     <>
       <Hero />
 
@@ -3317,6 +3130,8 @@ const ProfilePanel = () => {
           )
         : 0
 
+    const nextMovie = getNextMovie()
+    
     return (
       <div
         ref={playerRef}
