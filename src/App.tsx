@@ -443,6 +443,15 @@ function AppShell() {
 const [showAudioHub, setShowAudioHub] =
   useState(false)
 
+  const [showUpNext, setShowUpNext] =
+  useState(false)
+
+const [upNextCountdown, setUpNextCountdown] =
+  useState(8)
+
+const autoNextRef =
+  useRef(false)
+
   const getNextMovie = () => {
   if (!watchingMovie) {
     return null
@@ -1493,35 +1502,7 @@ const closePlayer = async () => {
     },
     [movies],
   )
-    const getNextMovie = () => {
-    if (!watchingMovie) {
-      return null
-    }
-
-    const index =
-      movies.findIndex(
-        (movie) =>
-          getMovieId(movie) ===
-          getMovieId(
-            watchingMovie,
-          ),
-      )
-
-    if (
-      index < 0 ||
-      movies.length < 2
-    ) {
-      return null
-    }
-
-    return (
-      movies[
-        (index + 1) %
-          movies.length
-      ] || null
-    )
-    }
-
+    
 const playNextMovie = (
   movie: Movie,
 ) => {
