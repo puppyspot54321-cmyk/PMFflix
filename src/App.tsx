@@ -661,6 +661,79 @@ const audioElementRef =
     addToContinueWatching(movie)
   }
 
+const ensureAudioGraph = async () => {
+  const video = videoRef.current
+
+  if (!video) return
+
+  try {
+    if (
+      audioElementRef.current === video &&
+      audioContextRef.current &&
+      audioGainRef.current
+    ) {
+      if (
+        audioContextRef.current.state ===
+        'suspended'
+      ) {
+        await audioContextRef.current.resume()
+      }
+
+      audioGainRef.current.gain.value =
+        audioBoost
+
+      return
+    }
+
+    const AudioContextClass =
+      window.AudioContext ||
+      (
+        window as typeof window & {
+          webkitAudioContext?: typeof AudioContext
+        }
+      ).webkitAudioContext
+
+    if (!AudioContextClass) return
+
+    const audioContext =
+      new AudioContextClass()
+
+    const source =
+      audioContext.createMediaElementSource(
+        video,
+      )
+
+    const gain =
+      audioContext.createGain()
+
+    gain.gain.value = audioBoost
+
+    source.connect(gain)
+    gain.connect(
+      audioContext.destination,
+    )
+
+    audioContextRef.current =
+      audioContext
+
+    audioSourceRef.current = source
+    audioGainRef.current = gain
+    audioElementRef.current = video
+
+    if (
+      audioContext.state ===
+      'suspended'
+    ) {
+      await audioContext.resume()
+    }
+  } catch (error) {
+    console.warn(
+      'PMF audio booster unavailable:',
+      error,
+    )
+  }
+}
+  
   const closePlayer = () => {
     if (watchingMovie) {
       saveProgress(
