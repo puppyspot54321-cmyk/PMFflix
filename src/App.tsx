@@ -884,6 +884,26 @@ const ensureAudioGraph = async () => {
     )
   }
 
+  const changeAudioBoost = (
+  value: number,
+) => {
+  const next = Math.max(
+    1,
+    Math.min(3, value),
+  )
+
+  setAudioBoost(next)
+
+  if (audioGainRef.current) {
+    audioGainRef.current.gain.value =
+      next
+  }
+
+  showMessage(
+    `${Math.round(next * 100)}% audio boost`,
+  )
+}
+
   const fullscreen = async () => {
     try {
       if (
