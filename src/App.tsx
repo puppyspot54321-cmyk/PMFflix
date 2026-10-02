@@ -2983,9 +2983,6 @@ const ProfilePanel = () => {
                 event.currentTarget.muted =
                   muted
 
-                event.currentTarget.muted =
-                  true
-
                 event.currentTarget.playbackRate =
                   speed
                             }}
