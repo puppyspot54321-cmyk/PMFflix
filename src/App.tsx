@@ -395,8 +395,8 @@ function AppShell() {
   const [volume, setVolume] =
     useState(1)
 
-  const [muted, setMuted] =
-    useState(false)
+  const [audioBoost, setAudioBoost] =
+  useState(1)
 
   const [speed, setSpeed] =
     useState(1)
