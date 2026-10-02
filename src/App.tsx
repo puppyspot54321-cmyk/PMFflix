@@ -2869,7 +2869,7 @@ const ProfilePanel = () => {
     )
   }
 
-  const Player = () => {
+  const renderPlayer = () => {
     if (!watchingMovie) {
       return null
     }
@@ -3515,9 +3515,7 @@ const ProfilePanel = () => {
         />
       )}
 
-      {watchingMovie && (
-        <Player />
-      )}
+      {watchingMovie && renderPlayer()}
     </div>
   )
 }
