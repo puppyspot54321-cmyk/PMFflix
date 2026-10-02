@@ -3465,52 +3465,166 @@ const ProfilePanel = () => {
                         />
                       </button>
 
-                      <button
-                        type="button"
-                        onClick={
-                          toggleMute
-                        }
-                        className="flex h-8 w-8 items-center justify-center rounded-lg text-white/60 hover:bg-white/10 hover:text-white"
-                        aria-label={
-                          muted
-                            ? 'Unmute'
-                            : 'Mute'
-                        }
-                      >
-                        {muted ? (
-                          <VolumeX
-                            size={14}
-                          />
-                        ) : (
-                          <Volume2
-                            size={14}
-                          />
-                        )}
-                      </button>
+                      <div className="group relative">
+  <button
+    type="button"
+    onClick={() =>
+      setShowAudioHub(
+        (current) => !current,
+      )
+    }
+    className="relative flex h-9 min-w-9 items-center justify-center gap-1.5 rounded-xl border border-white/10 bg-white/[0.06] px-2 text-white/75 backdrop-blur-md transition-all duration-200 hover:border-white/20 hover:bg-white/10 hover:text-white active:scale-95"
+    aria-label="Open audio controls"
+    aria-expanded={showAudioHub}
+  >
+    {muted ? (
+      <VolumeX
+        size={15}
+      />
+    ) : (
+      <Volume2
+        size={15}
+      />
+    )}
 
-                      <input
-                        type="range"
-                        min="0"
-                        max="1"
-                        step="0.05"
-                        value={
-                          muted
-                            ? 0
-                            : volume
-                        }
-                        onChange={(
-                          event,
-                        ) =>
-                          changeVolume(
-                            Number(
-                              event.target
-                                .value,
-                            ),
-                          )
-                        }
-                        className="hidden w-20 accent-white sm:block"
-                        aria-label="Volume"
-                     />
+    <span className="hidden text-[9px] font-bold tabular-nums tracking-wide sm:inline">
+      {Math.round(
+        audioBoost * 100,
+      )}%
+    </span>
+  </button>
+
+  <div
+    className={`absolute bottom-full left-1/2 mb-3 w-56 -translate-x-1/2 rounded-2xl border border-white/10 bg-black/85 p-3 shadow-2xl backdrop-blur-xl transition-all duration-200 ${
+      showAudioHub
+        ? 'pointer-events-auto translate-y-0 opacity-100'
+        : 'pointer-events-none translate-y-2 opacity-0'
+    } group-hover:pointer-events-auto group-hover:translate-y-0 group-hover:opacity-100`}
+    onClick={(event) =>
+      event.stopPropagation()
+    }
+  >
+    <div className="mb-3 flex items-center justify-between">
+      <div>
+        <p className="text-[10px] font-bold uppercase tracking-[0.16em] text-white/80">
+          PMF Audio
+        </p>
+
+        <p className="mt-0.5 text-[9px] text-white/40">
+          Volume & boost
+        </p>
+      </div>
+
+      <span className="rounded-full border border-white/10 bg-white/5 px-2 py-1 text-[9px] font-bold tabular-nums text-white/70">
+        {Math.round(
+          audioBoost * 100,
+        )}%
+      </span>
+    </div>
+
+    <div className="mb-3">
+      <div className="mb-1.5 flex items-center justify-between">
+        <span className="text-[9px] font-medium text-white/45">
+          Volume
+        </span>
+
+        <span className="text-[9px] font-semibold tabular-nums text-white/60">
+          {muted
+            ? 0
+            : Math.round(
+                volume * 100,
+              )}%
+        </span>
+      </div>
+
+      <input
+        type="range"
+        min="0"
+        max="1"
+        step="0.05"
+        value={
+          muted
+            ? 0
+            : volume
+        }
+        onChange={(
+          event,
+        ) =>
+          changeVolume(
+            Number(
+              event.target.value,
+            ),
+          )
+        }
+        className="h-1 w-full cursor-pointer accent-white"
+        aria-label="Volume"
+      />
+    </div>
+
+    <div className="mb-3">
+      <div className="mb-2 flex items-center justify-between">
+        <span className="text-[9px] font-medium text-white/45">
+          Audio boost
+        </span>
+
+        <span className="text-[9px] font-semibold text-white/60">
+          Up to 300%
+        </span>
+      </div>
+
+      <div className="grid grid-cols-3 gap-1.5">
+        {[1, 1.25, 1.5, 2, 2.5, 3].map(
+          (boost) => (
+            <button
+              key={boost}
+              type="button"
+              onClick={() =>
+                changeAudioBoost(
+                  boost,
+                )
+              }
+              className={`rounded-lg border px-2 py-1.5 text-[9px] font-bold tabular-nums transition-all ${
+                audioBoost === boost
+                  ? 'border-white/40 bg-white text-black'
+                  : 'border-white/10 bg-white/[0.04] text-white/55 hover:bg-white/10 hover:text-white'
+              }`}
+              aria-label={`Set audio boost to ${Math.round(boost * 100)}%`}
+            >
+              {Math.round(
+                boost * 100,
+              )}%
+            </button>
+          ),
+        )}
+      </div>
+    </div>
+
+    <button
+      type="button"
+      onClick={toggleMute}
+      className="flex w-full items-center justify-center gap-2 rounded-xl border border-white/10 bg-white/[0.05] px-3 py-2 text-[9px] font-bold uppercase tracking-[0.12em] text-white/65 transition-all hover:bg-white/10 hover:text-white active:scale-[0.98]"
+      aria-label={
+        muted
+          ? 'Unmute audio'
+          : 'Mute audio'
+      }
+    >
+      {muted ? (
+        <VolumeX
+          size={14}
+        />
+      ) : (
+        <Volume2
+          size={14}
+        />
+      )}
+
+      {muted
+        ? 'Unmute'
+        : 'Mute'}
+    </button>
+  </div>
+</div>
                     </>
                   )}
                 </div>
