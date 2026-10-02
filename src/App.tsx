@@ -3273,6 +3273,30 @@ const ProfilePanel = () => {
 
                 event.currentTarget.playbackRate =
                   speed
+
+              if (autoNextRef.current) {
+  autoNextRef.current = false
+
+  void ensureAudioGraph()
+    .then(async () => {
+      try {
+        await event.currentTarget.play()
+      } catch (error) {
+        console.warn(
+          'PMF auto-next playback could not start:',
+          error,
+        )
+
+        setPlayerPlaying(false)
+        setShowPlayerControls(true)
+
+        showMessage(
+          'Tap Play to continue.',
+        )
+      }
+    })
+              }
+                
                             }}
 
               onTimeUpdate={(
