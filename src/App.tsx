@@ -442,6 +442,35 @@ function AppShell() {
 
 const [showAudioHub, setShowAudioHub] =
   useState(false)
+
+  const getNextMovie = () => {
+  if (!watchingMovie) {
+    return null
+  }
+
+  const index =
+    movies.findIndex(
+      (movie) =>
+        getMovieId(movie) ===
+        getMovieId(
+          watchingMovie,
+        ),
+    )
+
+  if (
+    index < 0 ||
+    movies.length < 2
+  ) {
+    return null
+  }
+
+  return (
+    movies[
+      (index + 1) %
+        movies.length
+    ] || null
+  )
+  }
   
   const [showPlayerControls, setShowPlayerControls] =
     useState(true)
@@ -683,23 +712,24 @@ const audioElementRef =
   }
 
   const startWatching = (
-    movie: Movie,
-  ) => {
-    const saved = getProgress(movie)
+  movie: Movie,
+) => {
+  const saved = getProgress(movie)
 
-    setSelectedMovie(null)
-    setWatchingMovie(movie)
-    setPlayerTime(
-      saved.currentTime,
-    )
-    setPlayerDuration(
-      saved.duration,
-    )
+  setSelectedMovie(null)
+  setWatchingMovie(movie)
+  setPlayerTime(
+    saved.currentTime,
+  )
+  setPlayerDuration(
+    saved.duration,
+  )
+  setPlayerPlaying(false)
 
-    addToHistory(movie)
-    addToContinueWatching(movie)
-  }
-
+  addToHistory(movie)
+  addToContinueWatching(movie)
+}
+  
 const ensureAudioGraph = async () => {
   const video = videoRef.current
 
@@ -1491,6 +1521,61 @@ const closePlayer = async () => {
       ] || null
     )
     }
+
+const playNextMovie = (
+  movie: Movie,
+) => {
+  setShowUpNext(false)
+  setUpNextCountdown(8)
+
+  autoNextRef.current = true
+
+  setSelectedMovie(null)
+  setWatchingMovie(movie)
+  setPlayerTime(0)
+  setPlayerDuration(0)
+  setPlayerPlaying(false)
+
+  addToHistory(movie)
+  addToContinueWatching(movie)
+}
+
+useEffect(() => {
+  if (!showUpNext) {
+    return
+  }
+
+  const nextMovie = getNextMovie()
+
+  if (!nextMovie) {
+    return
+  }
+
+  if (upNextCountdown <= 0) {
+    playNextMovie(nextMovie)
+    return
+  }
+
+  const timer = window.setTimeout(() => {
+    setUpNextCountdown(
+      (current) =>
+        Math.max(
+          0,
+          current - 1,
+        ),
+    )
+  }, 1000)
+
+  return () => {
+    window.clearTimeout(timer)
+  }
+}, [
+  showUpNext,
+  upNextCountdown,
+  watchingMovie,
+  movies,
+])
+  
   const saveProfile = () => {
     setProfile(
       (current) => ({
@@ -3246,29 +3331,21 @@ const ProfilePanel = () => {
               }}
 
               onEnded={() => {
-                saveProgress(
-                  watchingMovie,
-                  0,
-                  0,
-                )
+  saveProgress(
+    watchingMovie,
+    0,
+    0,
+  )
 
-                setPlayerPlaying(
-                  false,
-                )
+  setPlayerPlaying(false)
+  setPlayerTime(0)
+  setShowPlayerControls(true)
 
-                setPlayerTime(0)
-
-                setShowPlayerControls(
-                  true,
-                )
-
-                if (nextMovie) {
-                  showMessage(
-                    `Up next: ${nextMovie.title}`,
-                  )
-                }
-              }}
-
+  if (nextMovie) {
+    setUpNextCountdown(8)
+    setShowUpNext(true)
+  }
+}}
               onError={() => {
                 setPlayerPlaying(
                   false,
@@ -3365,6 +3442,87 @@ const ProfilePanel = () => {
                 >
                   <X size={15} />
                 </button>
+
+            {showUpNext &&
+  nextMovie && (
+    <div className="absolute inset-x-0 bottom-28 z-20 flex justify-center px-4 sm:bottom-32">
+      <div className="w-full max-w-md overflow-hidden rounded-3xl border border-white/10 bg-black/90 shadow-2xl backdrop-blur-2xl">
+        <div className="relative h-36 overflow-hidden sm:h-44">
+          <img
+            src={
+              nextMovie.poster ||
+              heroImage
+            }
+            alt={nextMovie.title}
+            className="h-full w-full object-cover opacity-70"
+          />
+
+          <div className="absolute inset-0 bg-gradient-to-t from-black via-black/30 to-transparent" />
+
+          <div className="absolute left-4 top-4 rounded-full border border-white/10 bg-black/60 px-3 py-1.5 backdrop-blur-md">
+            <span className="text-[8px] font-black uppercase tracking-[0.18em] text-white/70">
+              Up Next
+            </span>
+          </div>
+
+          <div className="absolute bottom-4 left-4 right-4">
+            <p className="text-[8px] font-black uppercase tracking-[0.16em] text-white/40">
+              Playing next
+            </p>
+
+            <h3 className="mt-1 truncate text-lg font-black tracking-tight text-white sm:text-xl">
+              {nextMovie.title}
+            </h3>
+          </div>
+        </div>
+
+        <div className="p-4">
+          <div className="flex items-center justify-between gap-3">
+            <div>
+              <p className="text-[9px] font-medium text-white/40">
+                Starting automatically in
+              </p>
+
+              <p className="mt-1 text-xl font-black tabular-nums text-white">
+                {upNextCountdown}s
+              </p>
+            </div>
+
+            <div className="flex items-center gap-2">
+              <button
+                type="button"
+                onClick={() => {
+                  setShowUpNext(false)
+                  setUpNextCountdown(8)
+                }}
+                className="rounded-xl border border-white/10 bg-white/[0.05] px-4 py-2.5 text-[9px] font-black uppercase tracking-[0.12em] text-white/55 transition-all hover:bg-white/10 hover:text-white active:scale-95"
+              >
+                Cancel
+              </button>
+
+              <button
+                type="button"
+                onClick={() =>
+                  playNextMovie(
+                    nextMovie,
+                  )
+                }
+                className="flex items-center gap-2 rounded-xl bg-white px-4 py-2.5 text-[9px] font-black uppercase tracking-[0.12em] text-black transition-all hover:bg-white/90 active:scale-95"
+              >
+                <Play
+                  size={12}
+                  fill="currentColor"
+                />
+
+                Play Now
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  )}
+                
               </div>
 
               {hasPlayableVideo &&
