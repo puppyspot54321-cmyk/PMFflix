@@ -2946,25 +2946,6 @@ const ProfilePanel = () => {
               autoPlay
               muted
               preload="auto"
-              onCanPlay={(event) => {
-                const video =
-                  event.currentTarget
-
-                if (video.paused) {
-                  video.muted = true
-
-                  void video
-                    .play()
-                    .catch(
-                      (playError) => {
-                        console.debug(
-                          'PMF autoplay waiting for user interaction:',
-                          playError,
-                        )
-                      },
-                    )
-                }
-              }}
               onLoadedMetadata={(
                 event,
               ) => {
