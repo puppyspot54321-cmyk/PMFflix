@@ -2980,8 +2980,8 @@ const ProfilePanel = () => {
                   )
                 }
 
-                event.currentTarget.volume =
-                  volume
+                event.currentTarget.muted =
+                  muted
 
                 event.currentTarget.muted =
                   true
