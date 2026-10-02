@@ -793,9 +793,10 @@ const ensureAudioGraph = async () => {
 
     try {
       if (video.paused) {
-        await video.play()
-      } else {
-        video.pause()
+  await ensureAudioGraph()
+  await video.play()
+} else {
+  video.pause()
       }
     } catch (playError) {
       console.error(
