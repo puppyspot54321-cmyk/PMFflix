@@ -3056,9 +3056,10 @@ const ProfilePanel = () => {
               allowFullScreen
             />
           ) : hasVideo ? (
-            <video
-              ref={videoRef}
-              src={videoUrl}
+          <video
+  ref={videoRef}
+  crossOrigin="anonymous"
+  src={videoUrl}
               poster={
                 watchingMovie.poster ||
                 heroImage
