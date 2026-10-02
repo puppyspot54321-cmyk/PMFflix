@@ -440,6 +440,9 @@ function AppShell() {
   const [showPlayerSettings, setShowPlayerSettings] =
     useState(false)
 
+const [showAudioHub, setShowAudioHub] =
+  useState(false)
+  
   const [showPlayerControls, setShowPlayerControls] =
     useState(true)
 
