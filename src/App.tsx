@@ -750,21 +750,70 @@ const ensureAudioGraph = async () => {
   }
 }
   
-  const closePlayer = () => {
-    if (watchingMovie) {
-      saveProgress(
-        watchingMovie,
-        playerTime,
-        playerDuration,
-      )
-    }
+  const lockPlayerOrientation = async () => {
+  try {
+    const orientation =
+      screen.orientation as ScreenOrientation & {
+        lock?: (
+          orientation:
+            | 'any'
+            | 'natural'
+            | 'landscape'
+            | 'portrait'
+            | 'portrait-primary'
+            | 'portrait-secondary'
+            | 'landscape-primary'
+            | 'landscape-secondary',
+        ) => Promise<void>
+        unlock?: () => void
+      }
 
-    setWatchingMovie(null)
-    setPlayerPlaying(false)
-    setShowPlayerSettings(false)
-    setTheaterMode(false)
+    if (orientation.lock) {
+      await orientation.lock('landscape')
+    }
+  } catch {
+    // Some mobile browsers do not allow programmatic orientation locking.
+  }
+}
+
+const unlockPlayerOrientation = () => {
+  try {
+    const orientation =
+      screen.orientation as ScreenOrientation & {
+        unlock?: () => void
+      }
+
+    orientation.unlock?.()
+  } catch {
+    // Orientation unlock is best-effort.
+  }
+}
+
+const closePlayer = async () => {
+  if (watchingMovie) {
+    saveProgress(
+      watchingMovie,
+      playerTime,
+      playerDuration,
+    )
   }
 
+  if (document.fullscreenElement) {
+    try {
+      await document.exitFullscreen()
+    } catch {
+      // Fullscreen may already have been exited by the browser.
+    }
+  }
+
+  unlockPlayerOrientation()
+
+  setWatchingMovie(null)
+  setPlayerPlaying(false)
+  setShowPlayerSettings(false)
+  setTheaterMode(false)
+}
+  
   const navigate = (
     next: Section,
   ) => {
@@ -921,19 +970,21 @@ const ensureAudioGraph = async () => {
 }
 
   const fullscreen = async () => {
-    try {
-      if (
-        !document.fullscreenElement
-      ) {
-        await playerRef.current?.requestFullscreen()
-      } else {
-        await document.exitFullscreen()
-      }
-    } catch {
-      showMessage(
-        'Fullscreen is unavailable on this device.',
-      )
+  try {
+    if (!document.fullscreenElement) {
+      await playerRef.current?.requestFullscreen()
+      await lockPlayerOrientation()
+    } else {
+      await document.exitFullscreen()
+      unlockPlayerOrientation()
     }
+  } catch {
+    unlockPlayerOrientation()
+
+    showMessage(
+      'Fullscreen is unavailable on this device.',
+    )
+  }
   }
 
   const resetPlayerControls = () => {
