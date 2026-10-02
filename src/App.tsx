@@ -677,6 +677,9 @@ const ensureAudioGraph = async () => {
   if (!video) return
 
   try {
+    video.volume = volume
+    video.muted = muted
+
     if (
       audioElementRef.current === video &&
       audioContextRef.current &&
@@ -736,6 +739,9 @@ const ensureAudioGraph = async () => {
     ) {
       await audioContext.resume()
     }
+
+    video.volume = volume
+    video.muted = muted
   } catch (error) {
     console.warn(
       'PMF audio booster unavailable:',
