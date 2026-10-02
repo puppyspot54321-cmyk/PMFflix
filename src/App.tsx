@@ -398,6 +398,13 @@ function AppShell() {
   const [audioBoost, setAudioBoost] =
   useState(1)
 
+  useEffect(() => {
+  if (audioGainRef.current) {
+    audioGainRef.current.gain.value =
+      audioBoost
+  }
+}, [audioBoost])
+
   const [speed, setSpeed] =
     useState(1)
 
