@@ -3469,36 +3469,78 @@ const ProfilePanel = () => {
               {showPlayerSettings &&
                 hasVideo && (
                   <div className="mt-3 flex justify-end">
-                    <div className="flex items-center gap-1 rounded-xl border border-white/10 bg-black/80 p-1 backdrop-blur">
-                      {[
-                        0.75,
-                        1,
-                        1.25,
-                        1.5,
-                        2,
-                      ].map(
-                        (value) => (
-                          <button
-                            key={value}
-                            type="button"
-                            onClick={() =>
-                              changeSpeed(
-                                value,
-                              )
-                            }
-                            className={`rounded-lg px-3 py-2 text-[8px] font-black ${
-                              speed ===
-                              value
-                                ? 'bg-white text-black'
-                                : 'text-white/45 hover:bg-white/10 hover:text-white'
-                            }`}
-                          >
-                            {value}x
-                          </button>
-                        ),
-                      )}
-                    </div>
-                  </div>
+                   <div className="flex flex-col gap-2 rounded-xl border border-white/10 bg-black/80 p-2 backdrop-blur">
+  <div className="flex items-center gap-1">
+    <span className="mr-1 text-[8px] font-black uppercase tracking-wider text-white/40">
+      Speed
+    </span>
+
+    {[
+      0.75,
+      1,
+      1.25,
+      1.5,
+      2,
+    ].map(
+      (value) => (
+        <button
+          key={value}
+          type="button"
+          onClick={() =>
+            changeSpeed(
+              value,
+            )
+          }
+          className={`rounded-lg px-3 py-2 text-[8px] font-black ${
+            speed ===
+            value
+              ? 'bg-white text-black'
+              : 'text-white/45 hover:bg-white/10 hover:text-white'
+          }`}
+        >
+          {value}x
+        </button>
+      ),
+    )}
+  </div>
+
+  <div className="flex items-center gap-1">
+    <span className="mr-1 text-[8px] font-black uppercase tracking-wider text-white/40">
+      Boost
+    </span>
+
+    {[
+      1,
+      1.25,
+      1.5,
+      2,
+      2.5,
+      3,
+    ].map(
+      (value) => (
+        <button
+          key={value}
+          type="button"
+          onClick={() =>
+            changeAudioBoost(
+              value,
+            )
+          }
+          className={`rounded-lg px-3 py-2 text-[8px] font-black ${
+            audioBoost ===
+            value
+              ? 'bg-white text-black'
+              : 'text-white/45 hover:bg-white/10 hover:text-white'
+          }`}
+        >
+          {Math.round(
+            value * 100,
+          )}%
+        </button>
+      ),
+    )}
+  </div>
+</div> 
                 )}
             </div>
           </div>
