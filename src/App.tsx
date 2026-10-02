@@ -2943,8 +2943,6 @@ const ProfilePanel = () => {
               }
               className="max-h-full max-w-full object-contain"
               playsInline
-              autoPlay
-              muted
               preload="auto"
               onLoadedMetadata={(
                 event,
