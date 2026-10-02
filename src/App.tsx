@@ -418,6 +418,18 @@ function AppShell() {
       null,
     )
 
+  const audioContextRef =
+  useRef<AudioContext | null>(null)
+
+const audioSourceRef =
+  useRef<MediaElementAudioSourceNode | null>(null)
+
+const audioGainRef =
+  useRef<GainNode | null>(null)
+
+const audioElementRef =
+  useRef<HTMLVideoElement | null>(null)
+
   const playerRef =
     useRef<HTMLDivElement | null>(
       null,
