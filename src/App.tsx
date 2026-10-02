@@ -395,6 +395,9 @@ function AppShell() {
   const [volume, setVolume] =
     useState(1)
 
+  const [muted, setMuted] =
+  useState(false)
+
   const [audioBoost, setAudioBoost] =
   useState(1)
 
@@ -3532,15 +3535,15 @@ const ProfilePanel = () => {
               ? 'bg-white text-black'
               : 'text-white/45 hover:bg-white/10 hover:text-white'
           }`}
-        >
-          {Math.round(
+        >{Math.round(
             value * 100,
           )}%
         </button>
       ),
     )}
   </div>
-</div> 
+</div>
+                    </div>
                 )}
             </div>
           </div>
