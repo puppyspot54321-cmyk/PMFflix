@@ -207,6 +207,32 @@ function getYouTubeEmbed(
   return `https://www.youtube.com/embed/${id}?autoplay=1&rel=0&modestbranding=1`
 }
 
+const formatPlayerTime = (seconds: number) => {
+  if (!Number.isFinite(seconds) || seconds < 0) {
+    return '00:00'
+  }
+
+  const totalSeconds =
+    Math.floor(seconds)
+
+  const hours =
+    Math.floor(totalSeconds / 3600)
+
+  const minutes =
+    Math.floor(
+      (totalSeconds % 3600) / 60,
+    )
+
+  const remainingSeconds =
+    totalSeconds % 60
+
+  if (hours > 0) {
+    return `${String(hours).padStart(2, '0')}:${String(minutes).padStart(2, '0')}:${String(remainingSeconds).padStart(2, '0')}`
+  }
+
+  return `${String(minutes).padStart(2, '0')}:${String(remainingSeconds).padStart(2, '0')}`
+}
+
 function AppShell() {
   const [session, setSession] =
     useState<Session | null>(null)
@@ -3339,36 +3365,46 @@ const ProfilePanel = () => {
               </div>
 
               {hasPlayableVideo &&
-                !youtube && (
-                  <input
-                    type="range"
-                    min="0"
-                    max={Math.max(
-                      1,
-                      playerDuration,
-                    )}
-                    value={Math.min(
-                      playerTime,
-                      playerDuration ||
-                        1,
-                    )}
-                    onChange={(
-                      event,
-                    ) => {
-                      seek(
-                        Number(
-                          event.target
-                            .value,
-                        ),
-                      )
-                    }}
-                    className="mb-4 h-1 w-full cursor-pointer accent-white"
-                    style={{
-                      background: `linear-gradient(to right, white ${percent}%, rgba(255,255,255,.15) ${percent}%)`,
-                    }}
-                    aria-label="Playback progress"
-                  />
-                )}
+  !youtube && (
+    <div className="mb-4">
+      <div className="mb-2 flex items-center justify-between px-0.5">
+        <span className="text-[9px] font-semibold tabular-nums text-white/60">
+          {formatPlayerTime(playerTime)}
+        </span>
+
+        <span className="text-[9px] font-semibold tabular-nums text-white/35">
+          {formatPlayerTime(playerDuration)}
+        </span>
+      </div>
+
+      <input
+        type="range"
+        min="0"
+        max={Math.max(
+          1,
+          playerDuration,
+        )}
+        value={Math.min(
+          playerTime,
+          playerDuration || 1,
+        )}
+        onChange={(
+          event,
+        ) => {
+          seek(
+            Number(
+              event.target.value,
+            ),
+          )
+        }}
+        className="h-1 w-full cursor-pointer accent-white"
+        style={{
+          background: `linear-gradient(to right, white ${percent}%, rgba(255,255,255,.15) ${percent}%)`,
+        }}
+        aria-label="Playback progress"
+      />
+    </div>
+  )}
 
               <div className="flex items-center justify-between gap-2">
 
