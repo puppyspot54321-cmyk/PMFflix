@@ -1634,63 +1634,7 @@ useEffect(() => {
       ),
     )
   }
-
-  const MovieCard = ({
-    movie,
-    compact = false,
-  }: {
-    movie: Movie
-    compact?: boolean
-  }) => {
-    const progressPercent =
-      getProgressPercent(movie)
-
-    return (
-      <article
-        className={`group relative shrink-0 overflow-hidden rounded-2xl border border-white/[0.07] bg-white/[0.025] transition duration-300 hover:-translate-y-1 hover:border-white/15 hover:bg-white/[0.05] ${
-          compact
-            ? 'w-[145px] sm:w-[175px]'
-            : 'w-[165px] sm:w-[205px] lg:w-[225px]'
-        }`}
-      >
-        <button
-          type="button"
-          onClick={() =>
-            openMovie(movie)
-          }
-          className="block w-full text-left"
-        >
-          <div
-            className={`relative overflow-hidden ${
-              compact
-                ? 'aspect-[2/3]'
-                : 'aspect-[2/3]'
-            }`}
-          >
-            <img
-              src={getMoviePoster(movie)}
-              alt={movie.title}
-              className="h-full w-full object-cover transition duration-500 group-hover:scale-105"
-              loading="lazy"
-            />
-
-            <div className="absolute inset-0 bg-gradient-to-t from-black via-transparent to-transparent opacity-80" />
-
-            {movie.featured && (
-              <span className="absolute left-2 top-2 rounded-full bg-white px-2 py-1 text-[7px] font-black uppercase tracking-[0.12em] text-black">
-                Featured
-              </span>
-            )}
-
-            {progressPercent > 0 && (
-              <div className="absolute inset-x-2 bottom-2 h-1 overflow-hidden rounded-full bg-white/20">
-                <div
-                  className="h-full bg-white"
-                  style={{
-                    width: `${progressPercent}%`,
-                  }}
-                />
-
+  
 const MovieCard = ({
   movie,
   compact = false,
