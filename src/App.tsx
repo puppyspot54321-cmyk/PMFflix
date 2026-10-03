@@ -2857,59 +2857,6 @@ const Hero = () => {
   </header>
 )
 
-
-    const HomeContent = () => (
-    <>
-      <Hero />
-
-      <main className="relative mx-auto max-w-[1600px] overflow-hidden px-5 pb-24 sm:px-10 lg:px-16">
-        <div
-          aria-hidden="true"
-          className="pointer-events-none absolute left-1/2 top-0 h-[420px] w-[900px] -translate-x-1/2 rounded-full bg-white/[0.025] blur-[140px]"
-        />
-
-        {continueMovies.length > 0 && (
-          <section className="relative">
-            <MovieRow
-              eyebrow="Pick up where you left off"
-              title="Continue Watching"
-              subtitle="Your unfinished stories, ready when you are."
-              items={continueMovies}
-            />
-          </section>
-        )}
-
-        {featuredMovies.length > 1 && (
-          <section className="relative">
-            <MovieRow
-              eyebrow="PMF selection"
-              title="Featured"
-              subtitle="Stories selected for the PMF experience."
-              items={featuredMovies}
-            />
-          </section>
-        )}
-
-        {trendingMovies.length > 0 && (
-          <section className="relative">
-            <MovieRow
-              eyebrow="What's moving"
-              title="Trending Now"
-              subtitle="The titles creating the most excitement on PMF-Flix."
-              items={trendingMovies}
-            />
-          </section>
-        )}
-
-        {personalizedMovies.length > 0 && (
-          <section className="relative">
-            <MovieRow
-              eyebrow="Made for your journey"
-              title="Made For You"
-              subtitle="Recommendations shaped by your viewing journey."
-              items={personalizedMovies}
-            />
-
 const HomeContent = () => (
   <>
     <Hero />
