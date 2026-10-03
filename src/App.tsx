@@ -240,16 +240,6 @@ function AppShell() {
   const [authLoading, setAuthLoading] =
     useState(true)
 
-      useEffect(() => {
-    let mounted = true
-    let authEventOccurred = false
-
-    const loadInitialSession = async () => {
-      const {
-        data: { session: currentSession },
-        error,
-      } = await supabase.auth.getSession()
-
 useEffect(() => {
   let mounted = true
   let authEventOccurred = false
