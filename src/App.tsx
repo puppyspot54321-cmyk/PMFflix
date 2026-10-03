@@ -2227,57 +2227,7 @@ useEffect(() => {
     )
   }
 
-  const Hero = () => {
-    const featured =
-      featuredMovies[0] ||
-      movies[0]
-
-    if (!featured) {
-      return (
-        <section className="relative flex min-h-[78vh] items-center overflow-hidden bg-[#050505]">
-          <div className="mx-auto max-w-[1600px] px-5 pt-28 sm:px-10 lg:px-16">
-            <p className="text-[9px] font-black uppercase tracking-[0.28em] text-white/30">
-              PMF — Prince Mufasa Flix
-            </p>
-
-            <h1 className="mt-4 max-w-3xl text-5xl font-black tracking-[-0.06em] text-white sm:text-7xl">
-              Your world.
-              <br />
-              Your stories.
-              <br />
-              Your Flix.
-            </h1>
-          </div>
-        </section>
-      )
-    }
-
-    return (
-      <section className="relative min-h-[78vh] overflow-hidden">
-        <div className="absolute inset-0">
-          <img
-            src={
-              featured.poster ||
-              heroImage
-            }
-            alt=""
-            className="h-full w-full scale-105 object-cover opacity-45 blur-[1px]"
-          />
-
-          <div className="absolute inset-0 bg-gradient-to-r from-black via-black/65 to-black/20" />
-          <div className="absolute inset-0 bg-gradient-to-t from-[#050505] via-transparent to-black/20" />
-        </div>
-
-        <div className="relative mx-auto flex min-h-[78vh] max-w-[1600px] items-end px-5 pb-16 pt-32 sm:px-10 sm:pb-20 lg:px-16">
-          <div className="max-w-2xl">
-            <div className="mb-4 inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/[0.05] px-3 py-1.5 text-[8px] font-black uppercase tracking-[0.2em] text-white/65 backdrop-blur">
-              <Sparkles size={10} />
-              Featured on PMF-Flix
-            </div>
-
-            <h1 className="text-5xl font-black tracking-[-0.065em] text-white sm:text-7xl lg:text-8xl">
-              {featured.title}
-            </h1>
+  
 
             <div className="mt-5 flex flex-wrap items-center gap-3 text-[9px] font-bold uppercase tracking-[0.12em] text-white/50">
               <span>
@@ -2340,55 +2290,253 @@ useEffect(() => {
                 />
                 Play Now
               </button>
+const Hero = () => {
+  const featured =
+    featuredMovies[0] ||
+    movies[0]
 
-              <button
-                type="button"
-                onClick={() =>
-                  openMovie(
-                    featured,
-                  )
-                }
-                className="inline-flex items-center gap-2 rounded-xl border border-white/10 bg-white/[0.06] px-5 py-3.5 text-[9px] font-black uppercase tracking-[0.17em] text-white backdrop-blur transition hover:bg-white/10"
-              >
-                <Film size={13} />
-                More Info
-              </button>
+  if (!featured) {
+    return (
+      <section className="relative flex min-h-[82vh] items-center overflow-hidden bg-[#04030a]">
+        <div
+          aria-hidden="true"
+          className="absolute left-1/2 top-1/2 h-[520px] w-[520px] -translate-x-1/2 -translate-y-1/2 rounded-full bg-purple-600/10 blur-[140px]"
+        />
+
+        <div className="relative mx-auto max-w-[1600px] px-5 pt-28 sm:px-10 lg:px-16">
+          <div className="max-w-3xl">
+            <div className="mb-6 flex items-center gap-3">
+              <span className="h-px w-10 bg-purple-400/70" />
+
+              <p className="text-[9px] font-black uppercase tracking-[0.4em] text-purple-300/70">
+                PMF — Prince Mufasa Flix
+              </p>
             </div>
+
+            <h1 className="text-6xl font-black leading-[0.88] tracking-[-0.075em] text-white sm:text-8xl lg:text-[110px]">
+              Your world.
+              <br />
+              <span className="text-purple-300">
+                Your stories.
+              </span>
+              <br />
+              Your Flix.
+            </h1>
+
+            <p className="mt-8 max-w-xl text-sm leading-7 text-white/45 sm:text-base">
+              A cinematic universe built for stories
+              worth remembering.
+            </p>
           </div>
         </div>
       </section>
     )
-   }
+  }
+
+  return (
+    <section className="group relative min-h-[88vh] overflow-hidden bg-[#04030a]">
+      {/* Cinematic atmosphere */}
+      <div
+        aria-hidden="true"
+        className="absolute -left-32 top-1/4 h-[500px] w-[500px] rounded-full bg-purple-600/15 blur-[150px]"
+      />
+
+      <div
+        aria-hidden="true"
+        className="absolute right-[-10%] top-[-10%] h-[600px] w-[600px] rounded-full bg-cyan-400/[0.035] blur-[170px]"
+      />
+
+      {/* Artwork */}
+      <div className="absolute inset-0">
+        <img
+          src={
+            featured.poster ||
+            heroImage
+          }
+          alt=""
+          className="h-full w-full scale-[1.04] object-cover opacity-55 transition duration-[1600ms] ease-out group-hover:scale-[1.07]"
+        />
+
+        {/* Obsidian cinematic layers */}
+        <div className="absolute inset-0 bg-[radial-gradient(circle_at_72%_40%,rgba(168,85,247,0.16),transparent_30%)]" />
+
+        <div className="absolute inset-0 bg-gradient-to-r from-[#04030a] via-[#04030a]/80 to-[#04030a]/15" />
+
+        <div className="absolute inset-0 bg-gradient-to-t from-[#04030a] via-[#04030a]/15 to-black/20" />
+
+        <div className="absolute inset-0 bg-gradient-to-b from-[#04030a]/75 via-transparent to-transparent" />
+      </div>
+
+      {/* Hero content */}
+      <div className="relative mx-auto flex min-h-[88vh] max-w-[1600px] items-end px-5 pb-20 pt-36 sm:px-10 sm:pb-24 lg:px-16">
+        <div className="max-w-3xl">
+          {/* PMF identity marker */}
+          <div className="mb-6 flex items-center gap-3">
+            <div className="flex h-8 w-8 items-center justify-center rounded-lg border border-purple-300/20 bg-purple-500/10 text-purple-300 shadow-[0_0_30px_rgba(168,85,247,0.16)]">
+              <Sparkles size={13} />
+            </div>
+
+            <div>
+              <p className="text-[7px] font-black uppercase tracking-[0.35em] text-purple-300/80">
+                PMF Signature
+              </p>
+
+              <p className="mt-1 text-[7px] font-bold uppercase tracking-[0.18em] text-white/30">
+                Featured cinematic experience
+              </p>
+            </div>
+          </div>
+
+          {/* Title */}
+          <h1 className="max-w-4xl text-5xl font-black leading-[0.9] tracking-[-0.075em] text-white sm:text-7xl lg:text-[92px]">
+            {featured.title}
+          </h1>
+
+          {/* Metadata */}
+          <div className="mt-6 flex flex-wrap items-center gap-x-3 gap-y-2 text-[8px] font-black uppercase tracking-[0.18em]">
+            <span className="text-purple-300">
+              {featured.year}
+            </span>
+
+            <span className="text-white/15">
+              /
+            </span>
+
+            <span className="text-white/45">
+              {featured.type || 'Film'}
+            </span>
+
+            {featured.duration && (
+              <>
+                <span className="text-white/15">
+                  /
+                </span>
+
+                <span className="text-white/45">
+                  {featured.duration}
+                </span>
+              </>
+            )}
+
+            {getRating(featured) > 0 && (
+              <>
+                <span className="text-white/15">
+                  /
+                </span>
+
+                <span className="inline-flex items-center gap-1.5 text-[#d8b36a]">
+                  <Star
+                    size={10}
+                    fill="currentColor"
+                  />
+
+                  {getRating(
+                    featured,
+                  ).toFixed(1)}
+                </span>
+              </>
+            )}
+          </div>
+
+          {/* Description */}
+          <p className="mt-6 max-w-2xl text-sm leading-7 text-white/50 sm:text-base">
+            {featured.description ||
+              'Discover remarkable stories, unforgettable characters and cinematic worlds on PMF-Flix.'}
+          </p>
+
+          {/* Actions */}
+          <div className="mt-9 flex flex-wrap items-center gap-3">
+            <button
+              type="button"
+              onClick={() =>
+                startWatching(
+                  featured,
+                )
+              }
+              className="group/play relative inline-flex items-center gap-3 overflow-hidden rounded-2xl border border-purple-300/30 bg-purple-500 px-6 py-4 text-[9px] font-black uppercase tracking-[0.2em] text-white shadow-[0_12px_45px_rgba(168,85,247,0.25)] transition-all duration-300 hover:-translate-y-0.5 hover:bg-purple-400 hover:shadow-[0_16px_55px_rgba(168,85,247,0.38)] active:scale-[0.98]"
+            >
+              <span className="absolute inset-0 -translate-x-full bg-white/20 transition-transform duration-500 group-hover/play:translate-x-full" />
+
+              <span className="relative flex h-7 w-7 items-center justify-center rounded-full bg-white text-purple-700">
+                <Play
+                  size={12}
+                  fill="currentColor"
+                />
+              </span>
+
+              <span className="relative">
+                Enter Experience
+              </span>
+            </button>
+
+            <button
+              type="button"
+              onClick={() =>
+                openMovie(
+                  featured,
+                )
+              }
+              className="inline-flex items-center gap-3 rounded-2xl border border-white/15 bg-black/25 px-5 py-4 text-[9px] font-black uppercase tracking-[0.2em] text-white/75 backdrop-blur-xl transition-all duration-300 hover:border-purple-300/30 hover:bg-purple-500/10 hover:text-white"
+            >
+              <Film size={13} />
+              Explore Story
+            </button>
+          </div>
+
+          {/* Signature line */}
+          <div className="mt-10 flex items-center gap-3">
+            <div className="h-px w-14 bg-gradient-to-r from-purple-400/70 to-transparent" />
+
+            <p className="text-[7px] font-black uppercase tracking-[0.3em] text-white/25">
+              Your World. Your Stories. Your Flix.
+            </p>
+          </div>
+        </div>
+      </div>
+    </section>
+  )
+ }
 
   const Header = () => (
-    <header className="fixed left-0 right-0 top-0 z-50 border-b border-white/[0.06] bg-black/55 backdrop-blur-xl">
-      <div className="mx-auto flex h-16 max-w-[1600px] items-center gap-4 px-4 sm:px-8 lg:px-12">
+  <header className="fixed left-0 right-0 top-0 z-50">
+    <div className="absolute inset-x-0 top-0 h-24 bg-gradient-to-b from-purple-500/[0.06] to-transparent pointer-events-none" />
+
+    <div className="relative border-b border-purple-300/[0.08] bg-[#05040b]/80 shadow-[0_12px_60px_rgba(0,0,0,0.35)] backdrop-blur-2xl">
+      <div className="mx-auto flex h-[72px] max-w-[1600px] items-center gap-4 px-4 sm:px-8 lg:px-12">
+        
+        {/* PMF BRAND */}
         <button
           type="button"
           onClick={() =>
             navigate('home')
           }
-          className="flex shrink-0 items-center gap-2"
+          className="group flex shrink-0 items-center gap-3"
           aria-label="PMF-Flix home"
         >
-          <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-white text-black">
-            <Film size={17} />
+          <div className="relative flex h-10 w-10 items-center justify-center overflow-hidden rounded-xl border border-purple-300/25 bg-gradient-to-br from-purple-500 to-purple-800 text-white shadow-[0_0_30px_rgba(168,85,247,0.18)] transition duration-300 group-hover:shadow-[0_0_40px_rgba(168,85,247,0.35)]">
+            <div className="absolute inset-0 bg-white/10 opacity-0 transition group-hover:opacity-100" />
+
+            <Film
+              size={17}
+              className="relative"
+            />
           </div>
 
           <div className="hidden sm:block">
-            <div className="text-sm font-black tracking-[-0.03em] text-white">
+            <div className="text-[15px] font-black tracking-[-0.04em] text-white">
               PMF
-              <span className="text-white/35">
+              <span className="text-purple-300">
                 -FLIX
               </span>
             </div>
 
-            <div className="text-[6px] font-black uppercase tracking-[0.22em] text-white/25">
+            <div className="mt-0.5 text-[6px] font-black uppercase tracking-[0.28em] text-white/25">
               Prince Mufasa Flix
             </div>
           </div>
         </button>
 
+        {/* DESKTOP NAVIGATION */}
         <nav className="hidden items-center gap-1 lg:flex">
           {(
             [
@@ -2405,23 +2553,33 @@ useEffect(() => {
                 onClick={() =>
                   navigate(key)
                 }
-                className={`rounded-lg px-3 py-2 text-[8px] font-black uppercase tracking-[0.16em] transition ${
+                className={`group relative rounded-xl px-4 py-2.5 text-[8px] font-black uppercase tracking-[0.17em] transition-all ${
                   section === key
-                    ? 'bg-white/10 text-white'
-                    : 'text-white/35 hover:bg-white/5 hover:text-white'
+                    ? 'text-white'
+                    : 'text-white/35 hover:text-white'
                 }`}
               >
                 {label}
+
+                <span
+                  className={`absolute bottom-0 left-1/2 h-px -translate-x-1/2 bg-purple-400 shadow-[0_0_12px_rgba(168,85,247,0.7)] transition-all ${
+                    section === key
+                      ? 'w-7'
+                      : 'w-0 group-hover:w-4'
+                  }`}
+                />
               </button>
             ),
           )}
         </nav>
 
+        {/* RIGHT SIDE */}
         <div className="ml-auto flex min-w-0 items-center gap-2">
-          <div className="hidden w-[220px] items-center gap-2 rounded-xl border border-white/10 bg-white/[0.04] px-3 sm:flex">
+          {/* SEARCH */}
+          <div className="hidden w-[240px] items-center gap-2 rounded-xl border border-white/[0.08] bg-white/[0.025] px-3 transition-all focus-within:border-purple-300/25 focus-within:bg-purple-500/[0.04] sm:flex">
             <Search
               size={14}
-              className="shrink-0 text-white/25"
+              className="shrink-0 text-purple-300/40"
             />
 
             <input
@@ -2431,7 +2589,7 @@ useEffect(() => {
                   event.target.value,
                 )
               }
-              placeholder="Search PMF-Flix"
+              placeholder="Search the PMF universe"
               className="min-w-0 flex-1 bg-transparent py-2.5 text-xs text-white outline-none placeholder:text-white/20"
             />
 
@@ -2439,38 +2597,43 @@ useEffect(() => {
               <button
                 type="button"
                 onClick={clearSearch}
-                className="text-white/30 hover:text-white"
+                className="text-white/25 transition hover:text-purple-300"
               >
                 <X size={12} />
               </button>
             )}
           </div>
 
+          {/* PROFILE */}
           <button
             type="button"
             onClick={() =>
               setShowProfile(true)
             }
-            className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl border border-white/10 bg-white/5 text-lg transition hover:bg-white/10"
+            className="group relative flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-white/[0.09] bg-white/[0.035] text-lg transition-all hover:border-purple-300/25 hover:bg-purple-500/[0.08]"
             aria-label="Open profile"
           >
-            {profile.avatar}
+            <span className="transition-transform duration-300 group-hover:scale-110">
+              {profile.avatar}
+            </span>
           </button>
 
+          {/* STUDIO */}
           {isStudioAdmin && (
             <button
               type="button"
               onClick={() =>
                 setShowStudio(true)
               }
-              className="hidden h-9 items-center gap-2 rounded-xl border border-white/10 bg-white/5 px-3 text-[8px] font-black uppercase tracking-[0.14em] text-white/45 transition hover:bg-white/10 hover:text-white lg:flex"
+              className="hidden h-10 items-center gap-2 rounded-xl border border-[#d8b36a]/20 bg-[#d8b36a]/[0.05] px-3 text-[8px] font-black uppercase tracking-[0.14em] text-[#d8b36a]/65 transition hover:border-[#d8b36a]/35 hover:bg-[#d8b36a]/[0.09] hover:text-[#d8b36a] lg:flex"
               aria-label="Open PMF Studio"
             >
-              <Film size={13} />
+              <Sparkles size={12} />
               Studio
             </button>
           )}
 
+          {/* MOBILE MENU */}
           <button
             type="button"
             onClick={() =>
@@ -2478,7 +2641,11 @@ useEffect(() => {
                 (value) => !value,
               )
             }
-            className="flex h-9 w-9 items-center justify-center rounded-xl border border-white/10 bg-white/5 text-white/55 lg:hidden"
+            className={`flex h-10 w-10 items-center justify-center rounded-xl border text-white/55 transition lg:hidden ${
+              mobileMenu
+                ? 'border-purple-300/25 bg-purple-500/10 text-purple-300'
+                : 'border-white/[0.09] bg-white/[0.035]'
+            }`}
             aria-label="Open menu"
           >
             <Menu size={16} />
@@ -2486,12 +2653,13 @@ useEffect(() => {
         </div>
       </div>
 
+      {/* MOBILE MENU */}
       {mobileMenu && (
-        <div className="border-t border-white/[0.06] bg-black/95 px-4 py-4 lg:hidden">
-          <div className="mb-3 flex items-center gap-2 rounded-xl border border-white/10 bg-white/[0.04] px-3">
+        <div className="border-t border-purple-300/[0.08] bg-[#05040b]/95 px-4 py-4 backdrop-blur-2xl lg:hidden">
+          <div className="mb-4 flex items-center gap-2 rounded-xl border border-white/[0.08] bg-white/[0.025] px-3 focus-within:border-purple-300/25">
             <Search
               size={14}
-              className="text-white/25"
+              className="text-purple-300/40"
             />
 
             <input
@@ -2501,7 +2669,7 @@ useEffect(() => {
                   event.target.value,
                 )
               }
-              placeholder="Search PMF-Flix"
+              placeholder="Search the PMF universe"
               className="min-w-0 flex-1 bg-transparent py-3 text-xs text-white outline-none placeholder:text-white/20"
             />
           </div>
@@ -2514,7 +2682,7 @@ useEffect(() => {
                 ['series', 'TV Series'],
                 ['my-list', 'My List'],
               ] as const
-             ).map(
+            ).map(
               ([key, label]) => (
                 <button
                   key={key}
@@ -2522,10 +2690,10 @@ useEffect(() => {
                   onClick={() =>
                     navigate(key)
                   }
-                  className={`rounded-xl border px-4 py-3 text-left text-[8px] font-black uppercase tracking-[0.16em] ${
+                  className={`rounded-xl border px-4 py-3.5 text-left text-[8px] font-black uppercase tracking-[0.16em] transition ${
                     section === key
-                      ? 'border-white/20 bg-white/10 text-white'
-                      : 'border-white/10 bg-white/[0.025] text-white/35'
+                      ? 'border-purple-300/25 bg-purple-500/10 text-purple-300'
+                      : 'border-white/[0.08] bg-white/[0.025] text-white/35 hover:border-purple-300/15 hover:text-white'
                   }`}
                 >
                   {label}
@@ -2541,18 +2709,20 @@ useEffect(() => {
                 setShowStudio(true)
                 setMobileMenu(false)
               }}
-              className="mt-2 rounded-xl border border-white/10 bg-white/[0.025] px-4 py-3 text-left text-[8px] font-black uppercase tracking-[0.16em] text-white/35 transition hover:bg-white/10 hover:text-white"
+              className="mt-2 w-full rounded-xl border border-[#d8b36a]/20 bg-[#d8b36a]/[0.04] px-4 py-3.5 text-left text-[8px] font-black uppercase tracking-[0.16em] text-[#d8b36a]/60 transition hover:bg-[#d8b36a]/[0.08] hover:text-[#d8b36a]"
             >
               <span className="inline-flex items-center gap-2">
-                <Film size={13} />
+                <Sparkles size={12} />
                 PMF Studio
               </span>
             </button>
           )}
         </div>
       )}
-    </header>
-  )
+    </div>
+  </header>
+)
+
 
     const HomeContent = () => (
     <>
