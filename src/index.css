@@ -1,26 +1,33 @@
 @import "tailwindcss";
 
 /* =========================================================
-   PMF-FLIX — CINEMATIC GLOBAL DESIGN FOUNDATION
+   PMF-FLIX — OBSIDIAN + ELECTRIC AMETHYST
+   CINEMATIC GLOBAL DESIGN FOUNDATION
    ========================================================= */
 
 :root {
   color-scheme: dark;
 
-  --pmf-bg: #030303;
-  --pmf-bg-soft: #080808;
+  --pmf-bg: #04030a;
+  --pmf-bg-soft: #0a0812;
   --pmf-surface: rgba(255, 255, 255, 0.045);
   --pmf-surface-strong: rgba(255, 255, 255, 0.075);
-  --pmf-border: rgba(255, 255, 255, 0.09);
-  --pmf-border-bright: rgba(255, 255, 255, 0.16);
+  --pmf-border: rgba(190, 150, 255, 0.12);
+  --pmf-border-bright: rgba(214, 180, 255, 0.24);
 
   --pmf-text: #ffffff;
   --pmf-text-soft: rgba(255, 255, 255, 0.72);
   --pmf-text-muted: rgba(255, 255, 255, 0.48);
 
-  --pmf-accent: #e50914;
-  --pmf-accent-bright: #ff1e2d;
-  --pmf-accent-soft: rgba(229, 9, 20, 0.18);
+  --pmf-accent: #a855f7;
+  --pmf-accent-bright: #c084fc;
+  --pmf-accent-soft: rgba(168, 85, 247, 0.18);
+
+  --pmf-gold: #d8b36a;
+  --pmf-gold-soft: rgba(216, 179, 106, 0.14);
+
+  --pmf-cyan: #67e8f9;
+  --pmf-cyan-soft: rgba(103, 232, 249, 0.12);
 
   font-family:
     Inter,
@@ -59,24 +66,24 @@ body {
   background:
     radial-gradient(
       circle at 50% -12%,
-      rgba(229, 9, 20, 0.12),
+      rgba(168, 85, 247, 0.14),
       transparent 34rem
     ),
     radial-gradient(
       circle at 100% 20%,
-      rgba(255, 255, 255, 0.045),
+      rgba(103, 232, 249, 0.035),
       transparent 30rem
     ),
     radial-gradient(
       circle at 0% 75%,
-      rgba(229, 9, 20, 0.045),
+      rgba(168, 85, 247, 0.055),
       transparent 28rem
     ),
     linear-gradient(
       180deg,
-      #050505 0%,
-      #030303 55%,
-      #010101 100%
+      #080611 0%,
+      #04030a 55%,
+      #010106 100%
     );
 }
 
@@ -129,7 +136,10 @@ body::after {
     );
 }
 
-/* Subtle cinematic grain without an external image */
+/* =========================================================
+   SUBTLE CINEMATIC GRAIN
+   ========================================================= */
+
 #root::before {
   content: "";
   position: fixed;
@@ -153,7 +163,7 @@ body::after {
    ========================================================= */
 
 ::selection {
-  background: rgba(229, 9, 20, 0.85);
+  background: rgba(168, 85, 247, 0.85);
   color: #fff;
 }
 
@@ -219,7 +229,7 @@ a:focus-visible,
 input:focus-visible,
 select:focus-visible,
 textarea:focus-visible {
-  outline: 2px solid rgba(255, 255, 255, 0.8);
+  outline: 2px solid rgba(192, 132, 252, 0.8);
   outline-offset: 3px;
 }
 
@@ -273,7 +283,11 @@ textarea:focus-visible {
 }
 
 main {
-  animation: pmf-fade-up 0.55s cubic-bezier(0.22, 1, 0.36, 1) both;
+  animation:
+    pmf-fade-up
+    0.55s
+    cubic-bezier(0.22, 1, 0.36, 1)
+    both;
 }
 
 /* =========================================================
@@ -281,21 +295,22 @@ main {
    ========================================================= */
 
 header {
-  border-bottom-color: rgba(255, 255, 255, 0.07) !important;
+  border-bottom-color: rgba(190, 150, 255, 0.1) !important;
 
   background:
     linear-gradient(
       180deg,
-      rgba(5, 5, 5, 0.94),
-      rgba(5, 5, 5, 0.72)
+      rgba(8, 6, 17, 0.96),
+      rgba(5, 4, 11, 0.76)
     ) !important;
 
-  backdrop-filter: blur(22px) saturate(130%);
-  -webkit-backdrop-filter: blur(22px) saturate(130%);
+  backdrop-filter: blur(22px) saturate(135%);
+  -webkit-backdrop-filter: blur(22px) saturate(135%);
 
   box-shadow:
     0 10px 45px rgba(0, 0, 0, 0.3),
-    inset 0 -1px 0 rgba(255, 255, 255, 0.025);
+    0 0 45px rgba(168, 85, 247, 0.035),
+    inset 0 -1px 0 rgba(214, 180, 255, 0.035);
 }
 
 /* =========================================================
@@ -307,7 +322,7 @@ header {
     linear-gradient(
       135deg,
       rgba(255, 255, 255, 0.075),
-      rgba(255, 255, 255, 0.025)
+      rgba(168, 85, 247, 0.025)
     );
 
   border: 1px solid var(--pmf-border);
@@ -318,14 +333,14 @@ header {
 
 .pmf-glow {
   box-shadow:
-    0 0 0 1px rgba(229, 9, 20, 0.08),
-    0 12px 45px rgba(229, 9, 20, 0.1);
+    0 0 0 1px rgba(168, 85, 247, 0.1),
+    0 12px 45px rgba(168, 85, 247, 0.12);
 }
 
 .pmf-accent-glow {
   box-shadow:
-    0 0 20px rgba(229, 9, 20, 0.2),
-    0 0 55px rgba(229, 9, 20, 0.08);
+    0 0 20px rgba(168, 85, 247, 0.24),
+    0 0 55px rgba(168, 85, 247, 0.08);
 }
 
 /* =========================================================
@@ -342,7 +357,9 @@ header {
 }
 
 .group:hover img {
-  filter: saturate(1.08) contrast(1.04);
+  filter:
+    saturate(1.08)
+    contrast(1.04);
 }
 
 .group:hover {
@@ -384,15 +401,16 @@ textarea::placeholder {
 input:hover,
 select:hover,
 textarea:hover {
-  border-color: rgba(255, 255, 255, 0.14);
+  border-color: rgba(214, 180, 255, 0.16);
 }
 
 input:focus,
 select:focus,
 textarea:focus {
-  border-color: rgba(255, 255, 255, 0.25);
+  border-color: rgba(214, 180, 255, 0.28);
+
   box-shadow:
-    0 0 0 3px rgba(255, 255, 255, 0.035),
+    0 0 0 3px rgba(168, 85, 247, 0.045),
     0 10px 35px rgba(0, 0, 0, 0.2);
 }
 
@@ -414,19 +432,42 @@ button:active {
 }
 
 /* =========================================================
-   RED PMF ACCENT
+   PMF SIGNATURE ACCENTS
    ========================================================= */
 
 .bg-red-600,
 .bg-red-500 {
+  background-color: var(--pmf-accent) !important;
+
   box-shadow:
-    0 7px 25px rgba(229, 9, 20, 0.15);
+    0 7px 25px rgba(168, 85, 247, 0.20),
+    0 0 32px rgba(168, 85, 247, 0.08);
 }
 
 .text-red-500,
 .text-red-600 {
+  color: var(--pmf-accent-bright) !important;
+
   text-shadow:
-    0 0 22px rgba(229, 9, 20, 0.18);
+    0 0 22px rgba(168, 85, 247, 0.20);
+}
+
+.pmf-gold {
+  color: var(--pmf-gold);
+}
+
+.pmf-gold-glow {
+  box-shadow:
+    0 0 24px rgba(216, 179, 106, 0.10);
+}
+
+.pmf-cyan {
+  color: var(--pmf-cyan);
+}
+
+.pmf-cyan-glow {
+  box-shadow:
+    0 0 24px rgba(103, 232, 249, 0.10);
 }
 
 /* =========================================================
@@ -434,12 +475,17 @@ button:active {
    ========================================================= */
 
 .fixed.inset-0 {
-  animation: pmf-fade-in 0.25s ease-out both;
+  animation:
+    pmf-fade-in
+    0.25s
+    ease-out
+    both;
 }
 
 [role="dialog"] {
   animation:
-    pmf-scale-in 0.3s
+    pmf-scale-in
+    0.3s
     cubic-bezier(0.22, 1, 0.36, 1)
     both;
 }
@@ -463,13 +509,17 @@ button:active {
     linear-gradient(
       90deg,
       rgba(255, 255, 255, 0.035) 25%,
-      rgba(255, 255, 255, 0.075) 50%,
+      rgba(192, 132, 252, 0.075) 50%,
       rgba(255, 255, 255, 0.035) 75%
     );
 
   background-size: 700px 100%;
+
   animation:
-    pmf-shimmer 1.6s linear infinite;
+    pmf-shimmer
+    1.6s
+    linear
+    infinite;
 }
 
 /* =========================================================
@@ -477,7 +527,11 @@ button:active {
    ========================================================= */
 
 .pmf-empty {
-  animation: pmf-fade-up 0.45s ease-out both;
+  animation:
+    pmf-fade-up
+    0.45s
+    ease-out
+    both;
 }
 
 /* =========================================================
@@ -489,10 +543,15 @@ button:active {
     background:
       radial-gradient(
         circle at 50% -8%,
-        rgba(229, 9, 20, 0.09),
+        rgba(168, 85, 247, 0.10),
         transparent 24rem
       ),
-      #030303;
+      radial-gradient(
+        circle at 100% 40%,
+        rgba(103, 232, 249, 0.025),
+        transparent 20rem
+      ),
+      #04030a;
   }
 
   body::after {
@@ -501,8 +560,8 @@ button:active {
   }
 
   header {
-    backdrop-filter: blur(18px) saturate(125%);
-    -webkit-backdrop-filter: blur(18px) saturate(125%);
+    backdrop-filter: blur(18px) saturate(130%);
+    -webkit-backdrop-filter: blur(18px) saturate(130%);
   }
 }
 
@@ -539,4 +598,4 @@ button:active {
     transition-duration: 0.01ms !important;
     scroll-behavior: auto !important;
   }
-}
+ }
