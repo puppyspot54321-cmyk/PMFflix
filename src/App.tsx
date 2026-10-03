@@ -2227,69 +2227,8 @@ useEffect(() => {
     )
   }
 
-  
-
             <div className="mt-5 flex flex-wrap items-center gap-3 text-[9px] font-bold uppercase tracking-[0.12em] text-white/50">
-              <span>
-                {featured.year}
-              </span>
 
-              <span>•</span>
-
-              <span>
-                {featured.type ||
-                  'Film'}
-              </span>
-
-              {featured.duration && (
-                <>
-                  <span>•</span>
-
-                  <span>
-                    {featured.duration}
-                  </span>
-                </>
-              )}
-
-              {getRating(featured) >
-                0 && (
-                <>
-                  <span>•</span>
-
-                  <span className="inline-flex items-center gap-1 text-white">
-                    <Star
-                      size={10}
-                      fill="currentColor"
-                    />
-                    {getRating(
-                      featured,
-                    ).toFixed(1)}
-                  </span>
-                </>
-              )}
-            </div>
-
-            <p className="mt-5 max-w-xl text-sm leading-7 text-white/55 sm:text-base">
-              {featured.description ||
-                'Discover remarkable stories, unforgettable characters and cinematic worlds on PMF-Flix.'}
-            </p>
-
-            <div className="mt-8 flex flex-wrap gap-2">
-              <button
-                type="button"
-                onClick={() =>
-                  startWatching(
-                    featured,
-                  )
-                }
-                className="inline-flex items-center gap-2 rounded-xl bg-white px-6 py-3.5 text-[9px] font-black uppercase tracking-[0.17em] text-black transition hover:scale-[1.02]"
-              >
-                <Play
-                  size={14}
-                  fill="currentColor"
-                />
-                Play Now
-              </button>
 const Hero = () => {
   const featured =
     featuredMovies[0] ||
