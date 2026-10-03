@@ -2288,7 +2288,7 @@ const MovieCard = ({
       </main>
     )
   }
-
+             
 const Hero = () => {
   const featured =
     featuredMovies[0] ||
@@ -2296,35 +2296,37 @@ const Hero = () => {
 
   if (!featured) {
     return (
-      <section className="relative flex min-h-[82vh] items-center overflow-hidden bg-[#04030a]">
+      <section className="relative min-h-[88vh] overflow-hidden bg-[#030208]">
         <div
           aria-hidden="true"
-          className="absolute left-1/2 top-1/2 h-[520px] w-[520px] -translate-x-1/2 -translate-y-1/2 rounded-full bg-purple-600/10 blur-[140px]"
+          className="absolute left-1/2 top-1/2 h-[700px] w-[700px] -translate-x-1/2 -translate-y-1/2 rounded-full bg-purple-600/10 blur-[180px]"
         />
 
-        <div className="relative mx-auto max-w-[1600px] px-5 pt-28 sm:px-10 lg:px-16">
-          <div className="max-w-3xl">
-            <div className="mb-6 flex items-center gap-3">
-              <span className="h-px w-10 bg-purple-400/70" />
+        <div className="relative mx-auto flex min-h-[88vh] max-w-[1600px] items-center px-5 pt-28 sm:px-10 lg:px-16">
+          <div className="max-w-4xl">
+            <div className="mb-7 flex items-center gap-3">
+              <span className="h-px w-12 bg-gradient-to-r from-purple-400 to-transparent" />
 
-              <p className="text-[9px] font-black uppercase tracking-[0.4em] text-purple-300/70">
-                PMF — Prince Mufasa Flix
+              <p className="text-[8px] font-black uppercase tracking-[0.4em] text-purple-300/70">
+                Prince Mufasa Flix
               </p>
             </div>
 
-            <h1 className="text-6xl font-black leading-[0.88] tracking-[-0.075em] text-white sm:text-8xl lg:text-[110px]">
+            <h1 className="text-6xl font-black leading-[0.82] tracking-[-0.075em] text-white sm:text-8xl lg:text-[112px]">
               Your world.
               <br />
-              <span className="text-purple-300">
+              <span className="bg-gradient-to-r from-white via-purple-200 to-purple-400 bg-clip-text text-transparent">
                 Your stories.
               </span>
               <br />
-              Your Flix.
+              <span className="text-white/80">
+                Your Flix.
+              </span>
             </h1>
 
-            <p className="mt-8 max-w-xl text-sm leading-7 text-white/45 sm:text-base">
-              A cinematic universe built for stories
-              worth remembering.
+            <p className="mt-8 max-w-xl text-sm leading-7 text-white/40 sm:text-base">
+              Enter a cinematic universe built
+              for stories worth remembering.
             </p>
           </div>
         </div>
@@ -2332,119 +2334,192 @@ const Hero = () => {
     )
   }
 
+  const rating =
+    getRating(featured)
+
   return (
-    <section className="group relative min-h-[88vh] overflow-hidden bg-[#04030a]">
-      {/* Cinematic atmosphere */}
+    <section className="group/hero relative min-h-[92vh] overflow-hidden bg-[#030208]">
+
+      {/* =====================================================
+          DEEP CINEMATIC ATMOSPHERE
+          ===================================================== */}
+
       <div
         aria-hidden="true"
-        className="absolute -left-32 top-1/4 h-[500px] w-[500px] rounded-full bg-purple-600/15 blur-[150px]"
+        className="pointer-events-none absolute -left-[15%] top-[20%] h-[650px] w-[650px] rounded-full bg-purple-700/[0.12] blur-[180px]"
       />
 
       <div
         aria-hidden="true"
-        className="absolute right-[-10%] top-[-10%] h-[600px] w-[600px] rounded-full bg-cyan-400/[0.035] blur-[170px]"
+        className="pointer-events-none absolute right-[-12%] top-[5%] h-[600px] w-[600px] rounded-full bg-cyan-400/[0.035] blur-[190px]"
       />
 
-      {/* Artwork */}
-      <div className="absolute inset-0">
+      <div
+        aria-hidden="true"
+        className="pointer-events-none absolute bottom-[-25%] left-[35%] h-[500px] w-[500px] rounded-full bg-purple-500/[0.08] blur-[170px]"
+      />
+
+      {/* =====================================================
+          HERO ARTWORK
+          ===================================================== */}
+
+      <div className="absolute inset-0 overflow-hidden">
+
         <img
           src={
             featured.poster ||
             heroImage
           }
           alt=""
-          className="h-full w-full scale-[1.04] object-cover opacity-55 transition duration-[1600ms] ease-out group-hover:scale-[1.07]"
+          className="h-full w-full scale-[1.035] object-cover object-center opacity-[0.68] transition-transform duration-[4000ms] ease-out group-hover/hero:scale-[1.065]"
         />
 
-        {/* Obsidian cinematic layers */}
-        <div className="absolute inset-0 bg-[radial-gradient(circle_at_72%_40%,rgba(168,85,247,0.16),transparent_30%)]" />
+        {/* Purple cinematic light */}
+        <div
+          aria-hidden="true"
+          className="absolute inset-0 bg-[radial-gradient(circle_at_72%_38%,rgba(168,85,247,0.22),transparent_32%)]"
+        />
 
-        <div className="absolute inset-0 bg-gradient-to-r from-[#04030a] via-[#04030a]/80 to-[#04030a]/15" />
+        {/* Cyan atmospheric light */}
+        <div
+          aria-hidden="true"
+          className="absolute inset-0 bg-[radial-gradient(circle_at_85%_18%,rgba(103,232,249,0.07),transparent_25%)]"
+        />
 
-        <div className="absolute inset-0 bg-gradient-to-t from-[#04030a] via-[#04030a]/15 to-black/20" />
+        {/* Left cinematic darkness */}
+        <div className="absolute inset-0 bg-gradient-to-r from-[#030208] via-[#030208]/85 via-[48%] to-transparent" />
 
-        <div className="absolute inset-0 bg-gradient-to-b from-[#04030a]/75 via-transparent to-transparent" />
+        {/* Bottom cinematic fade */}
+        <div className="absolute inset-0 bg-gradient-to-t from-[#030208] via-[#030208]/35 via-[45%] to-transparent" />
+
+        {/* Top protection for navigation */}
+        <div className="absolute inset-x-0 top-0 h-[34%] bg-gradient-to-b from-[#030208]/80 to-transparent" />
+
+        {/* Edge vignette */}
+        <div className="absolute inset-0 shadow-[inset_0_0_180px_rgba(0,0,0,0.72)]" />
+
+        {/* Cinematic glass haze */}
+        <div className="absolute inset-0 bg-white/[0.008] backdrop-blur-[0.2px]" />
       </div>
 
-      {/* Hero content */}
-      <div className="relative mx-auto flex min-h-[88vh] max-w-[1600px] items-end px-5 pb-20 pt-36 sm:px-10 sm:pb-24 lg:px-16">
-        <div className="max-w-3xl">
-          {/* PMF identity marker */}
-          <div className="mb-6 flex items-center gap-3">
-            <div className="flex h-8 w-8 items-center justify-center rounded-lg border border-purple-300/20 bg-purple-500/10 text-purple-300 shadow-[0_0_30px_rgba(168,85,247,0.16)]">
-              <Sparkles size={13} />
+      {/* =====================================================
+          CINEMATIC CONTENT
+          ===================================================== */}
+
+      <div className="relative mx-auto flex min-h-[92vh] max-w-[1600px] items-end px-5 pb-20 pt-32 sm:px-10 sm:pb-24 lg:px-16 lg:pb-28">
+
+        <div className="w-full max-w-4xl">
+
+          {/* PMF SIGNATURE */}
+          <div className="mb-7 flex items-center gap-3">
+
+            <div className="relative flex h-9 w-9 items-center justify-center rounded-xl border border-purple-300/20 bg-purple-500/10 text-purple-300 shadow-[0_0_35px_rgba(168,85,247,0.18)] backdrop-blur-xl">
+
+              <div
+                aria-hidden="true"
+                className="absolute inset-0 rounded-xl bg-purple-400/10 blur-md"
+              />
+
+              <Sparkles
+                size={14}
+                className="relative"
+              />
             </div>
 
             <div>
-              <p className="text-[7px] font-black uppercase tracking-[0.35em] text-purple-300/80">
-                PMF Signature
-              </p>
+              <div className="flex items-center gap-2">
+                <span className="text-[8px] font-black uppercase tracking-[0.35em] text-purple-300">
+                  PMF Signature
+                </span>
 
-              <p className="mt-1 text-[7px] font-bold uppercase tracking-[0.18em] text-white/30">
-                Featured cinematic experience
+                <span className="h-1 w-1 rounded-full bg-purple-400 shadow-[0_0_10px_rgba(168,85,247,0.9)]" />
+              </div>
+
+              <p className="mt-1 text-[7px] font-bold uppercase tracking-[0.22em] text-white/30">
+                A cinematic experience
               </p>
             </div>
           </div>
 
-          {/* Title */}
-          <h1 className="max-w-4xl text-5xl font-black leading-[0.9] tracking-[-0.075em] text-white sm:text-7xl lg:text-[92px]">
+          {/* =================================================
+              TITLE
+              ================================================= */}
+
+          <h1 className="max-w-5xl text-5xl font-black leading-[0.86] tracking-[-0.075em] text-white sm:text-7xl md:text-8xl lg:text-[96px]">
+
             {featured.title}
+
           </h1>
 
-          {/* Metadata */}
-          <div className="mt-6 flex flex-wrap items-center gap-x-3 gap-y-2 text-[8px] font-black uppercase tracking-[0.18em]">
-            <span className="text-purple-300">
+          {/* =================================================
+              METADATA
+              ================================================= */}
+
+          <div className="mt-7 flex flex-wrap items-center gap-x-3 gap-y-2">
+
+            <span className="text-[8px] font-black uppercase tracking-[0.2em] text-purple-300">
               {featured.year}
             </span>
 
-            <span className="text-white/15">
-              /
-            </span>
+            <span className="h-1 w-1 rounded-full bg-white/20" />
 
-            <span className="text-white/45">
+            <span className="text-[8px] font-black uppercase tracking-[0.2em] text-white/55">
               {featured.type || 'Film'}
             </span>
 
+            {featured.category && (
+              <>
+                <span className="h-1 w-1 rounded-full bg-white/20" />
+
+                <span className="text-[8px] font-black uppercase tracking-[0.2em] text-white/45">
+                  {featured.category}
+                </span>
+              </>
+            )}
+
             {featured.duration && (
               <>
-                <span className="text-white/15">
-                  /
-                </span>
+                <span className="h-1 w-1 rounded-full bg-white/20" />
 
-                <span className="text-white/45">
+                <span className="text-[8px] font-black uppercase tracking-[0.2em] text-white/45">
                   {featured.duration}
                 </span>
               </>
             )}
 
-            {getRating(featured) > 0 && (
+            {rating > 0 && (
               <>
-                <span className="text-white/15">
-                  /
-                </span>
+                <span className="h-1 w-1 rounded-full bg-white/20" />
 
-                <span className="inline-flex items-center gap-1.5 text-[#d8b36a]">
+                <span className="inline-flex items-center gap-1.5 text-[8px] font-black uppercase tracking-[0.2em] text-[#d8b36a]">
                   <Star
                     size={10}
                     fill="currentColor"
                   />
 
-                  {getRating(
-                    featured,
-                  ).toFixed(1)}
+                  {rating.toFixed(1)}
                 </span>
               </>
             )}
           </div>
 
-          {/* Description */}
-          <p className="mt-6 max-w-2xl text-sm leading-7 text-white/50 sm:text-base">
+          {/* =================================================
+              DESCRIPTION
+              ================================================= */}
+
+          <p className="mt-6 max-w-2xl text-sm leading-7 text-white/50 sm:text-[15px] sm:leading-7">
             {featured.description ||
               'Discover remarkable stories, unforgettable characters and cinematic worlds on PMF-Flix.'}
           </p>
 
-          {/* Actions */}
+          {/* =================================================
+              ACTIONS
+              ================================================= */}
+
           <div className="mt-9 flex flex-wrap items-center gap-3">
+
+            {/* ENTER EXPERIENCE */}
+
             <button
               type="button"
               onClick={() =>
@@ -2452,11 +2527,12 @@ const Hero = () => {
                   featured,
                 )
               }
-              className="group/play relative inline-flex items-center gap-3 overflow-hidden rounded-2xl border border-purple-300/30 bg-purple-500 px-6 py-4 text-[9px] font-black uppercase tracking-[0.2em] text-white shadow-[0_12px_45px_rgba(168,85,247,0.25)] transition-all duration-300 hover:-translate-y-0.5 hover:bg-purple-400 hover:shadow-[0_16px_55px_rgba(168,85,247,0.38)] active:scale-[0.98]"
+              className="group/enter relative inline-flex items-center gap-3 overflow-hidden rounded-2xl border border-purple-300/30 bg-gradient-to-r from-purple-600 to-purple-500 px-6 py-4 text-[9px] font-black uppercase tracking-[0.2em] text-white shadow-[0_14px_55px_rgba(168,85,247,0.28)] transition-all duration-300 hover:-translate-y-1 hover:from-purple-500 hover:to-purple-400 hover:shadow-[0_18px_65px_rgba(168,85,247,0.42)] active:scale-[0.97]"
             >
-              <span className="absolute inset-0 -translate-x-full bg-white/20 transition-transform duration-500 group-hover/play:translate-x-full" />
 
-              <span className="relative flex h-7 w-7 items-center justify-center rounded-full bg-white text-purple-700">
+              <span className="absolute inset-0 -translate-x-full bg-gradient-to-r from-transparent via-white/20 to-transparent transition-transform duration-700 group-hover/enter:translate-x-full" />
+
+              <span className="relative flex h-8 w-8 items-center justify-center rounded-full bg-white text-purple-700 shadow-lg">
                 <Play
                   size={12}
                   fill="currentColor"
@@ -2466,7 +2542,10 @@ const Hero = () => {
               <span className="relative">
                 Enter Experience
               </span>
+
             </button>
+
+            {/* EXPLORE */}
 
             <button
               type="button"
@@ -2475,23 +2554,51 @@ const Hero = () => {
                   featured,
                 )
               }
-              className="inline-flex items-center gap-3 rounded-2xl border border-white/15 bg-black/25 px-5 py-4 text-[9px] font-black uppercase tracking-[0.2em] text-white/75 backdrop-blur-xl transition-all duration-300 hover:border-purple-300/30 hover:bg-purple-500/10 hover:text-white"
+              className="group/explore inline-flex items-center gap-3 rounded-2xl border border-white/15 bg-black/25 px-5 py-4 text-[9px] font-black uppercase tracking-[0.2em] text-white/70 backdrop-blur-xl transition-all duration-300 hover:-translate-y-1 hover:border-purple-300/30 hover:bg-purple-500/10 hover:text-white"
             >
-              <Film size={13} />
+              <Film
+                size={13}
+                className="transition-transform duration-300 group-hover/explore:scale-110"
+              />
+
               Explore Story
             </button>
+
           </div>
 
-          {/* Signature line */}
-          <div className="mt-10 flex items-center gap-3">
-            <div className="h-px w-14 bg-gradient-to-r from-purple-400/70 to-transparent" />
+          {/* =================================================
+              SIGNATURE FOOTER
+              ================================================= */}
 
-            <p className="text-[7px] font-black uppercase tracking-[0.3em] text-white/25">
+          <div className="mt-10 flex items-center gap-3">
+
+            <div className="relative h-px w-16 overflow-hidden bg-white/10">
+
+              <div className="absolute inset-y-0 left-0 w-8 bg-gradient-to-r from-purple-400 to-transparent" />
+
+            </div>
+
+            <p className="text-[7px] font-black uppercase tracking-[0.32em] text-white/25">
               Your World. Your Stories. Your Flix.
             </p>
+
           </div>
+
         </div>
       </div>
+
+      {/* =====================================================
+          CINEMATIC CORNER DETAILS
+          ===================================================== */}
+
+      <div
+        aria-hidden="true"
+        className="pointer-events-none absolute bottom-8 right-6 hidden items-center gap-3 text-[7px] font-black uppercase tracking-[0.3em] text-white/20 sm:flex lg:right-12"
+      >
+        <span className="h-px w-8 bg-white/10" />
+        <span>PMF / CINEMATIC UNIVERSE</span>
+      </div>
+
     </section>
   )
  }
