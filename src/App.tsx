@@ -2227,8 +2227,6 @@ useEffect(() => {
     )
   }
 
-            <div className="mt-5 flex flex-wrap items-center gap-3 text-[9px] font-bold uppercase tracking-[0.12em] text-white/50">
-
 const Hero = () => {
   const featured =
     featuredMovies[0] ||
