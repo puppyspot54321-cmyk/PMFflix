@@ -2,7 +2,7 @@
 
 /* =========================================================
    PMF-FLIX — OBSIDIAN + ELECTRIC AMETHYST
-   CINEMATIC GLOBAL DESIGN FOUNDATION
+   CINEMATIC GLOBAL DESIGN SYSTEM
    ========================================================= */
 
 :root {
@@ -10,8 +10,10 @@
 
   --pmf-bg: #04030a;
   --pmf-bg-soft: #0a0812;
+
   --pmf-surface: rgba(255, 255, 255, 0.045);
   --pmf-surface-strong: rgba(255, 255, 255, 0.075);
+
   --pmf-border: rgba(190, 150, 255, 0.12);
   --pmf-border-bright: rgba(214, 180, 255, 0.24);
 
@@ -137,7 +139,7 @@ body::after {
 }
 
 /* =========================================================
-   SUBTLE CINEMATIC GRAIN
+   CINEMATIC GRAIN
    ========================================================= */
 
 #root::before {
@@ -170,7 +172,7 @@ body::after {
 * {
   scrollbar-width: thin;
   scrollbar-color:
-    rgba(255, 255, 255, 0.18)
+    rgba(192, 132, 252, 0.38)
     transparent;
 }
 
@@ -185,11 +187,22 @@ body::after {
 
 *::-webkit-scrollbar-thumb {
   border-radius: 999px;
-  background: rgba(255, 255, 255, 0.15);
+
+  background:
+    linear-gradient(
+      180deg,
+      rgba(192, 132, 252, 0.38),
+      rgba(255, 255, 255, 0.12)
+    );
 }
 
 *::-webkit-scrollbar-thumb:hover {
-  background: rgba(255, 255, 255, 0.3);
+  background:
+    linear-gradient(
+      180deg,
+      rgba(192, 132, 252, 0.65),
+      rgba(255, 255, 255, 0.18)
+    );
 }
 
 /* =========================================================
@@ -218,6 +231,7 @@ a {
 
 img {
   max-width: 100%;
+  image-rendering: auto;
 }
 
 video {
@@ -234,7 +248,7 @@ textarea:focus-visible {
 }
 
 /* =========================================================
-   CINEMATIC PAGE ENTRY
+   CINEMATIC ANIMATIONS
    ========================================================= */
 
 @keyframes pmf-fade-up {
@@ -282,7 +296,58 @@ textarea:focus-visible {
   }
 }
 
+@keyframes pmf-ambient-pulse {
+  0%,
+  100% {
+    opacity: 0.35;
+    transform: scale(1);
+  }
+
+  50% {
+    opacity: 0.65;
+    transform: scale(1.06);
+  }
+}
+
+@keyframes pmf-cinematic-glow {
+  0%,
+  100% {
+    opacity: 0.28;
+  }
+
+  50% {
+    opacity: 0.55;
+  }
+}
+
+@keyframes pmf-soft-float {
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+
+  50% {
+    transform: translateY(-4px);
+  }
+}
+
+@keyframes pmf-shimmer {
+  0% {
+    background-position: -700px 0;
+  }
+
+  100% {
+    background-position: 700px 0;
+  }
+}
+
+/* =========================================================
+   CINEMATIC PAGE ENTRY
+   ========================================================= */
+
 main {
+  position: relative;
+
   animation:
     pmf-fade-up
     0.55s
@@ -290,12 +355,44 @@ main {
     both;
 }
 
+main::before {
+  content: "";
+  position: absolute;
+
+  top: -120px;
+  left: 50%;
+
+  width: min(720px, 90vw);
+  height: 360px;
+
+  transform: translateX(-50%);
+
+  pointer-events: none;
+  z-index: -1;
+
+  background:
+    radial-gradient(
+      ellipse,
+      rgba(168, 85, 247, 0.10),
+      transparent 68%
+    );
+
+  filter: blur(28px);
+
+  animation:
+    pmf-ambient-pulse
+    8s
+    ease-in-out
+    infinite;
+}
+
 /* =========================================================
-   PREMIUM HEADER / GLASS SURFACES
+   PREMIUM HEADER
    ========================================================= */
 
 header {
-  border-bottom-color: rgba(190, 150, 255, 0.1) !important;
+  border-bottom-color:
+    rgba(190, 150, 255, 0.1) !important;
 
   background:
     linear-gradient(
@@ -304,8 +401,13 @@ header {
       rgba(5, 4, 11, 0.76)
     ) !important;
 
-  backdrop-filter: blur(22px) saturate(135%);
-  -webkit-backdrop-filter: blur(22px) saturate(135%);
+  backdrop-filter:
+    blur(22px)
+    saturate(135%);
+
+  -webkit-backdrop-filter:
+    blur(22px)
+    saturate(135%);
 
   box-shadow:
     0 10px 45px rgba(0, 0, 0, 0.3),
@@ -314,7 +416,7 @@ header {
 }
 
 /* =========================================================
-   PREMIUM INTERACTION HELPERS
+   PREMIUM GLASS
    ========================================================= */
 
 .pmf-glass {
@@ -327,8 +429,13 @@ header {
 
   border: 1px solid var(--pmf-border);
 
-  backdrop-filter: blur(18px) saturate(125%);
-  -webkit-backdrop-filter: blur(18px) saturate(125%);
+  backdrop-filter:
+    blur(18px)
+    saturate(125%);
+
+  -webkit-backdrop-filter:
+    blur(18px)
+    saturate(125%);
 }
 
 .pmf-glow {
@@ -344,7 +451,7 @@ header {
 }
 
 /* =========================================================
-   MOVIE CARD ENHANCEMENT
+   CINEMATIC MOVIE CARDS
    ========================================================= */
 
 .group {
@@ -354,6 +461,7 @@ header {
 .group img {
   backface-visibility: hidden;
   transform: translateZ(0);
+  will-change: transform;
 }
 
 .group:hover img {
@@ -364,6 +472,48 @@ header {
 
 .group:hover {
   z-index: 2;
+}
+
+/* New premium card identity */
+.group\/card {
+  transform: translateZ(0);
+  will-change: transform;
+}
+
+.group\/card img {
+  will-change: transform;
+}
+
+.group\/card::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+
+  pointer-events: none;
+
+  border-radius: inherit;
+
+  background:
+    radial-gradient(
+      circle at 50% 0%,
+      rgba(192, 132, 252, 0.08),
+      transparent 48%
+    );
+
+  opacity: 0;
+
+  transition:
+    opacity 500ms ease;
+}
+
+.group\/card:hover::after {
+  opacity: 1;
+}
+
+@media (hover: hover) {
+  .group\/card:hover {
+    filter: brightness(1.03);
+  }
 }
 
 /* =========================================================
@@ -401,13 +551,15 @@ textarea::placeholder {
 input:hover,
 select:hover,
 textarea:hover {
-  border-color: rgba(214, 180, 255, 0.16);
+  border-color:
+    rgba(214, 180, 255, 0.16);
 }
 
 input:focus,
 select:focus,
 textarea:focus {
-  border-color: rgba(214, 180, 255, 0.28);
+  border-color:
+    rgba(214, 180, 255, 0.28);
 
   box-shadow:
     0 0 0 3px rgba(168, 85, 247, 0.045),
@@ -437,7 +589,8 @@ button:active {
 
 .bg-red-600,
 .bg-red-500 {
-  background-color: var(--pmf-accent) !important;
+  background-color:
+    var(--pmf-accent) !important;
 
   box-shadow:
     0 7px 25px rgba(168, 85, 247, 0.20),
@@ -446,7 +599,8 @@ button:active {
 
 .text-red-500,
 .text-red-600 {
-  color: var(--pmf-accent-bright) !important;
+  color:
+    var(--pmf-accent-bright) !important;
 
   text-shadow:
     0 0 22px rgba(168, 85, 247, 0.20);
@@ -471,7 +625,7 @@ button:active {
 }
 
 /* =========================================================
-   MODAL / PLAYER ATMOSPHERE
+   MODALS / PLAYER ATMOSPHERE
    ========================================================= */
 
 .fixed.inset-0 {
@@ -491,18 +645,8 @@ button:active {
 }
 
 /* =========================================================
-   LOADING / SKELETON SUPPORT
+   SKELETON SUPPORT
    ========================================================= */
-
-@keyframes pmf-shimmer {
-  0% {
-    background-position: -700px 0;
-  }
-
-  100% {
-    background-position: 700px 0;
-  }
-}
 
 .pmf-skeleton {
   background:
@@ -560,8 +704,24 @@ button:active {
   }
 
   header {
-    backdrop-filter: blur(18px) saturate(130%);
-    -webkit-backdrop-filter: blur(18px) saturate(130%);
+    backdrop-filter:
+      blur(18px)
+      saturate(130%);
+
+    -webkit-backdrop-filter:
+      blur(18px)
+      saturate(130%);
+  }
+
+  main::before {
+    width: 120vw;
+    height: 280px;
+    top: -80px;
+    filter: blur(34px);
+  }
+
+  .group\/card:hover {
+    filter: none;
   }
 }
 
@@ -582,7 +742,7 @@ button:active {
 }
 
 /* =========================================================
-   ACCESSIBILITY / REDUCED MOTION
+   REDUCED MOTION
    ========================================================= */
 
 @media (prefers-reduced-motion: reduce) {
