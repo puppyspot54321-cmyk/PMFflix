@@ -241,40 +241,61 @@ function AppShell() {
     useState(true)
 
   useEffect(() => {
-    let mounted = true
+  let mounted = true
 
+  const loadInitialSession = async () => {
     const {
-      data: { subscription },
-    } = supabase.auth.onAuthStateChange(
-      (event, nextSession) => {
-        if (!mounted) {
-          return
-        }
+      data: { session: currentSession },
+      error,
+    } = await supabase.auth.getSession()
 
-        if (
-          event === 'INITIAL_SESSION' ||
-          event === 'SIGNED_IN' ||
-          event === 'TOKEN_REFRESHED' ||
-          event === 'USER_UPDATED'
-        ) {
-          setSession(nextSession)
-          setAuthLoading(false)
-          return
-        }
-
-        if (event === 'SIGNED_OUT') {
-          setSession(null)
-          setAuthLoading(false)
-        }
-      },
-    )
-
-    return () => {
-      mounted = false
-      subscription.unsubscribe()
+    if (!mounted) {
+      return
     }
-  }, [])
 
+    if (error) {
+      console.error(
+        'PMF session restore error:',
+        error,
+      )
+    }
+
+    setSession(currentSession)
+    setAuthLoading(false)
+  }
+
+  void loadInitialSession()
+
+  const {
+    data: { subscription },
+  } = supabase.auth.onAuthStateChange(
+    (event, nextSession) => {
+      if (!mounted) {
+        return
+      }
+
+      if (
+        event === 'SIGNED_IN' ||
+        event === 'TOKEN_REFRESHED' ||
+        event === 'USER_UPDATED'
+      ) {
+        setSession(nextSession)
+        setAuthLoading(false)
+        return
+      }
+
+      if (event === 'SIGNED_OUT') {
+        setSession(null)
+        setAuthLoading(false)
+      }
+    },
+  )
+
+  return () => {
+    mounted = false
+    subscription.unsubscribe()
+  }
+}, [])
   useEffect(() => {
     let active = true
 
