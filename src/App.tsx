@@ -242,6 +242,7 @@ function AppShell() {
 
   useEffect(() => {
   let mounted = true
+  let authEventOccurred = false
 
   const loadInitialSession = async () => {
     const {
@@ -260,11 +261,13 @@ function AppShell() {
       )
     }
 
-    setSession(currentSession)
-    setAuthLoading(false)
+    // Never allow an older getSession() result
+    // to overwrite a newer authentication event.
+    if (!authEventOccurred) {
+      setSession(currentSession)
+      setAuthLoading(false)
+    }
   }
-
-  void loadInitialSession()
 
   const {
     data: { subscription },
@@ -279,17 +282,21 @@ function AppShell() {
         event === 'TOKEN_REFRESHED' ||
         event === 'USER_UPDATED'
       ) {
+        authEventOccurred = true
         setSession(nextSession)
         setAuthLoading(false)
         return
       }
 
       if (event === 'SIGNED_OUT') {
+        authEventOccurred = true
         setSession(null)
         setAuthLoading(false)
       }
     },
   )
+
+  void loadInitialSession()
 
   return () => {
     mounted = false
