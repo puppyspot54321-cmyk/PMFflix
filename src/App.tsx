@@ -1690,43 +1690,158 @@ useEffect(() => {
                     width: `${progressPercent}%`,
                   }}
                 />
+
+const MovieCard = ({
+  movie,
+  compact = false,
+}: {
+  movie: Movie
+  compact?: boolean
+}) => {
+  const progressPercent =
+    getProgressPercent(movie)
+
+  const saved = isInMyList(movie)
+
+  return (
+    <article
+      className={`group/card relative shrink-0 ${
+        compact
+          ? 'w-[145px] sm:w-[175px]'
+          : 'w-[165px] sm:w-[205px] lg:w-[225px]'
+      }`}
+    >
+      <div className="relative overflow-hidden rounded-[22px] border border-purple-300/[0.08] bg-[#080611] shadow-[0_18px_55px_rgba(0,0,0,0.32)] transition-all duration-500 ease-out group-hover/card:-translate-y-2 group-hover/card:border-purple-300/20 group-hover/card:shadow-[0_24px_70px_rgba(0,0,0,0.48),0_0_38px_rgba(168,85,247,0.10)]">
+
+        {/* Poster */}
+        <button
+          type="button"
+          onClick={() =>
+            openMovie(movie)
+          }
+          className="block w-full text-left"
+        >
+          <div className="relative aspect-[2/3] overflow-hidden bg-[#05040b]">
+
+            <img
+              src={getMoviePoster(movie)}
+              alt={movie.title}
+              className="h-full w-full object-cover transition-transform duration-700 ease-out group-hover/card:scale-[1.07]"
+              loading="lazy"
+            />
+
+            {/* Cinematic colour treatment */}
+            <div className="absolute inset-0 bg-gradient-to-t from-[#030208] via-transparent to-transparent opacity-95" />
+
+            <div className="absolute inset-0 bg-[radial-gradient(circle_at_75%_20%,rgba(168,85,247,0.18),transparent_35%)] opacity-0 transition-opacity duration-500 group-hover/card:opacity-100" />
+
+            {/* Subtle poster sheen */}
+            <div className="absolute inset-0 -translate-x-full bg-gradient-to-r from-transparent via-white/[0.07] to-transparent transition-transform duration-1000 group-hover/card:translate-x-full" />
+
+            {/* PMF label */}
+            <div className="absolute left-3 top-3 flex items-center gap-1.5 rounded-full border border-purple-300/15 bg-black/55 px-2.5 py-1.5 backdrop-blur-xl">
+              <span className="h-1.5 w-1.5 rounded-full bg-purple-400 shadow-[0_0_10px_rgba(168,85,247,0.9)]" />
+
+              <span className="text-[6px] font-black uppercase tracking-[0.2em] text-white/60">
+                PMF
+              </span>
+            </div>
+
+            {/* Featured marker */}
+            {movie.featured && (
+              <div className="absolute right-3 top-3 rounded-full border border-[#d8b36a]/20 bg-[#080611]/75 px-2.5 py-1.5 backdrop-blur-xl">
+                <span className="text-[6px] font-black uppercase tracking-[0.16em] text-[#d8b36a]">
+                  Featured
+                </span>
+              </div>
+            )}
+
+            {/* Hover play */}
+            <div className="absolute inset-0 flex items-center justify-center bg-black/10 opacity-0 transition-all duration-300 group-hover/card:bg-black/20 group-hover/card:opacity-100">
+              <div className="flex h-12 w-12 items-center justify-center rounded-full border border-white/25 bg-purple-500/85 text-white shadow-[0_0_35px_rgba(168,85,247,0.35)] backdrop-blur-md transition-transform duration-300 group-hover/card:scale-100">
+                <Play
+                  size={16}
+                  fill="currentColor"
+                  className="ml-0.5"
+                />
+              </div>
+            </div>
+
+            {/* Progress */}
+            {progressPercent > 0 && (
+              <div className="absolute inset-x-3 bottom-3">
+                <div className="h-1 overflow-hidden rounded-full bg-white/15 backdrop-blur">
+                  <div
+                    className="h-full rounded-full bg-purple-400 shadow-[0_0_10px_rgba(168,85,247,0.75)]"
+                    style={{
+                      width: `${progressPercent}%`,
+                    }}
+                  />
+                </div>
               </div>
             )}
           </div>
 
-          <div className="p-3">
-            <h3 className="truncate text-xs font-black text-white">
-              {movie.title}
-            </h3>
+          {/* Card information */}
+          <div className="relative px-3.5 pb-4 pt-3.5">
+            <div className="flex items-start justify-between gap-2">
+              <h3 className="min-w-0 truncate text-[12px] font-black tracking-[-0.02em] text-white transition-colors duration-300 group-hover/card:text-purple-200">
+                {movie.title}
+              </h3>
+            </div>
 
-            <p className="mt-1 truncate text-[8px] uppercase tracking-[0.08em] text-white/30">
-              {getMovieMeta(movie)}
-            </p>
+            <div className="mt-2 flex items-center gap-2 overflow-hidden">
+              <span className="shrink-0 text-[7px] font-black uppercase tracking-[0.14em] text-purple-300/65">
+                {movie.year}
+              </span>
+
+              <span className="h-0.5 w-0.5 shrink-0 rounded-full bg-white/20" />
+
+              <span className="truncate text-[7px] font-bold uppercase tracking-[0.12em] text-white/30">
+                {movie.type || 'Film'}
+              </span>
+
+              {movie.category && (
+                <>
+                  <span className="h-0.5 w-0.5 shrink-0 rounded-full bg-white/15" />
+
+                  <span className="truncate text-[7px] font-bold uppercase tracking-[0.1em] text-white/25">
+                    {movie.category}
+                  </span>
+                </>
+              )}
+            </div>
           </div>
         </button>
 
+        {/* My List */}
         <button
           type="button"
           onClick={() =>
             toggleMyList(movie)
           }
-          className="absolute right-2 top-2 flex h-7 w-7 items-center justify-center rounded-full border border-white/10 bg-black/60 text-white/60 backdrop-blur transition hover:bg-white hover:text-black"
+          className={`absolute bottom-[54px] right-3 flex h-8 w-8 items-center justify-center rounded-full border backdrop-blur-xl transition-all duration-300 active:scale-90 ${
+            saved
+              ? 'border-purple-300/30 bg-purple-500/20 text-purple-200 shadow-[0_0_20px_rgba(168,85,247,0.16)]'
+              : 'border-white/10 bg-black/55 text-white/55 hover:border-purple-300/25 hover:bg-purple-500/15 hover:text-purple-200'
+          }`}
           aria-label={
-            isInMyList(movie)
+            saved
               ? 'Remove from My List'
               : 'Add to My List'
           }
         >
-          {isInMyList(movie) ? (
+          {saved ? (
             <Check size={12} />
           ) : (
             <ListPlus size={12} />
           )}
         </button>
-      </article>
-    )
-  }
-
+      </div>
+    </article>
+  )
+                }
+                
   const SectionTitle = ({
     eyebrow,
     title,
