@@ -2909,82 +2909,230 @@ const Hero = () => {
               subtitle="Recommendations shaped by your viewing journey."
               items={personalizedMovies}
             />
-          </section>
-        )}
 
-        {latestMovies.length > 0 && (
-          <section className="relative">
-            <MovieRow
-              eyebrow="Fresh from the catalogue"
-              title="New & Noteworthy"
-              subtitle="Fresh stories waiting to be discovered."
-              items={latestMovies}
-            />
-          </section>
-        )}
+const HomeContent = () => (
+  <>
+    <Hero />
 
-        {categoryRows.length > 0 && (
-          <section className="relative">
-            {categoryRows.map((row) => (
-              <MovieRow
-                key={row.category}
-                eyebrow="Explore by category"
-                title={row.category}
-                subtitle={`Discover ${row.category.toLowerCase()} stories on PMF-Flix.`}
-                items={row.items}
-              />
-            ))}
-          </section>
-        )}
+    <main className="relative mx-auto max-w-[1600px] overflow-hidden px-5 pb-24 sm:px-10 lg:px-16">
 
-        {historyMovies.length > 0 && (
-          <section className="relative">
-            <MovieRow
-              eyebrow="Your activity"
-              title="Recently Watched"
-              subtitle="Your latest PMF-Flix activity."
-              items={historyMovies.slice(
-                0,
-                10,
-              )}
-            />
-          </section>
-        )}
+      {/* =====================================================
+          PMF CINEMATIC ATMOSPHERE
+          ===================================================== */}
 
-        <section className="relative mt-16 overflow-hidden rounded-[2rem] border border-white/10 bg-white/[0.025] px-6 py-12 sm:px-10 lg:px-16">
-          <div
-            aria-hidden="true"
-            className="pointer-events-none absolute -right-32 -top-32 h-72 w-72 rounded-full bg-white/[0.05] blur-[100px]"
+      <div
+        aria-hidden="true"
+        className="pointer-events-none absolute left-1/2 top-0 h-[520px] w-[1100px] -translate-x-1/2 rounded-full bg-purple-600/[0.045] blur-[150px]"
+      />
+
+      <div
+        aria-hidden="true"
+        className="pointer-events-none absolute -right-64 top-[35%] h-[520px] w-[520px] rounded-full bg-cyan-400/[0.025] blur-[150px]"
+      />
+
+      <div
+        aria-hidden="true"
+        className="pointer-events-none absolute -left-64 top-[65%] h-[520px] w-[520px] rounded-full bg-purple-600/[0.035] blur-[150px]"
+      />
+
+      {/* =====================================================
+          CONTINUE WATCHING
+          ===================================================== */}
+
+      {continueMovies.length > 0 && (
+        <section className="relative pt-14 sm:pt-20">
+          <MovieRow
+            eyebrow="Pick up where you left off"
+            title="Continue Watching"
+            subtitle="Your unfinished stories, ready when you are."
+            items={continueMovies}
           />
+        </section>
+      )}
 
-          <div className="relative max-w-3xl">
-            <p className="mb-3 text-[9px] font-black uppercase tracking-[0.35em] text-white/40">
-              The PMF Universe
-            </p>
+      {/* =====================================================
+          FEATURED
+          ===================================================== */}
 
-            <h2 className="text-3xl font-black tracking-[-0.04em] text-white sm:text-4xl lg:text-5xl">
-              Your world.
+      {featuredMovies.length > 1 && (
+        <section className="relative">
+          <MovieRow
+            eyebrow="The PMF selection"
+            title="Featured"
+            subtitle="Stories selected for the PMF cinematic experience."
+            items={featuredMovies}
+          />
+        </section>
+      )}
+
+      {/* =====================================================
+          TRENDING
+          ===================================================== */}
+
+      {trendingMovies.length > 0 && (
+        <section className="relative">
+          <MovieRow
+            eyebrow="What's moving"
+            title="Trending Now"
+            subtitle="The titles creating the most excitement across PMF-Flix."
+            items={trendingMovies}
+          />
+        </section>
+      )}
+
+      {/* =====================================================
+          PERSONALIZED
+          ===================================================== */}
+
+      {personalizedMovies.length > 0 && (
+        <section className="relative">
+          <MovieRow
+            eyebrow="Made for your journey"
+            title="Made For You"
+            subtitle="Recommendations shaped by the stories you've explored."
+            items={personalizedMovies}
+          />
+        </section>
+      )}
+
+      {/* =====================================================
+          NEW & NOTEWORTHY
+          ===================================================== */}
+
+      {latestMovies.length > 0 && (
+        <section className="relative">
+          <MovieRow
+            eyebrow="Fresh from the catalogue"
+            title="New & Noteworthy"
+            subtitle="Fresh stories waiting to become your next obsession."
+            items={latestMovies}
+          />
+        </section>
+      )}
+
+      {/* =====================================================
+          CATEGORY UNIVERSE
+          ===================================================== */}
+
+      {categoryRows.length > 0 && (
+        <section className="relative">
+          {categoryRows.map((row) => (
+            <MovieRow
+              key={row.category}
+              eyebrow="Explore the universe"
+              title={row.category}
+              subtitle={`Discover ${row.category.toLowerCase()} stories on PMF-Flix.`}
+              items={row.items}
+            />
+          ))}
+        </section>
+      )}
+
+      {/* =====================================================
+          RECENTLY WATCHED
+          ===================================================== */}
+
+      {historyMovies.length > 0 && (
+        <section className="relative">
+          <MovieRow
+            eyebrow="Your activity"
+            title="Recently Watched"
+            subtitle="Your latest journey through the PMF universe."
+            items={historyMovies.slice(0, 10)}
+          />
+        </section>
+      )}
+
+      {/* =====================================================
+          PMF UNIVERSE PORTAL
+          ===================================================== */}
+
+      <section className="group/universe relative mt-16 overflow-hidden rounded-[32px] border border-purple-300/[0.10] bg-[#080611] shadow-[0_30px_100px_rgba(0,0,0,0.35)]">
+
+        {/* Atmospheric lighting */}
+
+        <div
+          aria-hidden="true"
+          className="pointer-events-none absolute -right-32 -top-40 h-[500px] w-[500px] rounded-full bg-purple-600/[0.13] blur-[130px] transition-all duration-1000 group-hover/universe:bg-purple-600/[0.20]"
+        />
+
+        <div
+          aria-hidden="true"
+          className="pointer-events-none absolute -bottom-48 left-1/3 h-[420px] w-[420px] rounded-full bg-cyan-400/[0.035] blur-[120px]"
+        />
+
+        <div
+          aria-hidden="true"
+          className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_80%_20%,rgba(168,85,247,0.10),transparent_35%)]"
+        />
+
+        {/* Decorative grid */}
+
+        <div
+          aria-hidden="true"
+          className="pointer-events-none absolute inset-0 opacity-[0.035]"
+          style={{
+            backgroundImage:
+              'linear-gradient(rgba(255,255,255,0.7) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,0.7) 1px, transparent 1px)',
+            backgroundSize: '42px 42px',
+          }}
+        />
+
+        {/* Content */}
+
+        <div className="relative grid gap-10 px-6 py-12 sm:px-10 sm:py-16 lg:grid-cols-[1fr_auto] lg:items-end lg:px-16 lg:py-20">
+
+          <div className="max-w-3xl">
+
+            <div className="mb-6 flex items-center gap-3">
+              <div className="flex h-9 w-9 items-center justify-center rounded-xl border border-purple-300/20 bg-purple-500/10 text-purple-300 shadow-[0_0_30px_rgba(168,85,247,0.15)]">
+                <Sparkles size={14} />
+              </div>
+
+              <div>
+                <p className="text-[8px] font-black uppercase tracking-[0.35em] text-purple-300/70">
+                  The PMF Universe
+                </p>
+
+                <p className="mt-1 text-[7px] font-bold uppercase tracking-[0.2em] text-white/25">
+                  Stories without borders
+                </p>
+              </div>
+            </div>
+
+            <h2 className="max-w-4xl text-4xl font-black leading-[0.92] tracking-[-0.055em] text-white sm:text-5xl lg:text-6xl">
+              There is a whole
               <br />
-              Your stories.
-              <br />
-              Your Flix.
+              <span className="bg-gradient-to-r from-white via-purple-200 to-purple-400 bg-clip-text text-transparent">
+                universe waiting.
+              </span>
             </h2>
 
-            <p className="mt-5 max-w-2xl text-sm leading-7 text-white/50 sm:text-base">
-              Discover stories from every corner of the entertainment world —
-              from global cinema and African stories to PMF Originals and the
-              next title waiting to become your favourite.
+            <p className="mt-6 max-w-2xl text-sm leading-7 text-white/40 sm:text-base">
+              Explore global cinema, African stories, unforgettable
+              characters and worlds waiting to become part of your
+              next cinematic memory.
             </p>
 
-            <div className="mt-8 flex flex-wrap gap-3">
+            <div className="mt-8 flex flex-wrap items-center gap-3">
+
               <button
                 type="button"
                 onClick={() =>
                   navigate('movies')
                 }
-                className="rounded-full bg-white px-6 py-3 text-[9px] font-black uppercase tracking-[0.18em] text-black transition-transform duration-300 hover:scale-105"
+                className="group/explore relative inline-flex items-center gap-3 overflow-hidden rounded-2xl border border-purple-300/25 bg-purple-500/90 px-6 py-4 text-[9px] font-black uppercase tracking-[0.2em] text-white shadow-[0_14px_45px_rgba(168,85,247,0.20)] transition-all duration-300 hover:-translate-y-1 hover:bg-purple-400 hover:shadow-[0_18px_60px_rgba(168,85,247,0.32)] active:scale-[0.97]"
               >
-                Explore the Universe
+                <span className="absolute inset-0 -translate-x-full bg-gradient-to-r from-transparent via-white/15 to-transparent transition-transform duration-700 group-hover/explore:translate-x-full" />
+
+                <Film
+                  size={13}
+                  className="relative"
+                />
+
+                <span className="relative">
+                  Explore the Universe
+                </span>
               </button>
 
               <button
@@ -2992,31 +3140,76 @@ const Hero = () => {
                 onClick={() =>
                   navigate('movies')
                 }
-                className="rounded-full border border-white/15 bg-white/[0.04] px-6 py-3 text-[9px] font-black uppercase tracking-[0.18em] text-white/70 transition-colors duration-300 hover:bg-white/[0.08] hover:text-white"
+                className="inline-flex items-center gap-2 rounded-2xl border border-white/10 bg-white/[0.035] px-5 py-4 text-[9px] font-black uppercase tracking-[0.2em] text-white/55 backdrop-blur-xl transition-all duration-300 hover:-translate-y-1 hover:border-purple-300/20 hover:bg-purple-500/10 hover:text-white"
               >
-                Browse Movies
+                Browse Catalogue
               </button>
+
             </div>
           </div>
-        </section>
 
-        <section className="relative py-20 text-center">
-          <p className="text-[8px] font-black uppercase tracking-[0.4em] text-white/25">
-            PMF-Flix
-          </p>
+          {/* PMF visual signature */}
 
-          <h2 className="mt-4 text-2xl font-black tracking-[-0.04em] text-white/90 sm:text-3xl">
-            There is always another story.
-          </h2>
+          <div className="relative hidden h-44 w-44 items-center justify-center lg:flex">
 
-          <p className="mx-auto mt-3 max-w-xl text-xs leading-6 text-white/35 sm:text-sm">
-            Keep exploring. Keep discovering. Keep watching.
-          </p>
-        </section>
-      </main>
-    </>
-  )
+            <div className="absolute inset-0 rounded-full border border-purple-300/[0.08]" />
 
+            <div className="absolute inset-4 rounded-full border border-purple-300/[0.08]" />
+
+            <div className="absolute inset-8 rounded-full border border-purple-300/[0.12] bg-purple-500/[0.04] shadow-[0_0_70px_rgba(168,85,247,0.10)]" />
+
+            <div className="relative flex h-16 w-16 items-center justify-center rounded-2xl border border-purple-300/20 bg-purple-500/10 text-purple-300 shadow-[0_0_45px_rgba(168,85,247,0.20)] backdrop-blur-xl">
+              <Film size={23} />
+            </div>
+
+            <div className="absolute left-2 top-1/2 h-1.5 w-1.5 rounded-full bg-purple-400 shadow-[0_0_12px_rgba(168,85,247,0.9)]" />
+
+            <div className="absolute right-5 top-8 h-1 w-1 rounded-full bg-cyan-300 shadow-[0_0_10px_rgba(103,232,249,0.8)]" />
+
+            <div className="absolute bottom-5 right-1/2 h-1.5 w-1.5 rounded-full bg-[#d8b36a] shadow-[0_0_12px_rgba(216,179,106,0.7)]" />
+          </div>
+
+        </div>
+      </section>
+
+      {/* =====================================================
+          FINAL PMF SIGNATURE
+          ===================================================== */}
+
+      <section className="relative py-24 text-center">
+
+        <div className="mx-auto mb-7 flex items-center justify-center gap-4">
+          <span className="h-px w-16 bg-gradient-to-r from-transparent to-purple-400/30" />
+
+          <span className="h-1.5 w-1.5 rounded-full bg-purple-400 shadow-[0_0_12px_rgba(168,85,247,0.8)]" />
+
+          <span className="h-px w-16 bg-gradient-to-l from-transparent to-purple-400/30" />
+        </div>
+
+        <p className="text-[8px] font-black uppercase tracking-[0.45em] text-purple-300/45">
+          PMF-Flix
+        </p>
+
+        <h2 className="mt-5 text-3xl font-black tracking-[-0.05em] text-white sm:text-4xl">
+          There is always another story.
+        </h2>
+
+        <p className="mx-auto mt-4 max-w-xl text-xs leading-6 text-white/30 sm:text-sm">
+          Keep exploring. Keep discovering. Keep watching.
+        </p>
+
+        <div className="mt-8 flex items-center justify-center gap-2">
+          <span className="h-1 w-1 rounded-full bg-purple-400/70" />
+          <span className="h-1 w-8 rounded-full bg-purple-400/20" />
+          <span className="h-1 w-1 rounded-full bg-purple-400/70" />
+        </div>
+
+      </section>
+
+    </main>
+  </>
+)
+            
   const MovieDetails = () => {
     if (!selectedMovie) {
       return null
