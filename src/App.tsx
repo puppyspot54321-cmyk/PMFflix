@@ -1773,39 +1773,56 @@ const MovieCard = ({
                 }
                 
   const SectionTitle = ({
-    eyebrow,
-    title,
-    subtitle,
-    action,
-  }: {
-    eyebrow?: string
-    title: string
-    subtitle?: string
-    action?: ReactNode
-  }) => (
-    <div className="mb-5 flex items-end justify-between gap-4">
-      <div>
-        {eyebrow && (
-          <p className="mb-1 flex items-center gap-2 text-[8px] font-black uppercase tracking-[0.22em] text-white/25">
-            <Sparkles size={10} />
+  eyebrow,
+  title,
+  subtitle,
+  action,
+}: {
+  eyebrow?: string
+  title: string
+  subtitle?: string
+  action?: ReactNode
+}) => (
+  <div className="group/section relative mb-6 flex items-end justify-between gap-4">
+    <div className="relative min-w-0">
+      {/* Cinematic section light */}
+      <div className="pointer-events-none absolute -left-8 -top-8 h-20 w-32 rounded-full bg-purple-500/10 blur-3xl transition-all duration-700 group-hover/section:bg-purple-500/20" />
+
+      {eyebrow && (
+        <div className="relative mb-2 flex items-center gap-2">
+          <span className="h-px w-6 bg-gradient-to-r from-purple-400/80 to-transparent" />
+
+          <p className="text-[7px] font-black uppercase tracking-[0.28em] text-purple-300/65">
             {eyebrow}
           </p>
-        )}
 
-        <h2 className="text-xl font-black tracking-[-0.03em] text-white sm:text-2xl">
+          <span className="h-1 w-1 rounded-full bg-purple-400 shadow-[0_0_8px_rgba(168,85,247,0.8)]" />
+        </div>
+      )}
+
+      <div className="relative flex items-center gap-3">
+        <h2 className="text-xl font-black tracking-[-0.04em] text-white sm:text-2xl">
           {title}
         </h2>
 
-        {subtitle && (
-          <p className="mt-1 max-w-2xl text-xs leading-5 text-white/30">
-            {subtitle}
-          </p>
-        )}
+        <span className="hidden h-px w-12 bg-gradient-to-r from-purple-400/40 to-transparent sm:block" />
       </div>
 
-      {action}
+      {subtitle && (
+        <p className="mt-1.5 max-w-2xl text-[10px] leading-5 text-white/30 sm:text-xs">
+          {subtitle}
+        </p>
+      )}
     </div>
-  )
+
+    {action && (
+      <div className="relative shrink-0">
+        {action}
+      </div>
+    )}
+  </div>
+)
+  
   
     const MovieRow = ({
     title,
