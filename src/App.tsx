@@ -240,69 +240,40 @@ function AppShell() {
   const [authLoading, setAuthLoading] =
     useState(true)
 
-  useEffect(() => {
-  let mounted = true
-  let authEventOccurred = false
+    useEffect(() => {
+    let mounted = true
 
-  const loadInitialSession = async () => {
     const {
-      data: { session: currentSession },
-      error,
-    } = await supabase.auth.getSession()
+      data: { subscription },
+    } = supabase.auth.onAuthStateChange(
+      (event, nextSession) => {
+        if (!mounted) {
+          return
+        }
 
-    if (!mounted) {
-      return
+        if (
+          event === 'INITIAL_SESSION' ||
+          event === 'SIGNED_IN' ||
+          event === 'TOKEN_REFRESHED' ||
+          event === 'USER_UPDATED'
+        ) {
+          setSession(nextSession)
+          setAuthLoading(false)
+          return
+        }
+
+        if (event === 'SIGNED_OUT') {
+          setSession(null)
+          setAuthLoading(false)
+        }
+      },
+    )
+
+    return () => {
+      mounted = false
+      subscription.unsubscribe()
     }
-
-    if (error) {
-      console.error(
-        'PMF session restore error:',
-        error,
-      )
-    }
-
-    // Never allow an older getSession() result
-    // to overwrite a newer authentication event.
-    if (!authEventOccurred) {
-      setSession(currentSession)
-      setAuthLoading(false)
-    }
-  }
-
-  const {
-    data: { subscription },
-  } = supabase.auth.onAuthStateChange(
-    (event, nextSession) => {
-      if (!mounted) {
-        return
-      }
-
-      if (
-        event === 'SIGNED_IN' ||
-        event === 'TOKEN_REFRESHED' ||
-        event === 'USER_UPDATED'
-      ) {
-        authEventOccurred = true
-        setSession(nextSession)
-        setAuthLoading(false)
-        return
-      }
-
-      if (event === 'SIGNED_OUT') {
-        authEventOccurred = true
-        setSession(null)
-        setAuthLoading(false)
-      }
-    },
-  )
-
-  void loadInitialSession()
-
-  return () => {
-    mounted = false
-    subscription.unsubscribe()
-  }
-}, [])
+  }, [])
   useEffect(() => {
     let active = true
 
