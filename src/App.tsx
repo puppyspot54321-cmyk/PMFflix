@@ -250,59 +250,75 @@ function AppShell() {
         error,
       } = await supabase.auth.getSession()
 
+useEffect(() => {
+  let mounted = true
+  let authEventOccurred = false
+
+  const loadInitialSession = async () => {
+    const {
+      data: { session: currentSession },
+      error,
+    } = await supabase.auth.getSession()
+
+    if (!mounted) {
+      return
+    }
+
+    if (error) {
+      console.error(
+        'PMF session restore error:',
+        error,
+      )
+    }
+
+    // Do not let the initial session check
+    // overwrite a newer authentication event.
+    if (!authEventOccurred) {
+      setSession(currentSession)
+      setAuthLoading(false)
+    }
+  }
+
+  const {
+    data: { subscription },
+  } = supabase.auth.onAuthStateChange(
+    (event, nextSession) => {
       if (!mounted) {
         return
       }
 
-      if (error) {
-        console.error(
-          'PMF session restore error:',
-          error,
-        )
+      if (
+        event === 'SIGNED_IN' ||
+        event === 'TOKEN_REFRESHED' ||
+        event === 'USER_UPDATED'
+      ) {
+        authEventOccurred = true
+
+        // Never replace a valid session with null
+        // during a non-sign-out auth event.
+        if (nextSession) {
+          setSession(nextSession)
+        }
+
+        setAuthLoading(false)
+        return
       }
 
-      // Never allow an older getSession() result
-      // to overwrite a newer authentication event.
-      if (!authEventOccurred) {
-        setSession(currentSession)
+      if (event === 'SIGNED_OUT') {
+        authEventOccurred = true
+        setSession(null)
         setAuthLoading(false)
       }
-    }
+    },
+  )
 
-    const {
-      data: { subscription },
-    } = supabase.auth.onAuthStateChange(
-      (event, nextSession) => {
-        if (!mounted) {
-          return
-        }
+  void loadInitialSession()
 
-        if (
-          event === 'SIGNED_IN' ||
-          event === 'TOKEN_REFRESHED' ||
-          event === 'USER_UPDATED'
-        ) {
-          authEventOccurred = true
-          setSession(nextSession)
-          setAuthLoading(false)
-          return
-        }
-
-        if (event === 'SIGNED_OUT') {
-          authEventOccurred = true
-          setSession(null)
-          setAuthLoading(false)
-        }
-      },
-    )
-
-    void loadInitialSession()
-
-    return () => {
-      mounted = false
-      subscription.unsubscribe()
-    }
-  }, [])
+  return () => {
+    mounted = false
+    subscription.unsubscribe()
+  }
+}, [])
   
   useEffect(() => {
     let active = true
