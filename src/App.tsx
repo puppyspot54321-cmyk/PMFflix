@@ -1597,20 +1597,6 @@ useEffect(() => {
     movie.poster ||
     heroImage
 
-  const getMovieMeta = (
-    movie: Movie,
-  ) => {
-    const parts = [
-      movie.year
-        ? String(movie.year)
-        : '',
-      movie.type || '',
-      movie.category || '',
-    ].filter(Boolean)
-
-    return parts.join(' • ')
-  }
-
   const getProgressPercent = (
     movie: Movie,
   ) => {
