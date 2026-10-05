@@ -542,6 +542,9 @@ const audioGainRef =
 const audioElementRef =
   useRef<HTMLVideoElement | null>(null)
 
+const heroMovieIdRef =
+  useRef<string | null>(null)
+  
   const playerRef =
     useRef<HTMLDivElement | null>(
       null,
@@ -1389,16 +1392,48 @@ const closePlayer = async () => {
     [movies],
   )
 
-  const featuredMovies = useMemo(
-    () =>
-      movies
-        .filter(
-          (movie) =>
-            movie.featured,
-        )
-        .slice(0, 12),
-    [movies],
-  )
+  const featuredMovies = useMemo(() => {
+  const featured = movies
+    .filter(
+      (movie) =>
+        movie.featured,
+    )
+    .slice()
+    .sort((a, b) =>
+      getMovieId(a).localeCompare(
+        getMovieId(b),
+      ),
+    )
+
+  if (!featured.length) {
+    return []
+  }
+
+  const remembered =
+    heroMovieIdRef.current
+
+  if (remembered) {
+    const existing =
+      featured.find(
+        (movie) =>
+          getMovieId(movie) ===
+          remembered,
+      )
+
+    if (existing) {
+      return [existing, ...featured.filter(
+        (movie) =>
+          getMovieId(movie) !==
+          remembered,
+      )]
+    }
+  }
+
+  heroMovieIdRef.current =
+    getMovieId(featured[0])
+
+  return featured
+}, [movies])
 
   const personalizedMovies =
     useMemo(() => {
