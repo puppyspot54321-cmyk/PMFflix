@@ -2331,25 +2331,39 @@ const Hero = () => {
 
   if (!featured) {
     return (
-      <section className="relative min-h-[88vh] overflow-hidden bg-[#030208]">
+      <section className="relative min-h-[92vh] overflow-hidden bg-[#030208]">
         <div
           aria-hidden="true"
-          className="absolute left-1/2 top-1/2 h-[700px] w-[700px] -translate-x-1/2 -translate-y-1/2 rounded-full bg-purple-600/10 blur-[180px]"
+          className="pointer-events-none absolute left-1/2 top-1/2 h-[700px] w-[700px] -translate-x-1/2 -translate-y-1/2 rounded-full bg-purple-600/[0.12] blur-[190px]"
         />
 
-        <div className="relative mx-auto flex min-h-[88vh] max-w-[1600px] items-center px-5 pt-28 sm:px-10 lg:px-16">
-          <div className="max-w-4xl">
-            <p className="mb-6 text-[8px] font-black uppercase tracking-[0.4em] text-purple-300/60">
-              Prince Mufasa Flix
-            </p>
+        <div
+          aria-hidden="true"
+          className="pointer-events-none absolute right-[-10%] top-[15%] h-[500px] w-[500px] rounded-full bg-cyan-400/[0.035] blur-[180px]"
+        />
+
+        <div className="relative mx-auto flex min-h-[92vh] max-w-[1600px] items-center px-5 pt-28 sm:px-10 lg:px-16">
+          <div className="max-w-5xl">
+            <div className="mb-8 flex items-center gap-3">
+              <span className="h-px w-14 bg-gradient-to-r from-purple-400 to-transparent" />
+
+              <span className="text-[8px] font-black uppercase tracking-[0.4em] text-purple-300/70">
+                Prince Mufasa Flix
+              </span>
+
+              <span className="h-1 w-1 rounded-full bg-purple-400 shadow-[0_0_12px_rgba(168,85,247,0.9)]" />
+            </div>
 
             <h1 className="text-6xl font-black leading-[0.82] tracking-[-0.075em] text-white sm:text-8xl lg:text-[112px]">
               Your world.
               <br />
+
               <span className="bg-gradient-to-r from-white via-purple-200 to-purple-400 bg-clip-text text-transparent">
                 Your stories.
               </span>
+
               <br />
+
               <span className="text-white/75">
                 Your Flix.
               </span>
@@ -2377,21 +2391,21 @@ const Hero = () => {
 
       <div
         aria-hidden="true"
-        className="pointer-events-none absolute -left-[18%] top-[18%] h-[700px] w-[700px] rounded-full bg-purple-700/[0.13] blur-[190px] pmf-cinematic-glow"
+        className="pointer-events-none absolute -left-[20%] top-[8%] h-[760px] w-[760px] rounded-full bg-purple-700/[0.14] blur-[210px] pmf-cinematic-glow"
       />
 
       <div
         aria-hidden="true"
-        className="pointer-events-none absolute right-[-10%] top-[8%] h-[600px] w-[600px] rounded-full bg-cyan-400/[0.035] blur-[190px]"
+        className="pointer-events-none absolute right-[-12%] top-[8%] h-[650px] w-[650px] rounded-full bg-cyan-400/[0.045] blur-[210px]"
       />
 
       <div
         aria-hidden="true"
-        className="pointer-events-none absolute bottom-[-25%] left-[40%] h-[600px] w-[600px] rounded-full bg-purple-500/[0.08] blur-[190px]"
+        className="pointer-events-none absolute bottom-[-30%] left-[35%] h-[650px] w-[650px] rounded-full bg-purple-500/[0.09] blur-[200px]"
       />
 
       {/* =====================================================
-          HERO ARTWORK
+          CINEMATIC ARTWORK
           ===================================================== */}
 
       <div className="absolute inset-0 overflow-hidden">
@@ -2402,54 +2416,59 @@ const Hero = () => {
             heroImage
           }
           alt=""
-          className="h-full w-full scale-[1.045] object-cover object-center opacity-[0.64] transition-transform duration-[5000ms] ease-out group-hover/hero:scale-[1.075]"
+          className="h-full w-full scale-[1.045] object-cover object-center opacity-[0.66] transition-transform duration-[7000ms] ease-out group-hover/hero:scale-[1.075]"
         />
 
-        {/* Artwork illumination */}
+        {/* Artwork colour bloom */}
 
         <div
           aria-hidden="true"
-          className="absolute inset-0 bg-[radial-gradient(circle_at_73%_34%,rgba(168,85,247,0.24),transparent_31%)]"
+          className="absolute inset-0 bg-[radial-gradient(circle_at_70%_38%,rgba(168,85,247,0.24),transparent_30%)]"
         />
 
         <div
           aria-hidden="true"
-          className="absolute inset-0 bg-[radial-gradient(circle_at_88%_20%,rgba(103,232,249,0.075),transparent_24%)]"
+          className="absolute inset-0 bg-[radial-gradient(circle_at_86%_20%,rgba(103,232,249,0.08),transparent_25%)]"
         />
 
-        {/* Deep cinematic left fade */}
+        {/* Deep cinematic fade */}
 
-        <div className="absolute inset-0 bg-gradient-to-r from-[#030208] via-[#030208]/90 via-[44%] to-[#030208]/10" />
+        <div className="absolute inset-0 bg-gradient-to-r from-[#030208] via-[#030208]/88 via-[43%] to-[#030208]/10" />
 
-        {/* Bottom fade */}
+        <div className="absolute inset-0 bg-gradient-to-t from-[#030208] via-[#030208]/35 via-[52%] to-transparent" />
 
-        <div className="absolute inset-0 bg-gradient-to-t from-[#030208] via-[#030208]/45 via-[48%] to-transparent" />
+        {/* Header protection */}
 
-        {/* Navigation protection */}
+        <div className="absolute inset-x-0 top-0 h-[40%] bg-gradient-to-b from-[#030208]/95 to-transparent" />
 
-        <div className="absolute inset-x-0 top-0 h-[38%] bg-gradient-to-b from-[#030208]/90 to-transparent" />
+        {/* Cinematic vignette */}
 
-        {/* Edge vignette */}
+        <div className="absolute inset-0 shadow-[inset_0_0_240px_rgba(0,0,0,0.85)]" />
 
-        <div className="absolute inset-0 shadow-[inset_0_0_220px_rgba(0,0,0,0.82)]" />
+        {/* Subtle film atmosphere */}
 
-        {/* Fine cinematic haze */}
+        <div
+          aria-hidden="true"
+          className="absolute inset-0 bg-[radial-gradient(circle_at_center,transparent_45%,rgba(0,0,0,0.22)_100%)]"
+        />
+
+        {/* Fine highlight */}
 
         <div className="absolute inset-0 bg-white/[0.006]" />
       </div>
 
       {/* =====================================================
-          CINEMATIC CONTENT
+          MAIN HERO CONTENT
           ===================================================== */}
 
       <div className="relative mx-auto flex min-h-[94vh] max-w-[1600px] items-end px-5 pb-20 pt-32 sm:px-10 sm:pb-24 lg:px-16 lg:pb-28">
 
         <div className="w-full">
 
-          <div className="grid items-end gap-10 lg:grid-cols-[minmax(0,1fr)_330px] xl:grid-cols-[minmax(0,1fr)_370px]">
+          <div className="grid items-end gap-12 lg:grid-cols-[minmax(0,1fr)_340px] xl:grid-cols-[minmax(0,1fr)_390px]">
 
             {/* =================================================
-                LEFT CONTENT
+                LEFT — STORY
                 ================================================= */}
 
             <div className="max-w-5xl">
@@ -2458,25 +2477,24 @@ const Hero = () => {
 
               <div className="mb-7 flex items-center gap-3">
 
-                <div className="relative flex h-10 w-10 items-center justify-center rounded-2xl border border-purple-300/20 bg-purple-500/[0.10] text-purple-300 shadow-[0_0_40px_rgba(168,85,247,0.20)] backdrop-blur-xl">
+                <div className="relative flex h-11 w-11 items-center justify-center rounded-2xl border border-purple-300/20 bg-purple-500/[0.11] text-purple-300 shadow-[0_0_45px_rgba(168,85,247,0.22)] backdrop-blur-xl">
 
                   <div
                     aria-hidden="true"
-                    className="absolute inset-0 rounded-2xl bg-purple-400/10 blur-md"
+                    className="absolute inset-0 rounded-2xl bg-purple-400/10 blur-lg"
                   />
 
                   <Sparkles
-                    size={15}
+                    size={16}
                     className="relative"
                   />
-
                 </div>
 
                 <div>
 
                   <div className="flex items-center gap-2">
 
-                    <span className="text-[8px] font-black uppercase tracking-[0.38em] text-purple-300">
+                    <span className="text-[8px] font-black uppercase tracking-[0.4em] text-purple-300">
                       PMF Signature
                     </span>
 
@@ -2484,8 +2502,8 @@ const Hero = () => {
 
                   </div>
 
-                  <p className="mt-1 text-[7px] font-bold uppercase tracking-[0.24em] text-white/30">
-                    Featured cinematic experience
+                  <p className="mt-1 text-[7px] font-bold uppercase tracking-[0.25em] text-white/30">
+                    A cinematic experience
                   </p>
 
                 </div>
@@ -2494,7 +2512,7 @@ const Hero = () => {
 
               {/* TITLE */}
 
-              <h1 className="max-w-5xl text-5xl font-black leading-[0.84] tracking-[-0.075em] text-white sm:text-7xl md:text-8xl lg:text-[96px] xl:text-[104px]">
+              <h1 className="max-w-5xl text-5xl font-black leading-[0.83] tracking-[-0.078em] text-white sm:text-7xl md:text-8xl lg:text-[94px] xl:text-[106px]">
 
                 {featured.title}
 
@@ -2539,12 +2557,14 @@ const Hero = () => {
                     <span className="h-1 w-1 rounded-full bg-white/20" />
 
                     <span className="inline-flex items-center gap-1.5 text-[8px] font-black uppercase tracking-[0.2em] text-[#d8b36a]">
+
                       <Star
                         size={10}
                         fill="currentColor"
                       />
 
                       {rating.toFixed(1)}
+
                     </span>
                   </>
                 )}
@@ -2553,7 +2573,7 @@ const Hero = () => {
 
               {/* DESCRIPTION */}
 
-              <p className="mt-6 max-w-2xl text-sm leading-7 text-white/48 sm:text-[15px] sm:leading-7">
+              <p className="mt-6 max-w-2xl text-sm leading-7 text-white/50 sm:text-[15px] sm:leading-7">
 
                 {featured.description ||
                   'Discover remarkable stories, unforgettable characters and cinematic worlds on PMF-Flix.'}
@@ -2571,7 +2591,7 @@ const Hero = () => {
                       featured,
                     )
                   }
-                  className="group/enter relative inline-flex items-center gap-3 overflow-hidden rounded-2xl border border-purple-300/30 bg-gradient-to-r from-purple-600 via-purple-500 to-purple-600 px-6 py-4 text-[9px] font-black uppercase tracking-[0.2em] text-white shadow-[0_16px_60px_rgba(168,85,247,0.30)] transition-all duration-300 hover:-translate-y-1 hover:shadow-[0_20px_75px_rgba(168,85,247,0.45)] active:scale-[0.97]"
+                  className="group/enter relative inline-flex items-center gap-3 overflow-hidden rounded-2xl border border-purple-300/30 bg-gradient-to-r from-purple-600 via-purple-500 to-purple-600 px-6 py-4 text-[9px] font-black uppercase tracking-[0.2em] text-white shadow-[0_18px_65px_rgba(168,85,247,0.32)] transition-all duration-300 hover:-translate-y-1 hover:shadow-[0_24px_85px_rgba(168,85,247,0.46)] active:scale-[0.97]"
                 >
 
                   <span className="absolute inset-0 -translate-x-full bg-gradient-to-r from-transparent via-white/25 to-transparent transition-transform duration-700 group-hover/enter:translate-x-full" />
@@ -2612,7 +2632,7 @@ const Hero = () => {
 
               </div>
 
-              {/* SIGNATURE LINE */}
+              {/* PMF SIGNATURE LINE */}
 
               <div className="mt-10 flex items-center gap-3">
 
@@ -2631,87 +2651,103 @@ const Hero = () => {
             </div>
 
             {/* =================================================
-                RIGHT CINEMATIC FEATURE PANEL
+                RIGHT — CINEMATIC FEATURE OBJECT
                 ================================================= */}
 
             <div className="hidden lg:block">
 
-              <div className="group/feature relative overflow-hidden rounded-[28px] border border-white/[0.10] bg-[#07050d]/55 p-2 shadow-[0_30px_100px_rgba(0,0,0,0.55)] backdrop-blur-2xl">
+              <div className="group/feature relative">
 
-                {/* Purple edge glow */}
+                {/* Floating ambient glow */}
 
                 <div
                   aria-hidden="true"
-                  className="pointer-events-none absolute -inset-20 bg-purple-600/[0.08] blur-[70px]"
+                  className="pointer-events-none absolute -inset-16 rounded-[40px] bg-purple-600/[0.08] blur-[80px] transition-all duration-1000 group-hover/feature:bg-purple-600/[0.14]"
                 />
 
-                <div className="relative overflow-hidden rounded-[22px] border border-white/[0.07]">
+                {/* Outer frame */}
 
-                  <div className="relative aspect-[2/3] overflow-hidden">
+                <div className="relative overflow-hidden rounded-[30px] border border-white/[0.10] bg-[#07050d]/65 p-2 shadow-[0_35px_120px_rgba(0,0,0,0.60)] backdrop-blur-2xl transition-all duration-700 group-hover/feature:-translate-y-2 group-hover/feature:border-purple-300/20">
 
-                    <img
-                      src={
-                        featured.poster ||
-                        heroImage
-                      }
-                      alt={featured.title}
-                      className="h-full w-full object-cover transition-transform duration-[4000ms] group-hover/feature:scale-[1.06]"
-                    />
+                  {/* Inner poster */}
 
-                    <div className="absolute inset-0 bg-gradient-to-t from-[#030208] via-transparent to-transparent" />
+                  <div className="relative overflow-hidden rounded-[24px] border border-white/[0.07]">
 
-                    <div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_25%,rgba(168,85,247,0.15),transparent_40%)]" />
+                    <div className="relative aspect-[2/3] overflow-hidden">
 
-                    {/* FEATURED BADGE */}
+                      <img
+                        src={
+                          featured.poster ||
+                          heroImage
+                        }
+                        alt={featured.title}
+                        className="h-full w-full object-cover transition-transform duration-[6000ms] ease-out group-hover/feature:scale-[1.07]"
+                      />
 
-                    <div className="absolute left-4 top-4">
+                      {/* Poster lighting */}
 
-                      <div className="flex items-center gap-2 rounded-full border border-purple-300/20 bg-black/55 px-3 py-2 backdrop-blur-xl">
+                      <div className="absolute inset-0 bg-gradient-to-t from-[#030208] via-transparent to-transparent" />
 
-                        <span className="h-1.5 w-1.5 rounded-full bg-purple-400 shadow-[0_0_10px_rgba(168,85,247,0.9)]" />
+                      <div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_20%,rgba(168,85,247,0.20),transparent_38%)]" />
 
-                        <span className="text-[7px] font-black uppercase tracking-[0.22em] text-purple-200/80">
-                          Featured
-                        </span>
+                      <div className="absolute inset-0 shadow-[inset_0_0_70px_rgba(0,0,0,0.45)]" />
+
+                      {/* FEATURED BADGE */}
+
+                      <div className="absolute left-4 top-4">
+
+                        <div className="flex items-center gap-2 rounded-full border border-purple-300/20 bg-black/60 px-3 py-2 backdrop-blur-xl">
+
+                          <span className="h-1.5 w-1.5 rounded-full bg-purple-400 shadow-[0_0_10px_rgba(168,85,247,0.9)]" />
+
+                          <span className="text-[7px] font-black uppercase tracking-[0.22em] text-purple-200/80">
+                            Featured
+                          </span>
+
+                        </div>
+
+                      </div>
+
+                      {/* POSTER INFO */}
+
+                      <div className="absolute inset-x-4 bottom-4">
+
+                        <p className="text-[7px] font-black uppercase tracking-[0.25em] text-white/35">
+                          Now presenting
+                        </p>
+
+                        <h2 className="mt-1 truncate text-lg font-black tracking-[-0.02em] text-white">
+                          {featured.title}
+                        </h2>
 
                       </div>
 
                     </div>
 
-                    {/* BOTTOM INFO */}
+                    {/* CARD FOOTER */}
 
-                    <div className="absolute inset-x-4 bottom-4">
+                    <div className="flex items-center justify-between gap-3 bg-[#080611]/95 px-4 py-4">
 
-                      <p className="text-[7px] font-black uppercase tracking-[0.25em] text-white/35">
-                        Now presenting
-                      </p>
+                      <div>
 
-                      <h2 className="mt-1 truncate text-base font-black tracking-[-0.02em] text-white">
-                        {featured.title}
-                      </h2>
+                        <p className="text-[6px] font-black uppercase tracking-[0.24em] text-white/25">
+                          PMF CINEMA
+                        </p>
 
-                    </div>
+                        <p className="mt-1 text-[8px] font-bold uppercase tracking-[0.14em] text-purple-300/70">
+                          Your next story awaits
+                        </p>
 
-                  </div>
+                      </div>
 
-                  {/* PANEL FOOTER */}
+                      <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full border border-purple-300/15 bg-purple-500/10 text-purple-300 shadow-[0_0_25px_rgba(168,85,247,0.12)]">
 
-                  <div className="flex items-center justify-between gap-3 bg-[#080611]/90 px-4 py-3.5">
+                        <Sparkles
+                          size={13}
+                        />
 
-                    <div>
+                      </div>
 
-                      <p className="text-[6px] font-black uppercase tracking-[0.22em] text-white/25">
-                        PMF CINEMA
-                      </p>
-
-                      <p className="mt-1 text-[8px] font-bold uppercase tracking-[0.14em] text-purple-300/70">
-                        Your next story awaits
-                      </p>
-
-                    </div>
-
-                    <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full border border-purple-300/15 bg-purple-500/10 text-purple-300">
-                      <Sparkles size={12} />
                     </div>
 
                   </div>
@@ -2729,7 +2765,7 @@ const Hero = () => {
       </div>
 
       {/* =====================================================
-          CINEMATIC CORNER DETAILS
+          CINEMATIC DETAILS
           ===================================================== */}
 
       <div
@@ -2737,24 +2773,28 @@ const Hero = () => {
         className="pointer-events-none absolute bottom-8 right-6 hidden items-center gap-3 text-[7px] font-black uppercase tracking-[0.3em] text-white/20 sm:flex lg:right-12"
       >
         <span className="h-px w-8 bg-white/10" />
-        <span>PMF / CINEMATIC UNIVERSE</span>
+
+        <span>
+          PMF / CINEMATIC UNIVERSE
+        </span>
       </div>
 
-      {/* =====================================================
-          SCROLL SIGNAL
-          ===================================================== */}
+      {/* Scroll indicator */}
 
       <div
         aria-hidden="true"
         className="pointer-events-none absolute bottom-7 left-1/2 hidden -translate-x-1/2 items-center gap-3 text-[7px] font-black uppercase tracking-[0.28em] text-white/20 sm:flex"
       >
-        <span className="h-6 w-px bg-gradient-to-b from-purple-400/70 to-transparent" />
-        <span>Explore</span>
+        <span className="h-7 w-px bg-gradient-to-b from-purple-400/80 to-transparent" />
+
+        <span>
+          Explore
+        </span>
       </div>
 
     </section>
   )
-}
+                }
 
   const Header = () => (
   <header className="fixed left-0 right-0 top-0 z-50">
