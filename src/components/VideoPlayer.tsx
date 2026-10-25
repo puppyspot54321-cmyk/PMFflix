@@ -135,6 +135,10 @@ function VideoPlayer({
   const [isOrientationLocked, setIsOrientationLocked] =
     useState(false)
 
+  const retryCountRef = useRef(0)
+  const retryTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const [playbackRecovering, setPlaybackRecovering] = useState(false)
+
   const availableQualities = useMemo(() => {
     const qualities = new Set<VideoQuality>()
 
@@ -198,13 +202,54 @@ function VideoPlayer({
 
   useEffect(() => {
     return () => {
-      if (hideControlsTimer.current) {
-        clearTimeout(
-          hideControlsTimer.current,
-        )
-      }
+      if (hideControlsTimer.current) clearTimeout(hideControlsTimer.current)
+      if (retryTimerRef.current) clearTimeout(retryTimerRef.current)
     }
   }, [])
+
+  useEffect(() => {
+    const video = videoRef.current
+    if (!video) return
+
+    const recoverFromInterruption = () => {
+      if (retryCountRef.current >= 3 || !sourceUrl) {
+        setPlaybackRecovering(false)
+        return
+      }
+      const attempt = ++retryCountRef.current
+      setPlaybackRecovering(true)
+      retryTimerRef.current = setTimeout(() => {
+        if (!videoRef.current || !sourceUrl) return
+        const current = videoRef.current
+        const resumeAt = Number.isFinite(current.currentTime) ? current.currentTime : 0
+        current.load()
+        const resume = () => {
+          if (resumeAt > 0 && Number.isFinite(current.duration)) {
+            current.currentTime = Math.min(resumeAt, Math.max(0, current.duration - 0.25))
+          }
+          void current.play().then(() => {
+            retryCountRef.current = 0
+            setPlaybackRecovering(false)
+          }).catch(() => {
+            if (attempt >= 3) setPlaybackRecovering(false)
+          })
+        }
+        current.addEventListener('canplay', resume, { once: true })
+      }, attempt * 900)
+    }
+    const handlePlaying = () => {
+      retryCountRef.current = 0
+      setPlaybackRecovering(false)
+    }
+    video.addEventListener('error', recoverFromInterruption)
+    video.addEventListener('stalled', recoverFromInterruption)
+    video.addEventListener('playing', handlePlaying)
+    return () => {
+      video.removeEventListener('error', recoverFromInterruption)
+      video.removeEventListener('stalled', recoverFromInterruption)
+      video.removeEventListener('playing', handlePlaying)
+    }
+  }, [sourceUrl])
 
   useEffect(() => {
     const video = videoRef.current
@@ -573,38 +618,31 @@ function VideoPlayer({
       }
 
       try {
-        if (
-          !document.fullscreenElement
-        ) {
-          await container.requestFullscreen()
-
-          if (
-            'orientation' in screen &&
-            typeof screen.orientation
-              .lock === 'function'
-          ) {
+        if (document.fullscreenElement || isFullscreen) {
+          if (document.fullscreenElement) await document.exitFullscreen()
+          else setIsFullscreen(false)
+          setIsOrientationLocked(false)
+          try { screen.orientation?.unlock?.() } catch { /* Orientation lock is optional. */ }
+        } else {
+          // Fullscreen APIs require a secure context and may be unavailable in some mobile browsers.
+          if (typeof container.requestFullscreen === 'function') {
+            await container.requestFullscreen()
+          }
+          setIsFullscreen(true)
+          if ('orientation' in screen && typeof screen.orientation?.lock === 'function') {
             try {
-              await screen.orientation.lock(
-                'landscape',
-              )
-
-              setIsOrientationLocked(
-                true,
-              )
+              await screen.orientation.lock('landscape')
+              setIsOrientationLocked(true)
             } catch {
-              setIsOrientationLocked(
-                false,
-              )
+              // CSS fullscreen remains usable when the browser refuses orientation locking.
+              setIsOrientationLocked(false)
             }
           }
-        } else {
-          await document.exitFullscreen()
         }
       } catch (error) {
-        console.error(
-          'PMF fullscreen error:',
-          error,
-        )
+        console.error('PMF fullscreen error:', error)
+        // Fall back to the fixed, viewport-filling player rather than leaving the control inert.
+        setIsFullscreen((current) => !current)
       }
 
       resetControlsTimer()
@@ -840,7 +878,7 @@ function VideoPlayer({
       ref={containerRef}
       className={`group relative overflow-hidden rounded-2xl bg-black shadow-2xl ${
         isFullscreen
-          ? 'h-full w-full rounded-none'
+          ? 'fixed inset-0 z-[9999] h-[100dvh] w-[100vw] rounded-none'
           : ''
       }`}
       onMouseMove={
@@ -1241,7 +1279,13 @@ function VideoPlayer({
             </div>
           </div>
 
-          {isOrientationLocked && (
+          {playbackRecovering && (
+          <div role="status" className="absolute left-1/2 top-4 z-40 -translate-x-1/2 rounded-full border border-white/15 bg-black/80 px-4 py-2 text-xs font-semibold text-white shadow-xl backdrop-blur">
+            Reconnecting stream…
+          </div>
+        )}
+
+        {isOrientationLocked && (
             <div className="mt-2 text-center text-[10px] font-medium uppercase tracking-[0.15em] text-white/30">
               Landscape mode
             </div>
