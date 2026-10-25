@@ -1726,7 +1726,7 @@ const MovieCard = ({
             <img
               src={getMoviePoster(movie)}
               alt={movie.title}
-              className="h-full w-full object-cover transition-transform duration-700 ease-out group-hover/card:scale-[1.07]"
+              className="h-full w-full object-contain transition-transform duration-500 ease-out group-hover/card:scale-[1.025]"
               loading="lazy"
             />
 
