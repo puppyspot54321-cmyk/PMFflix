@@ -2451,7 +2451,7 @@ const Hero = () => {
             heroImage
           }
           alt=""
-          className="h-full w-full scale-[1.045] object-cover object-center opacity-[0.66] transition-transform duration-[7000ms] ease-out group-hover/hero:scale-[1.075]"
+          className="pmf-hero-artwork h-full w-full object-contain object-right opacity-[0.78] transition-opacity duration-700"
         />
 
         {/* Artwork colour bloom */}
