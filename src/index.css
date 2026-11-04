@@ -773,14 +773,14 @@ button:active {
   }
 
   /* Replace the near-full-screen desktop hero height on phones. */
-  .group\\/hero {
+  .group\/hero {
     min-height: 0 !important;
     height: clamp(540px, 74svh, 660px) !important;
     max-height: 660px !important;
     isolation: isolate;
   }
 
-  .group\\/hero > .relative.mx-auto {
+  .group\/hero > .relative.mx-auto {
     display: flex !important;
     align-items: flex-end !important;
     width: 100% !important;
@@ -789,20 +789,20 @@ button:active {
     padding: max(94px, env(safe-area-inset-top)) 18px 28px !important;
   }
 
-  .group\\/hero > .relative.mx-auto > div {
+  .group\/hero > .relative.mx-auto > div {
     width: 100% !important;
     min-width: 0 !important;
   }
 
-  .group\\/hero .grid {
+  .group\/hero .grid {
     display: block !important;
   }
 
-  .group\\/hero .max-w-5xl {
+  .group\/hero .max-w-5xl {
     max-width: 100% !important;
   }
 
-  .group\\/hero h1 {
+  .group\/hero h1 {
     max-width: 12ch !important;
     font-size: clamp(2.35rem, 10vw, 3.8rem) !important;
     line-height: .96 !important;
@@ -811,12 +811,12 @@ button:active {
     overflow-wrap: normal;
   }
 
-  .group\\/hero .mt-7 {
+  .group\/hero .mt-7 {
     margin-top: 13px !important;
     gap: 8px 10px !important;
   }
 
-  .group\\/hero p.mt-6 {
+  .group\/hero p.mt-6 {
     max-width: 34rem !important;
     margin-top: 12px !important;
     font-size: 13px !important;
@@ -827,12 +827,12 @@ button:active {
     overflow: hidden !important;
   }
 
-  .group\\/hero .mt-9 {
+  .group\/hero .mt-9 {
     margin-top: 17px !important;
     gap: 9px !important;
   }
 
-  .group\\/hero .mt-9 button {
+  .group\/hero .mt-9 button {
     min-height: 46px !important;
     padding: 9px 13px !important;
     border-radius: 13px !important;
@@ -846,17 +846,17 @@ button:active {
     padding-right: 16px !important;
   }
 
-  .group\\/card {
+  .group\/card {
     width: clamp(132px, 39vw, 154px) !important;
     min-width: clamp(132px, 39vw, 154px) !important;
     flex: 0 0 auto !important;
   }
 
-  .group\\/card > div {
+  .group\/card > div {
     border-radius: 15px !important;
   }
 
-  .group\\/section {
+  .group\/section {
     margin-bottom: 18px !important;
   }
 
@@ -876,28 +876,28 @@ button:active {
 }
 
 @media (max-width: 380px) {
-  .group\\/hero {
+  .group\/hero {
     height: clamp(520px, 72svh, 590px) !important;
   }
 
-  .group\\/hero > .relative.mx-auto {
+  .group\/hero > .relative.mx-auto {
     padding-left: 15px !important;
     padding-right: 15px !important;
     padding-bottom: 22px !important;
   }
 
-  .group\\/hero h1 {
+  .group\/hero h1 {
     font-size: clamp(2.15rem, 9.5vw, 2.8rem) !important;
   }
 
-  .group\\/card {
+  .group\/card {
     width: 132px !important;
     min-width: 132px !important;
   }
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .group\\/hero *, .group\\/card * {
+  .group\/hero *, .group\/card * {
     scroll-behavior: auto !important;
     transition-duration: .01ms !important;
   }
