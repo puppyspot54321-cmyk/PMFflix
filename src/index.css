@@ -759,3 +759,146 @@ button:active {
     scroll-behavior: auto !important;
   }
  }
+
+
+/* =========================================================
+   PMF-FLIX MOBILE CINEMA LAYOUT — PRODUCTION BRANCH
+   Targets the actual App.tsx hero/card markup in this repo.
+   ========================================================= */
+@media (max-width: 640px) {
+  html, body, #root {
+    width: 100%;
+    max-width: 100%;
+    overflow-x: clip;
+  }
+
+  /* Replace the near-full-screen desktop hero height on phones. */
+  .group\\/hero {
+    min-height: 0 !important;
+    height: clamp(540px, 74svh, 660px) !important;
+    max-height: 660px !important;
+    isolation: isolate;
+  }
+
+  .group\\/hero > .relative.mx-auto {
+    display: flex !important;
+    align-items: flex-end !important;
+    width: 100% !important;
+    height: 100% !important;
+    min-height: 0 !important;
+    padding: max(94px, env(safe-area-inset-top)) 18px 28px !important;
+  }
+
+  .group\\/hero > .relative.mx-auto > div {
+    width: 100% !important;
+    min-width: 0 !important;
+  }
+
+  .group\\/hero .grid {
+    display: block !important;
+  }
+
+  .group\\/hero .max-w-5xl {
+    max-width: 100% !important;
+  }
+
+  .group\\/hero h1 {
+    max-width: 12ch !important;
+    font-size: clamp(2.35rem, 10vw, 3.8rem) !important;
+    line-height: .96 !important;
+    letter-spacing: -.065em !important;
+    text-wrap: balance;
+    overflow-wrap: normal;
+  }
+
+  .group\\/hero .mt-7 {
+    margin-top: 13px !important;
+    gap: 8px 10px !important;
+  }
+
+  .group\\/hero p.mt-6 {
+    max-width: 34rem !important;
+    margin-top: 12px !important;
+    font-size: 13px !important;
+    line-height: 1.48 !important;
+    display: -webkit-box !important;
+    -webkit-box-orient: vertical !important;
+    -webkit-line-clamp: 3 !important;
+    overflow: hidden !important;
+  }
+
+  .group\\/hero .mt-9 {
+    margin-top: 17px !important;
+    gap: 9px !important;
+  }
+
+  .group\\/hero .mt-9 button {
+    min-height: 46px !important;
+    padding: 9px 13px !important;
+    border-radius: 13px !important;
+    font-size: 8px !important;
+    letter-spacing: .12em !important;
+  }
+
+  /* Reduce the oversized desktop spacing while keeping posters readable. */
+  main.relative.mx-auto {
+    padding-left: 16px !important;
+    padding-right: 16px !important;
+  }
+
+  .group\\/card {
+    width: clamp(132px, 39vw, 154px) !important;
+    min-width: clamp(132px, 39vw, 154px) !important;
+    flex: 0 0 auto !important;
+  }
+
+  .group\\/card > div {
+    border-radius: 15px !important;
+  }
+
+  .group\\/section {
+    margin-bottom: 18px !important;
+  }
+
+  main .grid.grid-cols-2 {
+    gap: 10px !important;
+  }
+
+  main .grid.grid-cols-2 > * {
+    min-width: 0 !important;
+  }
+
+  main input, main select, main textarea {
+    min-width: 0;
+    max-width: 100%;
+    font-size: 16px;
+  }
+}
+
+@media (max-width: 380px) {
+  .group\\/hero {
+    height: clamp(520px, 72svh, 590px) !important;
+  }
+
+  .group\\/hero > .relative.mx-auto {
+    padding-left: 15px !important;
+    padding-right: 15px !important;
+    padding-bottom: 22px !important;
+  }
+
+  .group\\/hero h1 {
+    font-size: clamp(2.15rem, 9.5vw, 2.8rem) !important;
+  }
+
+  .group\\/card {
+    width: 132px !important;
+    min-width: 132px !important;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .group\\/hero *, .group\\/card * {
+    scroll-behavior: auto !important;
+    transition-duration: .01ms !important;
+  }
+}
