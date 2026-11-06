@@ -3,10 +3,14 @@ import {
   type ErrorInfo,
   type ReactNode,
 } from 'react'
-import { StrictMode } from 'react'
+import { StrictMode, useEffect } from 'react'
+import { App as CapacitorApp } from '@capacitor/app'
+import { Capacitor } from '@capacitor/core'
+import { CapacitorUpdater } from '@capgo/capacitor-updater'
 import { createRoot } from 'react-dom/client'
 import './index.css'
 import App from './App.tsx'
+import { checkForFreeOtaUpdate } from './lib/otaUpdater'
 
 type CrashState = {
   hasError: boolean
@@ -94,12 +98,48 @@ class PMFCrashBoundary extends Component<
   }
 }
 
+function AppReadySignal() {
+  useEffect(() => {
+    if (!Capacitor.isNativePlatform()) return
+
+    let active = true
+    let removeListener: (() => void) | undefined
+
+    void CapacitorUpdater.notifyAppReady()
+      .then(async () => {
+        if (!active) return
+        await checkForFreeOtaUpdate()
+        if (!active) return
+
+        const listener = await CapacitorApp.addListener('appStateChange', ({ isActive }) => {
+          if (isActive) void checkForFreeOtaUpdate()
+        })
+        removeListener = () => {
+          void listener.remove()
+        }
+      })
+      .catch((error) => {
+        console.error('PMF-Flix could not confirm the active update bundle:', error)
+      })
+
+    return () => {
+      active = false
+      removeListener?.()
+    }
+  }, [])
+
+  return null
+}
+
 createRoot(
   document.getElementById('root')!,
 ).render(
   <StrictMode>
     <PMFCrashBoundary>
-      <App />
+      <>
+        <App />
+        <AppReadySignal />
+      </>
     </PMFCrashBoundary>
   </StrictMode>,
 )
