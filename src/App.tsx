@@ -6,36 +6,79 @@ import {
   useState,
   type ReactNode,
 } from 'react'
-import type { Movie } from './movieData/movies'
-import { getMovies } from './services/movieService'
-import { mapCanonicalMovieToLegacy } from './utils/movieMapper'
+import {
+  isUnapprovedDemoMovie,
+  type Movie,
+} from './movieData/movies'
+import { getMovies, isVerifiedOwnerEmail } from './services/movieService'
 import { supabase } from './supabase'
 import type { Session } from '@supabase/supabase-js'
 import AuthScreen from './Auth'
 import AdminStudio from './AdminStudio'
 import {
   Check,
+  ChevronLeft,
+  ChevronRight,
+  Flame,
   Film,
   ListPlus,
   Menu,
-  Pause,
   Play,
   Search,
-  Settings,
-  SkipBack,
-  SkipForward,
   Sparkles,
   Star,
-  Volume2,
-  VolumeX,
+  Trophy,
+  Tv,
   X,
+  Download,
+  Dice5,
+  Globe2,
+  Users,
+  BookOpen,
+  Video,
+  Moon,
 } from 'lucide-react'
+import DiscoveryToolbar from './components/DiscoveryToolbar'
+import PMFLogo from './components/PMFLogo'
+import OfflineCinemaPage from './components/OfflineCinemaPage'
+import PMFBottomNavigation from './components/PMFBottomNavigation'
+import PMFShortsExperience from './components/PMFShortsExperience'
+import LiveSportsCatalog from './components/LiveSportsCatalog'
+import NovelsLibraryCatalog from './components/NovelsLibraryCatalog'
+import ShortsComedyCatalog from './components/ShortsComedyCatalog'
+import VideoPlayer from './components/VideoPlayer'
+import Midnight18Category from './components/Midnight18Category'
+import DownloadActionButton from './components/DownloadActionButton'
+import { offlineStorage } from './services/offlineStorageService'
+import {
+  WorldCinemaModal,
+  SurpriseMeModal,
+  WatchPartyModal,
+} from './components/SmartDiscoveryModals'
+import {
+  TrendingRail,
+  BuzzBossSection,
+  FreeNovelsSection,
+  CinemaTriviaChallenge,
+  SpecialtyDestinationsPortal,
+} from './components/GlobalDiscoverySections'
+import ProfileSelectionScreen, {
+  type PMFProfile,
+} from './components/ProfileSelectionScreen'
 
 type Section =
   | 'home'
   | 'movies'
   | 'series'
+  | 'trending'
+  | 'nollywood'
+  | 'buzz-boss'
+  | 'free-novels'
   | 'my-list'
+  | 'offline'
+  | 'shorts'
+  | 'sports'
+  | 'midnight-18'
 
 type SortMode =
   | 'featured'
@@ -92,6 +135,10 @@ const DEFAULT_PROFILE: Profile = {
   avatar: '🎬',
 }
 
+function getProfileStorageKey(key: string, userId?: string, profileId?: string | null): string {
+  return userId && profileId ? `${key}:${userId}:${profileId}` : `${key}:no-active-profile`
+}
+
 function readStorage<T>(
   key: string,
   fallback: T,
@@ -123,6 +170,58 @@ function writeStorage(
   }
 }
 
+const PUBLISHED_CATALOG_CACHE_KEY = 'pmf_published_catalog_cache_v1'
+
+function readPublishedCatalogCache(): Movie[] {
+  try {
+    const raw = localStorage.getItem(PUBLISHED_CATALOG_CACHE_KEY)
+    if (!raw) return []
+    const cached = JSON.parse(raw) as { savedAt?: number; movies?: Movie[] }
+    if (!cached || !Array.isArray(cached.movies) || !Number.isFinite(cached.savedAt)) return []
+    // Use the last-known published catalogue immediately; live Supabase refresh below is authoritative.
+    return cached.movies.filter((movie) =>
+      movie &&
+      !isUnapprovedDemoMovie(movie) &&
+      (movie.status || 'published') === 'published'
+    )
+  } catch {
+    return []
+  }
+}
+
+function writePublishedCatalogCache(movies: Movie[]): void {
+  try {
+    localStorage.setItem(PUBLISHED_CATALOG_CACHE_KEY, JSON.stringify({
+      savedAt: Date.now(),
+      movies: movies.filter((movie) =>
+        !isUnapprovedDemoMovie(movie) &&
+        (movie.status || 'published') === 'published'
+      ),
+    }))
+  } catch {
+    // Storage can be full or unavailable; the live catalogue remains usable.
+  }
+}
+
+function persistLiveProgressToStorage(
+  movieId: string,
+  currentTime: number,
+  duration: number,
+  storageKey: string = PROGRESS_KEY,
+): Record<string, Progress> {
+  const existing = readStorage<Record<string, Progress>>(storageKey, {})
+  const updated: Record<string, Progress> = {
+    ...existing,
+    [movieId]: {
+      currentTime,
+      duration,
+      updatedAt: Date.now(),
+    },
+  }
+  writeStorage(storageKey, updated)
+  return updated
+}
+
 function getMovieId(
   movie: Movie,
 ): string {
@@ -142,96 +241,36 @@ function getRating(
     : 0
 }
 
-function getYouTubeId(
-  url: string,
-): string {
-  try {
-    const parsed = new URL(url)
-
-    if (
-      parsed.hostname.includes(
-        'youtu.be',
-      )
-    ) {
-      return parsed.pathname
-        .replace('/', '')
-        .split('/')[0]
-    }
-
-    const videoId =
-      parsed.searchParams.get('v')
-
-    if (videoId) {
-      return videoId
-    }
-
-    const match =
-      parsed.pathname.match(
-        /\/embed\/([^/?]+)/,
-      )
-
-    return match?.[1] || ''
-  } catch {
-    return ''
-  }
+function getContentTypeAccent(type: string): string {
+  const value = type.toLowerCase()
+  if (/series|tv|season|episode/.test(value)) return 'border-sky-400/30 bg-sky-500/10 text-sky-200'
+  if (/short|reel|skit/.test(value)) return 'border-fuchsia-400/30 bg-fuchsia-500/10 text-fuchsia-200'
+  if (/sport|live/.test(value)) return 'border-emerald-400/30 bg-emerald-500/10 text-emerald-200'
+  if (/documentary|docu/.test(value)) return 'border-teal-400/30 bg-teal-500/10 text-teal-200'
+  if (/novel|story|book/.test(value)) return 'border-violet-400/30 bg-violet-500/10 text-violet-200'
+  if (/special|original|exclusive/.test(value)) return 'border-amber-400/30 bg-amber-500/10 text-amber-100'
+  if (/18\+|adult|midnight/.test(value)) return 'border-red-400/40 bg-red-950/70 text-red-200'
+  return 'border-orange-400/30 bg-orange-500/10 text-orange-200'
 }
 
-function getVideoUrl(
-  movie: Movie,
-): string {
-  return movie.videoUrl || ''
+function getCategoryAccent(category: string): string {
+  const value = category.toLowerCase()
+  if (/action|adventure|war|martial/.test(value)) return 'border-orange-400/30 bg-orange-500/10 text-orange-200'
+  if (/comedy|family|animation/.test(value)) return 'border-yellow-300/30 bg-yellow-400/10 text-yellow-100'
+  if (/drama|romance|love/.test(value)) return 'border-rose-400/30 bg-rose-500/10 text-rose-200'
+  if (/thriller|crime|mystery|detective/.test(value)) return 'border-red-400/30 bg-red-500/10 text-red-200'
+  if (/horror|supernatural|dark/.test(value)) return 'border-fuchsia-400/30 bg-fuchsia-500/10 text-fuchsia-200'
+  if (/science fiction|sci-fi|fantasy|space/.test(value)) return 'border-cyan-400/30 bg-cyan-500/10 text-cyan-100'
+  if (/documentary|history|biography/.test(value)) return 'border-teal-400/30 bg-teal-500/10 text-teal-200'
+  if (/african|nollywood|nigerian/.test(value)) return 'border-amber-400/30 bg-amber-500/10 text-amber-100'
+  if (/sports|football|basketball/.test(value)) return 'border-emerald-400/30 bg-emerald-500/10 text-emerald-200'
+  if (/novel|story|book|literature/.test(value)) return 'border-violet-400/30 bg-violet-500/10 text-violet-200'
+  if (/18\+|midnight|adult/.test(value)) return 'border-red-400/40 bg-red-950/70 text-red-200'
+  return 'border-purple-400/25 bg-purple-500/10 text-purple-200'
 }
 
-function isYouTube(
-  movie: Movie,
-): boolean {
-  const url = movie.videoUrl || ''
 
-  return (
-    movie.videoType === 'youtube' ||
-    /youtube\.com|youtu\.be/i.test(url)
-  )
-}
 
-function getYouTubeEmbed(
-  movie: Movie,
-): string {
-  const id = getYouTubeId(
-    movie.videoUrl || '',
-  )
-
-  if (!id) {
-    return ''
-  }
-
-  return `https://www.youtube.com/embed/${id}?autoplay=1&rel=0&modestbranding=1`
-}
-
-const formatPlayerTime = (seconds: number) => {
-  if (!Number.isFinite(seconds) || seconds < 0) {
-    return '00:00'
-  }
-
-  const totalSeconds =
-    Math.floor(seconds)
-
-  const hours =
-    Math.floor(totalSeconds / 3600)
-
-  const minutes =
-    Math.floor(
-      (totalSeconds % 3600) / 60,
-    )
-
-  const remainingSeconds =
-    totalSeconds % 60
-
-  if (hours > 0) {
-    return `${String(hours).padStart(2, '0')}:${String(minutes).padStart(2, '0')}:${String(remainingSeconds).padStart(2, '0')}`
-  }
-
-  return `${String(minutes).padStart(2, '0')}:${String(remainingSeconds).padStart(2, '0')}`
-}
 
 function AppShell() {
   const [session, setSession] =
@@ -311,8 +350,6 @@ useEffect(() => {
 }, [])
   
   useEffect(() => {
-    let active = true
-
     const checkStudioAccess = async () => {
       if (!session?.user?.id) {
         setIsStudioAdmin(false)
@@ -320,30 +357,10 @@ useEffect(() => {
         return
       }
 
-      const { data, error } =
-        await supabase
-          .from('media_admins')
-          .select('role')
-          .eq(
-            'user_id',
-            session.user.id,
-          )
-          .maybeSingle()
-
-      if (!active) {
-        return
-      }
-
-      const allowed =
-        !error &&
-        data &&
-        ['owner', 'admin', 'editor'].includes(
-          String(data.role),
-        )
-
-      setIsStudioAdmin(
-        Boolean(allowed),
-      )
+      // PMF-Flix Studio is visible only to the verified owner email.
+      // Database editor/admin rows must not expose the Studio UI to other users.
+      const allowed = isVerifiedOwnerEmail(session.user.email)
+      setIsStudioAdmin(allowed)
 
       if (!allowed) {
         setShowStudio(false)
@@ -351,10 +368,6 @@ useEffect(() => {
     }
 
     void checkStudioAccess()
-
-    return () => {
-      active = false
-    }
   }, [session])
 
   const [section, setSection] =
@@ -364,7 +377,7 @@ useEffect(() => {
     useState('')
 
   const [movies, setMovies] =
-    useState<Movie[]>([])
+    useState<Movie[]>(() => readPublishedCatalogCache())
 
   const [, setError] =
     useState<string | null>(null)
@@ -375,8 +388,31 @@ useEffect(() => {
   const [selectedMovie, setSelectedMovie] =
     useState<Movie | null>(null)
 
+  const [selectedSeason, setSelectedSeason] = useState<{
+    seriesTitle: string
+    seasonNumber: number
+    episodes: Movie[]
+  } | null>(null)
+
   const [watchingMovie, setWatchingMovie] =
     useState<Movie | null>(null)
+
+  const [showWorldCinema, setShowWorldCinema] = useState(false)
+  const [showRoulette, setShowRoulette] = useState(false)
+  const [watchPartyMovie, setWatchPartyMovie] = useState<Movie | null>(null)
+  const [downloadsCount, setDownloadsCount] = useState<number>(() =>
+    offlineStorage.getDownloadsCount(),
+  )
+  const [activeHeroIndex, setActiveHeroIndex] = useState(0)
+  const [isHeroPaused, setIsHeroPaused] = useState(false)
+  const [heroTouchStartX, setHeroTouchStartX] = useState<number | null>(null)
+
+  useEffect(() => {
+    const unsub = offlineStorage.subscribe((list) => {
+      setDownloadsCount((prev) => (prev === list.length ? prev : list.length))
+    })
+    return () => unsub()
+  }, [])
 
   const [profile, setProfile] =
     useState<Profile>(() =>
@@ -386,39 +422,155 @@ useEffect(() => {
       ),
     )
 
-  const [myList, setMyList] =
-    useState<string[]>(() =>
-      readStorage(
-        MY_LIST_KEY,
-        [],
-      ),
-    )
+  const [userProfiles, setUserProfiles] = useState<PMFProfile[]>([])
+  const [activeProfile, setActiveProfile] = useState<PMFProfile | null>(null)
+  const [isSelectingProfile, setIsSelectingProfile] = useState<boolean>(false)
 
-  const [continueWatching, setContinueWatching] =
-    useState<string[]>(() =>
-      readStorage(
-        CONTINUE_KEY,
-        [],
-      ),
-    )
+  // Keep device-private offline media and its index isolated to the selected profile.
+  useEffect(() => {
+    offlineStorage.setActiveProfile(activeProfile?.id ?? null)
+  }, [activeProfile?.id])
 
-  const [history, setHistory] =
-    useState<HistoryItem[]>(() =>
-      readStorage(
-        HISTORY_KEY,
-        [],
-      ),
-    )
+  // Initialize and synchronize profiles for authenticated session
+  useEffect(() => {
+    if (!session?.user?.id) {
+      setUserProfiles([])
+      setActiveProfile(null)
+      setIsSelectingProfile(false)
+      return
+    }
 
-  const [progress, setProgress] =
-    useState<
-      Record<string, Progress>
-    >(() =>
-      readStorage(
-        PROGRESS_KEY,
-        {},
-      ),
-    )
+    const userId = session.user.id
+    const storageKey = `pmf_profiles_${userId}`
+    const activeKey = `pmf_active_profile_${userId}`
+
+    let loadedProfiles: PMFProfile[] = []
+    try {
+      const raw = localStorage.getItem(storageKey)
+      if (raw) {
+        loadedProfiles = JSON.parse(raw)
+      }
+    } catch {}
+
+    if (!Array.isArray(loadedProfiles) || loadedProfiles.length === 0) {
+      const defaultOwner: PMFProfile = {
+        id: `profile-${userId.slice(0, 8)}-1`,
+        name:
+          session.user.user_metadata?.full_name ||
+          session.user.email?.split('@')[0] ||
+          'Prince Mufasa',
+        avatar: '👑',
+        accentColor: 'from-amber-500 to-yellow-600',
+        isKids: false,
+        createdAt: Date.now(),
+      }
+      loadedProfiles = [defaultOwner]
+      try {
+        localStorage.setItem(storageKey, JSON.stringify(loadedProfiles))
+      } catch {}
+    }
+
+    setUserProfiles(loadedProfiles)
+
+    const savedActiveId = localStorage.getItem(activeKey)
+    const matching = loadedProfiles.find((p) => p.id === savedActiveId)
+    if (matching) {
+      setActiveProfile(matching)
+      setProfile({ name: matching.name, avatar: matching.avatar })
+      setIsSelectingProfile(false)
+    } else {
+      setActiveProfile(null)
+      setIsSelectingProfile(true)
+    }
+  }, [session?.user?.id, session?.user?.email, session?.user?.user_metadata?.full_name])
+
+  const handleSelectProfile = (selected: PMFProfile) => {
+    setActiveProfile(selected)
+    setProfile({ name: selected.name, avatar: selected.avatar })
+    if (session?.user?.id) {
+      try {
+        localStorage.setItem(`pmf_active_profile_${session.user.id}`, selected.id)
+      } catch {}
+    }
+    setIsSelectingProfile(false)
+  }
+
+  const handleCreateProfile = (data: Omit<PMFProfile, 'id' | 'createdAt'>) => {
+    if (!session?.user?.id) return
+    const newProfile: PMFProfile = {
+      ...data,
+      id: `profile-${session.user.id.slice(0, 8)}-${Date.now()}`,
+      createdAt: Date.now(),
+    }
+    const updated = [...userProfiles, newProfile]
+    setUserProfiles(updated)
+    try {
+      localStorage.setItem(`pmf_profiles_${session.user.id}`, JSON.stringify(updated))
+    } catch {}
+    handleSelectProfile(newProfile)
+  }
+
+  const handleUpdateProfile = (updatedProfile: PMFProfile) => {
+    if (!session?.user?.id) return
+    const updated = userProfiles.map((p) => (p.id === updatedProfile.id ? updatedProfile : p))
+    setUserProfiles(updated)
+    try {
+      localStorage.setItem(`pmf_profiles_${session.user.id}`, JSON.stringify(updated))
+    } catch {}
+    if (activeProfile?.id === updatedProfile.id) {
+      setActiveProfile(updatedProfile)
+      setProfile({ name: updatedProfile.name, avatar: updatedProfile.avatar })
+    }
+  }
+
+  const handleDeleteProfile = (profileId: string) => {
+    if (!session?.user?.id) return
+    if (userProfiles.length <= 1) return
+    const updated = userProfiles.filter((p) => p.id !== profileId)
+    setUserProfiles(updated)
+    try {
+      localStorage.setItem(`pmf_profiles_${session.user.id}`, JSON.stringify(updated))
+    } catch {}
+    if (activeProfile?.id === profileId) {
+      const fallback = updated[0] || null
+      if (fallback) {
+        handleSelectProfile(fallback)
+      } else {
+        setActiveProfile(null)
+        setIsSelectingProfile(true)
+      }
+    }
+  }
+
+  const handleSignOut = async () => {
+    await supabase.auth.signOut()
+    setSession(null)
+    setActiveProfile(null)
+    setIsSelectingProfile(false)
+    setShowProfile(false)
+  }
+
+  const [myList, setMyList] = useState<string[]>([])
+  const [continueWatching, setContinueWatching] = useState<string[]>([])
+  const [history, setHistory] = useState<HistoryItem[]>([])
+  const [progress, setProgress] = useState<Record<string, Progress>>({})
+
+  const profileStorageKey = (key: string) =>
+    getProfileStorageKey(key, session?.user?.id, activeProfile?.id)
+
+  useEffect(() => {
+    if (!session?.user?.id || !activeProfile?.id) {
+      setMyList([])
+      setContinueWatching([])
+      setHistory([])
+      setProgress({})
+      return
+    }
+    setMyList(readStorage(profileStorageKey(MY_LIST_KEY), []))
+    setContinueWatching(readStorage(profileStorageKey(CONTINUE_KEY), []))
+    setHistory(readStorage(profileStorageKey(HISTORY_KEY), []))
+    setProgress(readStorage(profileStorageKey(PROGRESS_KEY), {}))
+  }, [session?.user?.id, activeProfile?.id])
 
   const [filters, setFilters] =
     useState<Filters>({
@@ -444,117 +596,42 @@ useEffect(() => {
   const [mobileMenu, setMobileMenu] =
     useState(false)
 
-  const [playerPlaying, setPlayerPlaying] =
+  const [theaterMode, setTheaterMode] =
     useState(false)
-
-  const [playerTime, setPlayerTime] =
-    useState(0)
-
-  const [playerDuration, setPlayerDuration] =
-    useState(0)
-
-  const [volume, setVolume] =
-    useState(1)
-
-  const [muted, setMuted] =
-  useState(false)
-
-  const [audioBoost, setAudioBoost] =
-  useState(1)
-
-  useEffect(() => {
-  if (audioGainRef.current) {
-    audioGainRef.current.gain.value =
-      audioBoost
-  }
-}, [audioBoost])
-
-  const [speed, setSpeed] =
-    useState(1)
-
-  const [showPlayerSettings, setShowPlayerSettings] =
-    useState(false)
-
-const [showAudioHub, setShowAudioHub] =
-  useState(false)
-
-  const [showUpNext, setShowUpNext] =
-  useState(false)
-
-const [upNextCountdown, setUpNextCountdown] =
-  useState(8)
-
-const autoNextRef =
-  useRef(false)
 
   const getNextMovie = () => {
-  if (!watchingMovie) {
-    return null
+    if (!watchingMovie) {
+      return null
+    }
+
+    const index =
+      movies.findIndex(
+        (movie) =>
+          getMovieId(movie) ===
+          getMovieId(
+            watchingMovie,
+          ),
+      )
+
+    if (
+      index < 0 ||
+      movies.length < 2
+    ) {
+      return null
+    }
+
+    return (
+      movies[
+        (index + 1) %
+          movies.length
+      ] || null
+    )
   }
 
-  const index =
-    movies.findIndex(
-      (movie) =>
-        getMovieId(movie) ===
-        getMovieId(
-          watchingMovie,
-        ),
-    )
+  const heroMovieIdRef =
+    useRef<string | null>(null)
 
-  if (
-    index < 0 ||
-    movies.length < 2
-  ) {
-    return null
-  }
-
-  return (
-    movies[
-      (index + 1) %
-        movies.length
-    ] || null
-  )
-  }
-  
-  const [showPlayerControls, setShowPlayerControls] =
-    useState(true)
-
-  const [playerMessage, setPlayerMessage] =
-    useState('')
-
-  const [, setTheaterMode] =
-    useState(false)
-
-  const videoRef =
-    useRef<HTMLVideoElement | null>(
-      null,
-    )
-
-  const audioContextRef =
-  useRef<AudioContext | null>(null)
-
-const audioSourceRef =
-  useRef<MediaElementAudioSourceNode | null>(null)
-
-const audioGainRef =
-  useRef<GainNode | null>(null)
-
-const audioElementRef =
-  useRef<HTMLVideoElement | null>(null)
-
-const heroMovieIdRef =
-  useRef<string | null>(null)
-  
-  const playerRef =
-    useRef<HTMLDivElement | null>(
-      null,
-    )
-
-  const controlsTimer =
-    useRef<number | null>(null)
-
-  const messageTimer =
-    useRef<number | null>(null)
+  const [toastMessage] = useState<string | null>(null)
 
   useEffect(() => {
     writeStorage(
@@ -564,39 +641,29 @@ const heroMovieIdRef =
   }, [profile])
 
   useEffect(() => {
-    writeStorage(
-      MY_LIST_KEY,
-      myList,
-    )
-  }, [myList])
+    if (session?.user?.id && activeProfile?.id) writeStorage(profileStorageKey(MY_LIST_KEY), myList)
+  }, [myList, session?.user?.id, activeProfile?.id])
 
   useEffect(() => {
-    writeStorage(
-      CONTINUE_KEY,
-      continueWatching,
-    )
-  }, [continueWatching])
+    if (session?.user?.id && activeProfile?.id) writeStorage(profileStorageKey(CONTINUE_KEY), continueWatching)
+  }, [continueWatching, session?.user?.id, activeProfile?.id])
 
   useEffect(() => {
-    writeStorage(
-      HISTORY_KEY,
-      history,
-    )
-  }, [history])
+    if (session?.user?.id && activeProfile?.id) writeStorage(profileStorageKey(HISTORY_KEY), history)
+  }, [history, session?.user?.id, activeProfile?.id])
 
   useEffect(() => {
-    writeStorage(
-      PROGRESS_KEY,
-      progress,
-    )
-  }, [progress])
+    if (session?.user?.id && activeProfile?.id) writeStorage(profileStorageKey(PROGRESS_KEY), progress)
+  }, [progress, session?.user?.id, activeProfile?.id])
 
   useEffect(() => {
     let active = true
 
-    const loadMovies = async () => {
+    const loadMovies = async (isSilent = false) => {
       try {
-        setLoading(true)
+        if (!isSilent) {
+          setLoading(true)
+        }
         setError(null)
 
         const result =
@@ -606,30 +673,31 @@ const heroMovieIdRef =
           return
         }
 
-        setMovies(
-          result.map(
-            mapCanonicalMovieToLegacy,
-          ),
-        )
+        // A successful response is authoritative (including an empty catalogue),
+        // so deleted/unpublished titles are removed from both UI and cache.
+        setMovies(result)
+        writePublishedCatalogCache(result)
       } catch (loadError) {
-        console.error(
-          'PMF catalogue error:',
+        console.warn(
+          'PMF Supabase catalogue refresh failed; hiding stale bundled catalogue:',
           loadError,
         )
-
-        if (active) {
-          setError(
-            'Unable to load the PMF catalogue. Please try again.',
-          )
-        }
+        // Keep the last known good catalogue visible on transient failures.
+        // Initial state uses a short-lived cache, avoiding a blank page on reopen.
+        // A successful Supabase response always replaces this with authoritative data.
       } finally {
-        if (active) {
+        if (active && !isSilent) {
           setLoading(false)
         }
       }
     }
 
-    void loadMovies()
+    void loadMovies(false)
+
+    const handleLocalStudioUpdate = () => {
+      void loadMovies(true)
+    }
+    window.addEventListener('pmf-movies-updated', handleLocalStudioUpdate)
 
     const channel =
       supabase
@@ -644,27 +712,20 @@ const heroMovieIdRef =
             table: 'movies',
           },
           () => {
-            void loadMovies()
+            void loadMovies(true)
           },
         )
         .subscribe()
 
     return () => {
       active = false
+      window.removeEventListener('pmf-movies-updated', handleLocalStudioUpdate)
 
       void supabase.removeChannel(
         channel,
       )
     }
   }, [])
-
-  const findMovie = (
-    id: string,
-  ) =>
-    movies.find(
-      (movie) =>
-        getMovieId(movie) === id,
-    )
 
   const isInMyList = (
     movie: Movie,
@@ -721,6 +782,8 @@ const heroMovieIdRef =
     )
   }
 
+  const [watchingInitialTime, setWatchingInitialTime] = useState<number>(0)
+
   const getProgress = (
     movie: Movie,
   ): Progress =>
@@ -734,6 +797,7 @@ const heroMovieIdRef =
     movie: Movie,
     currentTime: number,
     duration: number,
+    flushToState = false,
   ) => {
     if (
       currentTime <= 0 ||
@@ -742,184 +806,66 @@ const heroMovieIdRef =
       return
     }
 
-    setProgress((current) => ({
-      ...current,
-      [getMovieId(movie)]: {
-        currentTime,
-        duration,
-        updatedAt: Date.now(),
-      },
-    }))
+    if (!session?.user?.id || !activeProfile?.id) return
+
+    const updatedMap = persistLiveProgressToStorage(
+      getMovieId(movie),
+      currentTime,
+      duration,
+      profileStorageKey(PROGRESS_KEY),
+    )
+
+    if (flushToState) {
+      setProgress(updatedMap)
+    }
   }
 
   const openMovie = (
     movie: Movie,
   ) => {
+    setSelectedSeason(null)
     setSelectedMovie(movie)
   }
 
+  const openSeason = (
+    seriesTitle: string,
+    seasonNumber: number,
+    episodes: Movie[],
+  ) => {
+    setSelectedMovie(null)
+    setSelectedSeason({
+      seriesTitle,
+      seasonNumber,
+      episodes: [...episodes].sort(
+        (a, b) => Number(a.episodeNumber || 0) - Number(b.episodeNumber || 0),
+      ),
+    })
+  }
+
   const startWatching = (
-  movie: Movie,
-) => {
-  const saved = getProgress(movie)
-
-  setSelectedMovie(null)
-  setWatchingMovie(movie)
-  setPlayerTime(
-    saved.currentTime,
-  )
-  setPlayerDuration(
-    saved.duration,
-  )
-  setPlayerPlaying(false)
-
-  addToHistory(movie)
-  addToContinueWatching(movie)
-}
-  
-const ensureAudioGraph = async () => {
-  const video = videoRef.current
-
-  if (!video) return
-
-  try {
-    video.volume = volume
-    video.muted = muted
-
-    if (
-      audioElementRef.current === video &&
-      audioContextRef.current &&
-      audioGainRef.current
-    ) {
-      if (
-        audioContextRef.current.state ===
-        'suspended'
-      ) {
-        await audioContextRef.current.resume()
-      }
-
-      audioGainRef.current.gain.value =
-        audioBoost
-
-      return
-    }
-
-    const AudioContextClass =
-      window.AudioContext ||
-      (
-        window as typeof window & {
-          webkitAudioContext?: typeof AudioContext
-        }
-      ).webkitAudioContext
-
-    if (!AudioContextClass) return
-
-    const audioContext =
-      new AudioContextClass()
-
-    const source =
-      audioContext.createMediaElementSource(
-        video,
-      )
-
-    const gain =
-      audioContext.createGain()
-
-    gain.gain.value = audioBoost
-
-    source.connect(gain)
-    gain.connect(
-      audioContext.destination,
+    movie: Movie,
+    customPlaybackUrl?: string,
+  ) => {
+    const storedMap = readStorage<Record<string, Progress>>(profileStorageKey(PROGRESS_KEY), {})
+    const saved = storedMap[getMovieId(movie)] || progress[getMovieId(movie)]
+    setWatchingInitialTime(saved?.currentTime || 0)
+    setSelectedMovie(null)
+    setSelectedSeason(null)
+    setWatchingMovie(
+      customPlaybackUrl
+        ? { ...movie, videoUrl: customPlaybackUrl, videoType: 'mp4' }
+        : movie,
     )
-
-    audioContextRef.current =
-      audioContext
-
-    audioSourceRef.current = source
-    audioGainRef.current = gain
-    audioElementRef.current = video
-
-    if (
-      audioContext.state ===
-      'suspended'
-    ) {
-      await audioContext.resume()
-    }
-
-    video.volume = volume
-    video.muted = muted
-  } catch (error) {
-    console.warn(
-      'PMF audio booster unavailable:',
-      error,
-    )
-  }
-}
-  
-  const lockPlayerOrientation = async () => {
-  try {
-    const orientation =
-      screen.orientation as ScreenOrientation & {
-        lock?: (
-          orientation:
-            | 'any'
-            | 'natural'
-            | 'landscape'
-            | 'portrait'
-            | 'portrait-primary'
-            | 'portrait-secondary'
-            | 'landscape-primary'
-            | 'landscape-secondary',
-        ) => Promise<void>
-        unlock?: () => void
-      }
-
-    if (orientation.lock) {
-      await orientation.lock('landscape')
-    }
-  } catch {
-    // Some mobile browsers do not allow programmatic orientation locking.
-  }
-}
-
-const unlockPlayerOrientation = () => {
-  try {
-    const orientation =
-      screen.orientation as ScreenOrientation & {
-        unlock?: () => void
-      }
-
-    orientation.unlock?.()
-  } catch {
-    // Orientation unlock is best-effort.
-  }
-}
-
-const closePlayer = async () => {
-  if (watchingMovie) {
-    saveProgress(
-      watchingMovie,
-      playerTime,
-      playerDuration,
-    )
+    addToHistory(movie)
+    addToContinueWatching(movie)
   }
 
-  if (document.fullscreenElement) {
-    try {
-      await document.exitFullscreen()
-    } catch {
-      // Fullscreen may already have been exited by the browser.
-    }
+  const closePlayer = () => {
+    setProgress(readStorage<Record<string, Progress>>(profileStorageKey(PROGRESS_KEY), {}))
+    setWatchingMovie(null)
+    setTheaterMode(false)
   }
 
-  unlockPlayerOrientation()
-
-  setWatchingMovie(null)
-  setPlayerPlaying(false)
-  setShowPlayerSettings(false)
-  setTheaterMode(false)
-}
-  
   const navigate = (
     next: Section,
   ) => {
@@ -928,6 +874,7 @@ const closePlayer = async () => {
     setShowFilters(false)
     setMobileMenu(false)
     setSelectedMovie(null)
+    setSelectedSeason(null)
 
     window.scrollTo({
       top: 0,
@@ -935,271 +882,55 @@ const closePlayer = async () => {
     })
   }
 
-  const showMessage = (
-    message: string,
-  ) => {
-    setPlayerMessage(message)
-
-    if (messageTimer.current) {
-      window.clearTimeout(
-        messageTimer.current,
-      )
-    }
-
-    messageTimer.current =
-      window.setTimeout(() => {
-        setPlayerMessage('')
-      }, 1800)
-  }
-
-  const playPause = async () => {
-    const video = videoRef.current
-
-    if (!video) {
-      showMessage(
-        'This title does not have a playable video source yet.',
-      )
-      return
-    }
-
-    try {
-      if (video.paused) {
-  await ensureAudioGraph()
-  await video.play()
-} else {
-  video.pause()
-      }
-    } catch (playError) {
-      console.error(
-        'PMF playback error:',
-        playError,
-      )
-
-      showMessage(
-        'Playback could not start.',
-      )
-    }
-  }
-
-  const seek = (
-    time: number,
-  ) => {
-    const video = videoRef.current
-
-    if (!video) {
-      return
-    }
-
-    const next = Math.max(
-      0,
-      Math.min(
-        playerDuration || 0,
-        time,
-      ),
-    )
-
-    video.currentTime = next
-    setPlayerTime(next)
-  }
-
-  const rewind = () => {
-    seek(playerTime - 10)
-    showMessage('−10 seconds')
-  }
-
-  const forward = () => {
-    seek(playerTime + 10)
-    showMessage('+10 seconds')
-  }
-
-  const toggleMute = () => {
-    const next = !muted
-
-    setMuted(next)
-
-    if (videoRef.current) {
-      videoRef.current.muted = next
-    }
-  }
-
-  const changeVolume = (
-    value: number,
-  ) => {
-    const next = Math.max(
-      0,
-      Math.min(1, value),
-    )
-
-    setVolume(next)
-    setMuted(next === 0)
-
-    if (videoRef.current) {
-      videoRef.current.volume = next
-      videoRef.current.muted =
-        next === 0
-    }
-  }
-
-  const changeSpeed = (
-    value: number,
-  ) => {
-    setSpeed(value)
-
-    if (videoRef.current) {
-      videoRef.current.playbackRate =
-        value
-    }
-
-    showMessage(
-      `${value}× playback`,
-    )
-  }
-
-  const changeAudioBoost = (
-  value: number,
-) => {
-  const next = Math.max(
-    1,
-    Math.min(3, value),
-  )
-
-  setAudioBoost(next)
-
-  if (audioGainRef.current) {
-    audioGainRef.current.gain.value =
-      next
-  }
-
-  showMessage(
-    `${Math.round(next * 100)}% audio boost`,
-  )
-}
-
-  const fullscreen = async () => {
-  try {
-    if (!document.fullscreenElement) {
-      await playerRef.current?.requestFullscreen()
-      await lockPlayerOrientation()
-    } else {
-      await document.exitFullscreen()
-      unlockPlayerOrientation()
-    }
-  } catch {
-    unlockPlayerOrientation()
-
-    showMessage(
-      'Fullscreen is unavailable on this device.',
-    )
-  }
-  }
-
-  const resetPlayerControls = () => {
-    setShowPlayerControls(true)
-
-    if (controlsTimer.current) {
-      window.clearTimeout(
-        controlsTimer.current,
-      )
-    }
-
-    controlsTimer.current =
-      window.setTimeout(() => {
-        if (playerPlaying) {
-          setShowPlayerControls(false)
-        }
-      }, 3500)
-  }
-
-  useEffect(() => {
-    if (!watchingMovie) {
-      return
-    }
-
-    const handleKey = (
-      event: globalThis.KeyboardEvent,
-    ) => {
-      if (
-        event.target instanceof
-          HTMLInputElement ||
-        event.target instanceof
-          HTMLTextAreaElement
-      ) {
-        return
-      }
-
-      if (event.key === ' ') {
-        event.preventDefault()
-        void playPause()
-      }
-
-      if (event.key === 'ArrowLeft') {
-        rewind()
-      }
-
-      if (event.key === 'ArrowRight') {
-        forward()
-      }
-
-      if (
-        event.key.toLowerCase() === 'm'
-      ) {
-        toggleMute()
-      }
-
-      if (
-        event.key.toLowerCase() === 'f'
-      ) {
-        void fullscreen()
-      }
-
-      if (event.key === 'Escape') {
-        closePlayer()
-      }
-
-      resetPlayerControls()
-    }
-
-    window.addEventListener(
-      'keydown',
-      handleKey,
-    )
-
-    return () => {
-      window.removeEventListener(
-        'keydown',
-        handleKey,
-      )
-    }
-  }, [
-    watchingMovie,
-    playerTime,
-    playerDuration,
-    muted,
-    playerPlaying,
-  ])
-
   const normalizedSearch =
     search.trim().toLowerCase()
 
-  const searchableMovies = useMemo(
-    () =>
-      movies.filter((movie) =>
-        [
-          movie.title,
-          movie.description,
-          movie.category,
-          movie.type,
-          movie.year,
-        ]
-          .filter(Boolean)
-          .join(' ')
-          .toLowerCase()
-          .includes(
-            normalizedSearch,
-          ),
-      ),
-    [movies, normalizedSearch],
-  )
+  const safeCatalogMovies = useMemo(() => {
+    return movies.filter((m) => {
+      if (isUnapprovedDemoMovie(m)) {
+        return false
+      }
+      if (m.status && m.status !== 'published') {
+        return false
+      }
+      const isMature =
+        Boolean(m.isMidnight18) ||
+        /18\+|midnight|adult|nc-17|tv-ma|explicit/i.test(
+          `${m.category || ''} ${m.rating || ''} ${m.title || ''}`,
+        )
+      if (isMature) {
+        return false
+      }
+      if (activeProfile?.isKids) {
+        return (
+          Boolean(m.isKids) ||
+          ['Animation', 'Adventure', 'Family', 'Kids', 'Comedy', 'Fantasy', 'Documentary'].some(
+            (cat) => (m.category || '').toLowerCase().includes(cat.toLowerCase()),
+          )
+        )
+      }
+      return true
+    })
+  }, [movies, activeProfile?.isKids])
+
+  const searchableMovies = useMemo(() => {
+    return safeCatalogMovies.filter((movie) =>
+      [
+        movie.title,
+        movie.seriesTitle,
+        movie.seasonNumber,
+        movie.episodeNumber,
+        movie.description,
+        movie.category,
+        movie.type,
+        movie.year,
+      ]
+        .filter(Boolean)
+        .join(' ')
+        .toLowerCase()
+        .includes(normalizedSearch),
+    )
+  }, [safeCatalogMovies, normalizedSearch])
 
   const filteredMovies = useMemo(() => {
     let result = [
@@ -1231,6 +962,9 @@ const closePlayer = async () => {
     ) {
       result = result.filter(
         (movie) =>
+          String(
+            movie.category || '',
+          ).toLowerCase().includes(filters.category.toLowerCase()) ||
           String(
             movie.category || '',
           ) === filters.category,
@@ -1310,30 +1044,48 @@ const closePlayer = async () => {
         )
     }
 
+    if (activeProfile?.isKids) {
+      result = result.filter(
+        (movie) =>
+          !movie.isMidnight18 &&
+          (movie.isKids ||
+            ['Animation', 'Adventure', 'Family', 'Kids', 'Comedy', 'Fantasy'].some(
+              (cat) =>
+                (movie.category || '')
+                  .toLowerCase()
+                  .includes(cat.toLowerCase()),
+            )),
+      )
+    }
+
     return result
   }, [
     searchableMovies,
     section,
     filters,
+    activeProfile?.isKids,
   ])
+
+  const findSafeMovie = (id: string) =>
+    safeCatalogMovies.find((movie) => getMovieId(movie) === id)
 
   const myListMovies = useMemo(
     () =>
       myList
-        .map(findMovie)
+        .map((id) => safeCatalogMovies.find((movie) => getMovieId(movie) === id))
         .filter(
           (
             movie,
           ): movie is Movie =>
             Boolean(movie),
         ),
-    [myList, movies],
+    [myList, safeCatalogMovies],
   )
 
   const continueMovies = useMemo(
     () =>
       continueWatching
-        .map(findMovie)
+        .map((id) => safeCatalogMovies.find((movie) => getMovieId(movie) === id))
         .filter(
           (
             movie,
@@ -1342,7 +1094,7 @@ const closePlayer = async () => {
         ),
     [
       continueWatching,
-      movies,
+      safeCatalogMovies,
     ],
   )
 
@@ -1355,9 +1107,7 @@ const closePlayer = async () => {
             a.watchedAt,
         )
         .map((item) =>
-          findMovie(
-            item.movieId,
-          ),
+          safeCatalogMovies.find((movie) => getMovieId(movie) === item.movieId),
         )
         .filter(
           (
@@ -1365,75 +1115,138 @@ const closePlayer = async () => {
           ): movie is Movie =>
             Boolean(movie),
         ),
-    [history, movies],
+    [history, safeCatalogMovies],
   )
 
   const trendingMovies = useMemo(
     () =>
-      [...movies]
+      [...safeCatalogMovies]
         .sort(
           (a, b) =>
             getRating(b) -
             getRating(a),
         )
         .slice(0, 12),
-    [movies],
+    [safeCatalogMovies],
   )
 
   const latestMovies = useMemo(
     () =>
-      [...movies]
+      [...safeCatalogMovies]
         .sort(
           (a, b) =>
             Number(b.year || 0) -
             Number(a.year || 0),
         )
         .slice(0, 12),
-    [movies],
+    [safeCatalogMovies],
+  )
+
+  const africanAndNollywoodMovies = useMemo(
+    () =>
+      safeCatalogMovies
+        .filter((movie) =>
+          /african|nollywood|nigeria|ghana|south africa|kenya/i.test(
+            `${movie.category || ''} ${movie.description || ''} ${movie.title || ''}`,
+          ),
+        )
+        .slice(0, 12),
+    [safeCatalogMovies],
+  )
+
+  const seriesRankings = useMemo(
+    () =>
+      safeCatalogMovies
+        .filter((movie) => {
+          const type = String(movie.type || '').toLowerCase()
+          return (
+            type.includes('series') ||
+            type.includes('tv') ||
+            type.includes('anime')
+          )
+        })
+        .slice(0, 10),
+    [safeCatalogMovies],
   )
 
   const featuredMovies = useMemo(() => {
-  const featured = movies
-    .filter(
-      (movie) =>
-        movie.featured,
-    )
-    .slice()
-    .sort((a, b) =>
-      getMovieId(a).localeCompare(
-        getMovieId(b),
-      ),
-    )
-
-  if (!featured.length) {
-    return []
-  }
-
-  const remembered =
-    heroMovieIdRef.current
-
-  if (remembered) {
-    const existing =
-      featured.find(
+    const featured = safeCatalogMovies
+      .filter(
         (movie) =>
-          getMovieId(movie) ===
-          remembered,
+          movie.featured,
+      )
+      .slice()
+      .sort((a, b) =>
+        getMovieId(a).localeCompare(
+          getMovieId(b),
+        ),
       )
 
-    if (existing) {
-      return [existing, ...featured.filter(
-        (movie) =>
-          getMovieId(movie) !==
-          remembered,
-      )]
+    if (!featured.length) {
+      return []
     }
-  }
 
-  heroMovieIdRef.current =
-    getMovieId(featured[0])
+    const remembered =
+      heroMovieIdRef.current
 
-  return featured
-}, [movies])
+    if (remembered) {
+      const existing =
+        featured.find(
+          (movie) =>
+            getMovieId(movie) ===
+            remembered,
+        )
+
+      if (existing) {
+        return [existing, ...featured.filter(
+          (movie) =>
+            getMovieId(movie) !==
+            remembered,
+        )]
+      }
+    }
+
+    heroMovieIdRef.current =
+      getMovieId(featured[0])
+
+    return featured
+  }, [safeCatalogMovies])
+
+  const heroCandidates = useMemo(() => {
+    const list = featuredMovies.length > 0 ? featuredMovies : safeCatalogMovies
+    return list.slice(0, 6)
+  }, [featuredMovies, safeCatalogMovies])
+
+  useEffect(() => {
+    if (heroCandidates.length <= 1) return
+    if (isHeroPaused) return
+    if (watchingMovie) return
+
+    if (
+      typeof window !== 'undefined' &&
+      window.matchMedia('(prefers-reduced-motion: reduce)').matches
+    ) {
+      return
+    }
+
+    const interval = setInterval(() => {
+      if (typeof document !== 'undefined' && document.visibilityState === 'hidden') {
+        return
+      }
+
+      setActiveHeroIndex((prev) => {
+        const next = (prev + 1) % heroCandidates.length
+        const preloadNext = heroCandidates[(next + 1) % heroCandidates.length]
+        if (preloadNext && preloadNext.poster) {
+          const img = new Image()
+          img.src = preloadNext.poster
+        }
+        return next
+      })
+    }, 7000)
+
+    return () => clearInterval(interval)
+  }, [heroCandidates, isHeroPaused, watchingMovie])
 
   const personalizedMovies =
     useMemo(() => {
@@ -1469,7 +1282,7 @@ const closePlayer = async () => {
         },
       )
 
-            const scored = movies
+      const scored = safeCatalogMovies
         .filter(
           (movie) =>
             !history.some(
@@ -1525,18 +1338,18 @@ const closePlayer = async () => {
           : trendingMovies
       ).slice(0, 12)
     }, [
-      movies,
+      safeCatalogMovies,
       history,
       historyMovies,
       trendingMovies,
     ])
 
-    const categoryRows = useMemo(
+  const categoryRows = useMemo(
     () => {
       const seen =
         new Set<string>()
 
-      return movies
+      return safeCatalogMovies
         .map(
           (movie) =>
             String(
@@ -1559,7 +1372,7 @@ const closePlayer = async () => {
         .slice(0, 8)
         .map((category) => ({
           category,
-          items: movies
+          items: safeCatalogMovies
             .filter(
               (movie) =>
                 String(
@@ -1570,62 +1383,21 @@ const closePlayer = async () => {
             .slice(0, 10),
         }))
     },
-    [movies],
+    [safeCatalogMovies],
   )
     
-const playNextMovie = (
-  movie: Movie,
-) => {
-  setShowUpNext(false)
-  setUpNextCountdown(8)
-
-  autoNextRef.current = true
-
-  setSelectedMovie(null)
-  setWatchingMovie(movie)
-  setPlayerTime(0)
-  setPlayerDuration(0)
-  setPlayerPlaying(false)
-
-  addToHistory(movie)
-  addToContinueWatching(movie)
-}
-
-useEffect(() => {
-  if (!showUpNext) {
-    return
+  const playNextMovie = (
+    movie: Movie,
+  ) => {
+    const storedMap = readStorage<Record<string, Progress>>(profileStorageKey(PROGRESS_KEY), {})
+    setProgress(storedMap)
+    const saved = storedMap[getMovieId(movie)] || progress[getMovieId(movie)]
+    setWatchingInitialTime(saved?.currentTime || 0)
+    setSelectedMovie(null)
+    setWatchingMovie(movie)
+    addToHistory(movie)
+    addToContinueWatching(movie)
   }
-
-  const nextMovie = getNextMovie()
-
-  if (!nextMovie) {
-    return
-  }
-
-  if (upNextCountdown <= 0) {
-    playNextMovie(nextMovie)
-    return
-  }
-
-  const timer = window.setTimeout(() => {
-    setUpNextCountdown(
-      (current) =>
-        Math.max(
-          0,
-          current - 1,
-        ),
-    )
-  }, 1000)
-
-  return () => {
-    window.clearTimeout(timer)
-  }
-}, [
-  showUpNext,
-  upNextCountdown,
-  watchingMovie,
-  movies,
-])
   
   const saveProfile = () => {
     setProfile(
@@ -1643,9 +1415,6 @@ useEffect(() => {
     setShowProfile(false)
   }
 
-  const signOut = async () => {
-    await supabase.auth.signOut()
-  }
   
     const resetFilters = () => {
     setFilters({
@@ -1694,30 +1463,73 @@ useEffect(() => {
 const MovieCard = ({
   movie,
   compact = false,
+  onClick,
+  collectionMeta,
+  isSeasonCollection = false,
 }: {
   movie: Movie
   compact?: boolean
+  onClick?: () => void
+  collectionMeta?: string
+  isSeasonCollection?: boolean
 }) => {
   const progressPercent =
     getProgressPercent(movie)
 
   const saved = isInMyList(movie)
+  const isAdultTitle = Boolean(movie.isMidnight18) || /18\+|midnight|adult/i.test(`${movie.category || ''} ${movie.rating || ''}`)
+  const catalogText = `${movie.category || ''} ${movie.type || ''} ${movie.title || ''}`.toLowerCase()
+  const categoryAccent = isAdultTitle
+    ? 'rose'
+    : /african|nollywood/.test(catalogText)
+      ? 'amber'
+      : /original|exclusive/.test(catalogText)
+        ? 'cyan'
+        : /sport|match|live/.test(catalogText)
+          ? 'emerald'
+          : /short|skit|comedy/.test(catalogText)
+            ? 'orange'
+            : 'purple'
+  const cardAccent = {
+    rose: 'border-rose-500/35 shadow-[0_18px_55px_rgba(0,0,0,0.32),0_0_28px_rgba(244,63,94,0.12)] group-hover/card:border-rose-400/60 group-hover/card:shadow-[0_24px_70px_rgba(0,0,0,0.48),0_0_38px_rgba(244,63,94,0.2)]',
+    amber: 'border-amber-400/20 group-hover/card:border-amber-300/45 group-hover/card:shadow-[0_24px_70px_rgba(0,0,0,0.48),0_0_38px_rgba(245,158,11,0.16)]',
+    cyan: 'border-cyan-300/20 group-hover/card:border-cyan-200/45 group-hover/card:shadow-[0_24px_70px_rgba(0,0,0,0.48),0_0_38px_rgba(34,211,238,0.16)]',
+    emerald: 'border-emerald-300/20 group-hover/card:border-emerald-200/45 group-hover/card:shadow-[0_24px_70px_rgba(0,0,0,0.48),0_0_38px_rgba(16,185,129,0.16)]',
+    orange: 'border-orange-300/20 group-hover/card:border-orange-200/45 group-hover/card:shadow-[0_24px_70px_rgba(0,0,0,0.48),0_0_38px_rgba(249,115,22,0.16)]',
+    purple: 'border-purple-300/[0.08] group-hover/card:border-purple-300/20 group-hover/card:shadow-[0_24px_70px_rgba(0,0,0,0.48),0_0_38px_rgba(168,85,247,0.10)]',
+  }[categoryAccent]
+  const badgeAccent = {
+    rose: 'border-rose-400/50 bg-rose-950/80 shadow-[0_0_22px_rgba(244,63,94,0.3)]',
+    amber: 'border-amber-400/40 bg-amber-950/70 shadow-[0_0_22px_rgba(245,158,11,0.2)]',
+    cyan: 'border-cyan-300/40 bg-cyan-950/70 shadow-[0_0_22px_rgba(34,211,238,0.2)]',
+    emerald: 'border-emerald-300/40 bg-emerald-950/70 shadow-[0_0_22px_rgba(16,185,129,0.2)]',
+    orange: 'border-orange-300/40 bg-orange-950/70 shadow-[0_0_22px_rgba(249,115,22,0.2)]',
+    purple: 'border-purple-300/15 bg-black/55',
+  }[categoryAccent]
+  const glowAccent = {
+    rose: 'bg-[radial-gradient(circle_at_75%_20%,rgba(244,63,94,0.25),transparent_42%)]',
+    amber: 'bg-[radial-gradient(circle_at_75%_20%,rgba(245,158,11,0.2),transparent_42%)]',
+    cyan: 'bg-[radial-gradient(circle_at_75%_20%,rgba(34,211,238,0.2),transparent_42%)]',
+    emerald: 'bg-[radial-gradient(circle_at_75%_20%,rgba(16,185,129,0.2),transparent_42%)]',
+    orange: 'bg-[radial-gradient(circle_at_75%_20%,rgba(249,115,22,0.2),transparent_42%)]',
+    purple: 'bg-[radial-gradient(circle_at_75%_20%,rgba(168,85,247,0.18),transparent_35%)]',
+  }[categoryAccent]
 
   return (
     <article
-      className={`group/card relative shrink-0 ${
+      className={`pmf-home-card group/card relative shrink-0 transition-transform duration-300 hover:z-20 focus-within:z-20 ${
         compact
-          ? 'w-[145px] sm:w-[175px]'
-          : 'w-[165px] sm:w-[205px] lg:w-[225px]'
+          ? 'pmf-home-card--compact w-[118px] sm:w-[158px]'
+          : 'pmf-home-card--standard w-[132px] sm:w-[184px] lg:w-[205px]'
       }`}
     >
-      <div className="relative overflow-hidden rounded-[22px] border border-purple-300/[0.08] bg-[#080611] shadow-[0_18px_55px_rgba(0,0,0,0.32)] transition-all duration-500 ease-out group-hover/card:-translate-y-2 group-hover/card:border-purple-300/20 group-hover/card:shadow-[0_24px_70px_rgba(0,0,0,0.48),0_0_38px_rgba(168,85,247,0.10)]">
+      <div className={`relative overflow-hidden rounded-[15px] border ${cardAccent} bg-[#080611] shadow-[0_12px_36px_rgba(0,0,0,0.28)] transition-all duration-300 ease-out group-hover/card:-translate-y-1 group-hover/card:shadow-[0_20px_48px_rgba(0,0,0,0.46)] motion-reduce:transition-none`}>
 
         {/* Poster */}
         <button
           type="button"
           onClick={() =>
-            openMovie(movie)
+            onClick ? onClick() : openMovie(movie)
           }
           className="block w-full text-left"
         >
@@ -1726,30 +1538,29 @@ const MovieCard = ({
             <img
               src={getMoviePoster(movie)}
               alt={movie.title}
-              className="h-full w-full object-cover transition-transform duration-700 ease-out group-hover/card:scale-[1.07]"
+              className="h-full w-full object-cover transition-transform duration-500 ease-out group-hover/card:scale-[1.045] motion-reduce:transition-none"
               loading="lazy"
             />
 
             {/* Cinematic colour treatment */}
             <div className="absolute inset-0 bg-gradient-to-t from-[#030208] via-transparent to-transparent opacity-95" />
 
-            <div className="absolute inset-0 bg-[radial-gradient(circle_at_75%_20%,rgba(168,85,247,0.18),transparent_35%)] opacity-0 transition-opacity duration-500 group-hover/card:opacity-100" />
+            <div className={`absolute inset-0 opacity-70 transition-opacity duration-500 group-hover/card:opacity-100 ${glowAccent}`} />
 
             {/* Subtle poster sheen */}
             <div className="absolute inset-0 -translate-x-full bg-gradient-to-r from-transparent via-white/[0.07] to-transparent transition-transform duration-1000 group-hover/card:translate-x-full" />
 
-            {/* PMF label */}
-            <div className="absolute left-3 top-3 flex items-center gap-1.5 rounded-full border border-purple-300/15 bg-black/55 px-2.5 py-1.5 backdrop-blur-xl">
-              <span className="h-1.5 w-1.5 rounded-full bg-purple-400 shadow-[0_0_10px_rgba(168,85,247,0.9)]" />
-
-              <span className="text-[6px] font-black uppercase tracking-[0.2em] text-white/60">
-                PMF
+            {/* Premium content classification */}
+            <div className={`absolute left-2 top-2 flex items-center gap-1 rounded-full border px-2 py-1 backdrop-blur-xl ${badgeAccent} opacity-0 transition-opacity duration-300 group-hover/card:opacity-100`}>
+              <span className={`h-1.5 w-1.5 rounded-full ${isAdultTitle ? 'bg-rose-400 shadow-[0_0_10px_rgba(244,63,94,0.9)]' : 'bg-purple-400 shadow-[0_0_10px_rgba(168,85,247,0.9)]'}`} />
+              <span className={`text-[6px] font-black uppercase tracking-[0.2em] ${isAdultTitle ? 'text-rose-100' : 'text-white/60'}`}>
+                {isAdultTitle ? '18+ • Restricted' : 'PMF'}
               </span>
             </div>
 
             {/* Featured marker */}
             {movie.featured && (
-              <div className="absolute right-3 top-3 rounded-full border border-[#d8b36a]/20 bg-[#080611]/75 px-2.5 py-1.5 backdrop-blur-xl">
+              <div className="absolute right-2 top-2 rounded-full border border-[#d8b36a]/20 bg-[#080611]/75 px-2 py-1 backdrop-blur-xl opacity-0 transition-opacity duration-300 group-hover/card:opacity-100">
                 <span className="text-[6px] font-black uppercase tracking-[0.16em] text-[#d8b36a]">
                   Featured
                 </span>
@@ -1783,31 +1594,39 @@ const MovieCard = ({
           </div>
 
           {/* Card information */}
-          <div className="relative px-3.5 pb-4 pt-3.5">
+          <div className="relative px-2.5 pb-2.5 pt-2.5 sm:px-3 sm:pb-3 sm:pt-3">
             <div className="flex items-start justify-between gap-2">
-              <h3 className="min-w-0 truncate text-[12px] font-black tracking-[-0.02em] text-white transition-colors duration-300 group-hover/card:text-purple-200">
+              <h3 className="min-w-0 truncate text-[13px] font-black tracking-[-0.02em] text-white transition-colors duration-300 group-hover/card:text-purple-200">
                 {movie.title}
               </h3>
             </div>
 
-            <div className="mt-2 flex items-center gap-2 overflow-hidden">
-              <span className="shrink-0 text-[7px] font-black uppercase tracking-[0.14em] text-purple-300/65">
-                {movie.year}
-              </span>
-
-              <span className="h-0.5 w-0.5 shrink-0 rounded-full bg-white/20" />
-
-              <span className="truncate text-[7px] font-bold uppercase tracking-[0.12em] text-white/30">
-                {movie.type || 'Film'}
-              </span>
-
-              {movie.category && (
+            <div className="mt-1.5 flex items-center gap-1.5 overflow-hidden sm:gap-2">
+              {collectionMeta ? (
+                <span className="max-w-full truncate text-[8px] font-black uppercase tracking-[0.12em] text-purple-200/80">
+                  {collectionMeta}
+                </span>
+              ) : (
                 <>
-                  <span className="h-0.5 w-0.5 shrink-0 rounded-full bg-white/15" />
-
-                  <span className="truncate text-[7px] font-bold uppercase tracking-[0.1em] text-white/25">
-                    {movie.category}
+                  <span className="shrink-0 text-[8px] font-black uppercase tracking-[0.12em] text-purple-200/80">
+                    {movie.year}
                   </span>
+
+                  <span className="h-0.5 w-0.5 shrink-0 rounded-full bg-white/20" />
+
+                  <span className={`max-w-[82px] truncate rounded-md border px-1.5 py-0.5 text-[8px] font-black uppercase tracking-[0.08em] ${getContentTypeAccent(movie.type || 'Film')}`}>
+                    {movie.type || 'Film'}
+                  </span>
+
+                  {movie.category && (
+                    <>
+                      <span className="h-0.5 w-0.5 shrink-0 rounded-full bg-white/15" />
+
+                      <span className={`max-w-[100px] truncate rounded-md border px-1.5 py-0.5 text-[8px] font-black uppercase tracking-[0.08em] ${getCategoryAccent(movie.category)}`}>
+                        {movie.category}
+                      </span>
+                    </>
+                  )}
                 </>
               )}
             </div>
@@ -1815,7 +1634,7 @@ const MovieCard = ({
         </button>
 
         {/* My List */}
-        <button
+        {!isSeasonCollection && <button
           type="button"
           onClick={() =>
             toggleMyList(movie)
@@ -1836,7 +1655,7 @@ const MovieCard = ({
           ) : (
             <ListPlus size={12} />
           )}
-        </button>
+        </button>}
       </div>
     </article>
   )
@@ -1894,42 +1713,97 @@ const MovieCard = ({
 )
   
   
-    const MovieRow = ({
+  const MovieRow = ({
     title,
     subtitle,
     items,
     eyebrow,
+    isTop10 = false,
   }: {
     title: string
     subtitle?: string
     items: Movie[]
     eyebrow?: string
+    isTop10?: boolean
   }) => {
     if (!items.length) {
       return null
     }
 
+    const scroll = (
+      e: React.MouseEvent<HTMLButtonElement>,
+      direction: 'left' | 'right',
+    ) => {
+      const scroller = e.currentTarget.parentElement?.querySelector(
+        '[data-row-scroller]',
+      ) as HTMLElement | null
+      if (scroller) {
+        const offset = direction === 'left' ? -500 : 500
+        scroller.scrollBy({ left: offset, behavior: 'smooth' })
+      }
+    }
+
     return (
-      <section className="mb-12">
-        <SectionTitle
-          eyebrow={eyebrow}
-          title={title}
-          subtitle={subtitle}
-        />
+      <section className="group/row relative mb-12">
+        {SectionTitle({
+          eyebrow,
+          title,
+          subtitle,
+        })}
 
         <div className="relative">
-          <div className="no-scrollbar flex gap-3 overflow-x-auto pb-3 sm:gap-4">
-            {items.map((movie) => (
-              <MovieCard
-                key={getMovieId(movie)}
-                movie={movie}
-              />
-            ))}
+          {/* Left Arrow */}
+          <button
+            type="button"
+            onClick={(e) => scroll(e, 'left')}
+            aria-label={`Scroll ${title} left`}
+            className="absolute -left-3 top-1/2 z-20 hidden h-10 w-10 -translate-y-1/2 items-center justify-center rounded-full border border-white/20 bg-black/85 text-white shadow-2xl backdrop-blur-xl transition hover:scale-110 hover:bg-white hover:text-black md:group-hover/row:flex"
+          >
+            <ChevronLeft size={20} />
+          </button>
+
+          {/* Right Arrow */}
+          <button
+            type="button"
+            onClick={(e) => scroll(e, 'right')}
+            aria-label={`Scroll ${title} right`}
+            className="absolute -right-3 top-1/2 z-20 hidden h-10 w-10 -translate-y-1/2 items-center justify-center rounded-full border border-white/20 bg-black/85 text-white shadow-2xl backdrop-blur-xl transition hover:scale-110 hover:bg-white hover:text-black md:group-hover/row:flex"
+          >
+            <ChevronRight size={20} />
+          </button>
+
+          <div
+            data-row-scroller="true"
+            className="no-scrollbar flex snap-x snap-proximity gap-2 overflow-x-auto pb-3 scroll-smooth sm:gap-3 sm:pb-4"
+          >
+            {items.map((movie, index) => {
+              if (isTop10) {
+                return (
+                  <div
+                    key={getMovieId(movie)}
+                    className="relative flex shrink-0 items-end"
+                  >
+                    <span className="z-0 -mr-6 select-none font-sans text-8xl font-black leading-none tracking-tighter text-white/[0.18] drop-shadow-[0_4px_12px_rgba(0,0,0,0.85)] transition-colors sm:text-9xl">
+                      {index + 1}
+                    </span>
+                    <div className="relative z-10">
+                      {MovieCard({ movie })}
+                    </div>
+                  </div>
+                )
+              }
+
+              return (
+                <div key={getMovieId(movie)} className="shrink-0">
+                  {MovieCard({ movie })}
+                </div>
+              )
+            })}
           </div>
         </div>
       </section>
     )
-    }
+  }
 
   const MovieGrid = ({
     items,
@@ -1965,15 +1839,13 @@ const MovieCard = ({
     }
 
     return (
-      <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 sm:gap-4 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6">
+      <div className="grid grid-cols-2 gap-2 sm:grid-cols-3 sm:gap-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6">
         {items.map((movie) => (
           <div
             key={getMovieId(movie)}
             className="min-w-0"
           >
-            <MovieCard
-              movie={movie}
-            />
+            {MovieCard({ movie })}
           </div>
         ))}
       </div>
@@ -2052,240 +1924,142 @@ const MovieCard = ({
           </div>
 
           {showFilters && (
-            <section className="mb-10 rounded-3xl border border-white/[0.07] bg-white/[0.025] p-5 sm:p-6">
-              <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-                <label className="block">
-                  <span className="mb-2 block text-[8px] font-black uppercase tracking-[0.16em] text-white/30">
-                    Category
-                  </span>
-
-                  <select
-                    value={
-                      filters.category
-                    }
-                    onChange={(
-                      event,
-                    ) =>
-                      setFilters(
-                        (current) => ({
-                          ...current,
-                          category:
-                            event.target
-                              .value,
-                        }),
-                      )
-                    }
-                    className="w-full rounded-xl border border-white/10 bg-black px-4 py-3 text-xs text-white outline-none"
-                  >
-                    <option value="All">
-                      All
-                    </option>
-
-                    {Array.from(
-                      new Set(
-                        movies
-                          .map(
-                            (movie) =>
-                              movie.category,
-                          )
-                          .filter(
-                            Boolean,
-                          )
-                          .map(String),
-                      ),
-                    ).map(
-                      (category) => (
-                        <option
-                          key={
-                            category
-                          }
-                          value={
-                            category
-                          }
-                        >
-                          {category}
-                        </option>
-                      ),
-                    )}
-                  </select>
-                </label>
-
-                <label className="block">
-                  <span className="mb-2 block text-[8px] font-black uppercase tracking-[0.16em] text-white/30">
-                    Year
-                  </span>
-
-                  <select
-                    value={
-                      filters.year
-                    }
-                    onChange={(
-                      event,
-                    ) =>
-                      setFilters(
-                        (current) => ({
-                          ...current,
-                          year:
-                            event.target
-                              .value,
-                        }),
-                      )
-                    }
-                    className="w-full rounded-xl border border-white/10 bg-black px-4 py-3 text-xs text-white outline-none"
-                  >
-                    <option value="All">
-                      All
-                    </option>
-
-                    {Array.from(
-                      new Set(
-                        movies
-                          .map(
-                            (movie) =>
-                              String(
-                                movie.year ||
-                                  '',
-                              ),
-                          )
-                          .filter(
-                            Boolean,
-                          ),
-                      ),
-                    )
-                      .sort(
-                        (a, b) =>
-                          Number(b) -
-                          Number(a),
-                      )
-                      .map(
-                        (year) => (
-                          <option
-                            key={year}
-                            value={year}
-                          >
-                            {year}
-                          </option>
-                        ),
-                      )}
-                  </select>
-                </label>
-
-                <label className="block">
-                  <span className="mb-2 block text-[8px] font-black uppercase tracking-[0.16em] text-white/30">
-                    Rating
-                  </span>
-
-                  <select
-                    value={
-                      filters.rating
-                    }
-                    onChange={(
-                      event,
-                    ) =>
-                      setFilters(
-                        (current) => ({
-                          ...current,
-                          rating:
-                            event.target
-                              .value,
-                        }),
-                      )
-                    }
-                    className="w-full rounded-xl border border-white/10 bg-black px-4 py-3 text-xs text-white outline-none"
-                  >
-                    <option value="0">
-                      Any Rating
-                    </option>
-
-                    <option value="5">
-                      5+
-                    </option>
-
-                    <option value="7">
-                      7+
-                    </option>
-
-                    <option value="8">
-                      8+
-                    </option>
-
-                    <option value="9">
-                      9+
-                    </option>
-                  </select>
-                </label>
-
-                <label className="block">
-                  <span className="mb-2 block text-[8px] font-black uppercase tracking-[0.16em] text-white/30">
-                    Sort
-                  </span>
-
-                  <select
-                    value={
-                      filters.sort
-                    }
-                    onChange={(
-                      event,
-                    ) =>
-                      setFilters(
-                        (current) => ({
-                          ...current,
-                          sort:
-                            event.target
-                              .value as SortMode,
-                        }),
-                      )
-                    }
-                    className="w-full rounded-xl border border-white/10 bg-black px-4 py-3 text-xs text-white outline-none"
-                  >
-                    <option value="featured">
-                      Featured
-                    </option>
-
-                    <option value="newest">
-                      Newest
-                    </option>
-
-                    <option value="oldest">
-                      Oldest
-                    </option>
-
-                    <option value="rating">
-                      Rating
-                    </option>
-
-                    <option value="title">
-                      Title
-                    </option>
-                  </select>
-                </label>
-              </div>
-
-              <button
-                type="button"
-                onClick={
-                  resetFilters
+            <div className="mb-8">
+              <DiscoveryToolbar
+                searchQuery={search}
+                onSearchChange={setSearch}
+                contentType={type}
+                onContentTypeChange={() => {}}
+                genre={filters.category === 'All' ? 'All Genres' : filters.category}
+                onGenreChange={(val) =>
+                  setFilters((current) => ({
+                    ...current,
+                    category: val === 'All Genres' ? 'All' : val,
+                  }))
                 }
-                className="mt-5 rounded-xl border border-white/10 bg-white/[0.04] px-5 py-3 text-[8px] font-black uppercase tracking-[0.16em] text-white/50 transition hover:bg-white/[0.08] hover:text-white"
-              >
-                Reset Filters
-              </button>
-            </section>
+                year={filters.year === 'All' ? 'All Years' : filters.year}
+                onYearChange={(val) =>
+                  setFilters((current) => ({
+                    ...current,
+                    year: val === 'All Years' ? 'All' : val,
+                  }))
+                }
+                rating={filters.rating === '0' ? 'All Ratings' : filters.rating}
+                onRatingChange={(val) =>
+                  setFilters((current) => ({
+                    ...current,
+                    rating: val === 'All Ratings' ? '0' : val,
+                  }))
+                }
+                sort={filters.sort as any}
+                onSortChange={(val) =>
+                  setFilters((current) => ({
+                    ...current,
+                    sort: val,
+                  }))
+                }
+                onReset={resetFilters}
+              />
+            </div>
           )}
 
           <div className="mb-6 flex items-center justify-between">
             <p className="text-[9px] font-black uppercase tracking-[0.18em] text-white/25">
-              {catalogItems.length}{' '}
+              {type === 'Movie'
+                ? catalogItems.length
+                : new Set(catalogItems.map((movie) =>
+                    movie.seriesTitle && movie.seasonNumber
+                      ? `${movie.seriesTitle.toLocaleLowerCase()}::${movie.seasonNumber}`
+                      : `standalone::${getMovieId(movie)}`,
+                  )).size}{' '}
               {type === 'Movie'
                 ? 'movies'
-                : 'series'}{' '}
+                : 'season catalogues'}{' '}
               available
             </p>
           </div>
 
-          <MovieGrid
-            items={catalogItems}
-          />
+          {type === 'Series' ? (() => {
+            const episodeGroups = new Map<string, {
+              seriesTitle: string
+              seasonNumber: number
+              episodes: Movie[]
+            }>()
+            const standaloneSeries: Movie[] = []
+
+            catalogItems.forEach((movie) => {
+              const seasonNumber = Number(movie.seasonNumber)
+              const seriesTitle = String(movie.seriesTitle || '').trim()
+              const isEpisode = Boolean(
+                seriesTitle && Number.isFinite(seasonNumber) && seasonNumber > 0,
+              )
+
+              if (!isEpisode) {
+                standaloneSeries.push(movie)
+                return
+              }
+
+              const groupKey = `${seriesTitle.toLocaleLowerCase()}::${seasonNumber}`
+              const existing = episodeGroups.get(groupKey)
+              if (existing) {
+                existing.episodes.push(movie)
+              } else {
+                episodeGroups.set(groupKey, {
+                  seriesTitle,
+                  seasonNumber,
+                  episodes: [movie],
+                })
+              }
+            })
+
+            const seasonGroups = Array.from(episodeGroups.values()).sort((a, b) =>
+              a.seriesTitle.localeCompare(b.seriesTitle) || a.seasonNumber - b.seasonNumber,
+            )
+
+            if (!standaloneSeries.length && !seasonGroups.length) {
+              return MovieGrid({ items: [] })
+            }
+
+            return (
+              <div className="grid grid-cols-2 gap-2 sm:grid-cols-3 sm:gap-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6">
+                {standaloneSeries.map((movie) => (
+                  <div key={getMovieId(movie)} className="min-w-0">
+                    {MovieCard({ movie })}
+                  </div>
+                ))}
+                {seasonGroups.map((group) => {
+                  const firstEpisode = group.episodes[0]
+                  const seasonCard: Movie = {
+                    ...firstEpisode,
+                    id: `season-${group.seriesTitle.toLowerCase().replace(/[^a-z0-9]+/g, '-')}-${group.seasonNumber}`,
+                    title: group.seriesTitle,
+                    type: 'Series',
+                    seasonNumber: group.seasonNumber,
+                    episodeNumber: undefined,
+                    videoUrl: undefined,
+                    videoType: undefined,
+                  }
+
+                  return (
+                    <div key={seasonCard.id} className="min-w-0">
+                      {MovieCard({
+                        movie: seasonCard,
+                        onClick: () => openSeason(
+                          group.seriesTitle,
+                          group.seasonNumber,
+                          group.episodes,
+                        ),
+                        collectionMeta: `Season ${group.seasonNumber} • ${group.episodes.length} ${group.episodes.length === 1 ? 'Episode' : 'Episodes'}`,
+                        isSeasonCollection: true,
+                      })}
+                    </div>
+                  )
+                })}
+              </div>
+            )
+          })() : MovieGrid({
+            items: catalogItems,
+          })}
         </div>
       </main>
     )
@@ -2295,7 +2069,7 @@ const MovieCard = ({
     const savedMovies =
       myList
         .map((id) =>
-          findMovie(id),
+          findSafeMovie(id),
         )
         .filter(
           (
@@ -2323,9 +2097,9 @@ const MovieCard = ({
           </div>
 
           {savedMovies.length ? (
-            <MovieGrid
-              items={savedMovies}
-            />
+            MovieGrid({
+              items: savedMovies,
+            })
           ) : (
             <div className="rounded-3xl border border-white/[0.07] bg-white/[0.02] px-6 py-20 text-center">
               <ListPlus
@@ -2358,11 +2132,11 @@ const MovieCard = ({
       </main>
     )
   }
-             
-const Hero = () => {
-  const featured =
-    featuredMovies[0] ||
-    movies[0]
+
+  const Hero = () => {
+    const featured =
+      heroCandidates[activeHeroIndex % (heroCandidates.length || 1)] ||
+      safeCatalogMovies[0]
 
   if (!featured) {
     return (
@@ -2418,7 +2192,27 @@ const Hero = () => {
     getRating(featured)
 
   return (
-    <section className="group/hero relative min-h-[94vh] overflow-hidden bg-[#030208]">
+    <section
+      className="group/hero pmf-home-hero relative min-h-[62vh] sm:min-h-[78vh] lg:min-h-[94vh] overflow-hidden bg-[#030208]"
+      onMouseEnter={() => setIsHeroPaused(true)}
+      onMouseLeave={() => setIsHeroPaused(false)}
+      onFocus={() => setIsHeroPaused(true)}
+      onBlur={() => setIsHeroPaused(false)}
+      onTouchStart={(e) => setHeroTouchStartX(e.targetTouches[0].clientX)}
+      onTouchEnd={(e) => {
+        if (heroTouchStartX === null) return
+        const touchEndX = e.changedTouches[0].clientX
+        const diff = heroTouchStartX - touchEndX
+        if (diff > 50) {
+          setActiveHeroIndex((prev) => (prev + 1) % heroCandidates.length)
+        } else if (diff < -50) {
+          setActiveHeroIndex((prev) =>
+            prev === 0 ? heroCandidates.length - 1 : prev - 1,
+          )
+        }
+        setHeroTouchStartX(null)
+      }}
+    >
 
       {/* =====================================================
           ATMOSPHERIC LIGHT
@@ -2451,7 +2245,7 @@ const Hero = () => {
             heroImage
           }
           alt=""
-          className="pmf-hero-artwork h-full w-full object-contain object-right opacity-[0.78] transition-opacity duration-700"
+          className="h-full w-full scale-[1.015] object-cover object-center opacity-95 transition-transform duration-[9000ms] ease-out group-hover/hero:scale-[1.045]"
         />
 
         {/* Artwork colour bloom */}
@@ -2468,13 +2262,13 @@ const Hero = () => {
 
         {/* Deep cinematic fade */}
 
-        <div className="absolute inset-0 bg-gradient-to-r from-[#030208] via-[#030208]/88 via-[43%] to-[#030208]/10" />
+        <div className="absolute inset-0 bg-gradient-to-r from-[#030208]/90 via-[#030208]/60 via-[38%] to-[#030208]/[0.03]" />
 
-        <div className="absolute inset-0 bg-gradient-to-t from-[#030208] via-[#030208]/35 via-[52%] to-transparent" />
+        <div className="absolute inset-0 bg-gradient-to-t from-[#030208] via-[#030208]/20 via-[42%] to-transparent" />
 
         {/* Header protection */}
 
-        <div className="absolute inset-x-0 top-0 h-[40%] bg-gradient-to-b from-[#030208]/95 to-transparent" />
+        <div className="absolute inset-x-0 top-0 h-[24%] bg-gradient-to-b from-[#030208]/65 to-transparent" />
 
         {/* Cinematic vignette */}
 
@@ -2496,7 +2290,7 @@ const Hero = () => {
           MAIN HERO CONTENT
           ===================================================== */}
 
-      <div className="relative mx-auto flex min-h-[94vh] max-w-[1600px] items-end px-5 pb-20 pt-32 sm:px-10 sm:pb-24 lg:px-16 lg:pb-28">
+      <div className="relative mx-auto flex min-h-[62vh] sm:min-h-[78vh] lg:min-h-[94vh] max-w-[1600px] items-end px-4 pb-14 pt-24 sm:px-10 sm:pb-24 sm:pt-32 lg:px-16 lg:pb-28">
 
         <div className="w-full">
 
@@ -2547,7 +2341,7 @@ const Hero = () => {
 
               {/* TITLE */}
 
-              <h1 className="max-w-5xl text-5xl font-black leading-[0.83] tracking-[-0.078em] text-white sm:text-7xl md:text-8xl lg:text-[94px] xl:text-[106px]">
+              <h1 className="max-w-5xl text-4xl font-black leading-[0.92] tracking-[-0.055em] text-white sm:text-7xl md:text-8xl lg:text-[94px] xl:text-[106px] drop-shadow-[0_4px_28px_rgba(0,0,0,0.55)]">
 
                 {featured.title}
 
@@ -2608,7 +2402,7 @@ const Hero = () => {
 
               {/* DESCRIPTION */}
 
-              <p className="mt-6 max-w-2xl text-sm leading-7 text-white/50 sm:text-[15px] sm:leading-7">
+              <p className="mt-4 max-w-xl text-xs leading-5 text-white/80 sm:mt-6 sm:text-[15px] sm:leading-7 line-clamp-2">
 
                 {featured.description ||
                   'Discover remarkable stories, unforgettable characters and cinematic worlds on PMF-Flix.'}
@@ -2666,6 +2460,70 @@ const Hero = () => {
                 </button>
 
               </div>
+
+              {/* FEATURED STORY SELECTOR */}
+              {heroCandidates.length > 1 && (
+                <div className="mt-8 flex items-center gap-3">
+                  <div className="flex items-center gap-2">
+                    {heroCandidates.map((cand, idx) => {
+                      const isActive =
+                        idx ===
+                        activeHeroIndex %
+                          heroCandidates.length
+                      return (
+                        <button
+                          key={cand.id}
+                          type="button"
+                          onClick={() =>
+                            setActiveHeroIndex(idx)
+                          }
+                          className={`h-2 rounded-full transition-all duration-300 ${
+                            isActive
+                              ? 'w-8 bg-amber-400 shadow-[0_0_12px_rgba(251,191,36,0.6)]'
+                              : 'w-2 bg-white/20 hover:bg-white/50'
+                          }`}
+                          aria-label={`Featured title: ${cand.title}`}
+                        />
+                      )
+                    })}
+                  </div>
+
+                  <span className="text-[8px] font-bold uppercase tracking-[0.2em] text-white/35">
+                    {activeHeroIndex + 1} / {heroCandidates.length}
+                  </span>
+
+                  <div className="ml-2 flex items-center gap-1.5">
+                    <button
+                      type="button"
+                      onClick={() =>
+                        setActiveHeroIndex((prev) =>
+                          prev === 0
+                            ? heroCandidates.length - 1
+                            : prev - 1,
+                        )
+                      }
+                      className="flex h-7 w-7 items-center justify-center rounded-full border border-white/10 bg-white/5 text-white/60 transition hover:bg-white/15 hover:text-white"
+                      aria-label="Previous featured title"
+                    >
+                      <ChevronLeft size={13} />
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() =>
+                        setActiveHeroIndex(
+                          (prev) =>
+                            (prev + 1) %
+                            heroCandidates.length,
+                        )
+                      }
+                      className="flex h-7 w-7 items-center justify-center rounded-full border border-white/10 bg-white/5 text-white/60 transition hover:bg-white/15 hover:text-white"
+                      aria-label="Next featured title"
+                    >
+                      <ChevronRight size={13} />
+                    </button>
+                  </div>
+                </div>
+              )}
 
               {/* PMF SIGNATURE LINE */}
 
@@ -2836,48 +2694,23 @@ const Hero = () => {
     <div className="absolute inset-x-0 top-0 h-24 bg-gradient-to-b from-purple-500/[0.06] to-transparent pointer-events-none" />
 
     <div className="relative border-b border-purple-300/[0.08] bg-[#05040b]/80 shadow-[0_12px_60px_rgba(0,0,0,0.35)] backdrop-blur-2xl">
-      <div className="mx-auto flex h-[72px] max-w-[1600px] items-center gap-4 px-4 sm:px-8 lg:px-12">
+      <div className="pmf-topbar mx-auto flex h-[64px] sm:h-[72px] max-w-[1600px] items-center gap-2 sm:gap-4 px-3 sm:px-8 lg:px-12">
         
-        {/* PMF BRAND */}
-        <button
-          type="button"
-          onClick={() =>
-            navigate('home')
-          }
-          className="group flex shrink-0 items-center gap-3"
-          aria-label="PMF-Flix home"
-        >
-          <div className="relative flex h-10 w-10 items-center justify-center overflow-hidden rounded-xl border border-purple-300/25 bg-gradient-to-br from-purple-500 to-purple-800 text-white shadow-[0_0_30px_rgba(168,85,247,0.18)] transition duration-300 group-hover:shadow-[0_0_40px_rgba(168,85,247,0.35)]">
-            <div className="absolute inset-0 bg-white/10 opacity-0 transition group-hover:opacity-100" />
-
-            <Film
-              size={17}
-              className="relative"
-            />
-          </div>
-
-          <div className="hidden sm:block">
-            <div className="text-[15px] font-black tracking-[-0.04em] text-white">
-              PMF
-              <span className="text-purple-300">
-                -FLIX
-              </span>
-            </div>
-
-            <div className="mt-0.5 text-[6px] font-black uppercase tracking-[0.28em] text-white/25">
-              Prince Mufasa Flix
-            </div>
-          </div>
-        </button>
-
         {/* DESKTOP NAVIGATION */}
-        <nav className="hidden items-center gap-1 lg:flex">
+        <nav className="hidden items-center gap-1 xl:flex">
           {(
             [
               ['home', 'Home'],
               ['movies', 'Movies'],
               ['series', 'TV Series'],
+              ['sports', 'Live Sports'],
+              ['shorts', 'PMF Shorts'],
+              ['trending', 'Trending'],
+              ['nollywood', 'Nollywood'],
+              ['free-novels', 'Stories & Novels'],
               ['my-list', 'My List'],
+              ['offline', 'Offline Cinema'],
+              ...(activeProfile?.isKids !== true ? ([['midnight-18', 'Midnight 18+']] as const) : []),
             ] as const
           ).map(
             ([key, label]) => (
@@ -2887,19 +2720,25 @@ const Hero = () => {
                 onClick={() =>
                   navigate(key)
                 }
-                className={`group relative rounded-xl px-4 py-2.5 text-[8px] font-black uppercase tracking-[0.17em] transition-all ${
+                className={`group relative rounded-xl px-3 py-2 text-[9px] font-black uppercase tracking-[0.14em] transition-all whitespace-nowrap ${
                   section === key
                     ? 'text-white'
-                    : 'text-white/35 hover:text-white'
+                    : 'text-white/40 hover:text-white'
                 }`}
               >
-                {label}
+                <span>{label}</span>
+
+                {key === 'offline' && downloadsCount > 0 && (
+                  <span className="ml-1.5 rounded-full bg-amber-400 px-1.5 py-0.5 text-[8px] font-black text-black">
+                    {downloadsCount}
+                  </span>
+                )}
 
                 <span
-                  className={`absolute bottom-0 left-1/2 h-px -translate-x-1/2 bg-purple-400 shadow-[0_0_12px_rgba(168,85,247,0.7)] transition-all ${
+                  className={`absolute bottom-0 left-1/2 h-px -translate-x-1/2 bg-amber-400 shadow-[0_0_12px_rgba(251,191,36,0.7)] transition-all ${
                     section === key
-                      ? 'w-7'
-                      : 'w-0 group-hover:w-4'
+                      ? 'w-6'
+                      : 'w-0 group-hover:w-3'
                   }`}
                 />
               </button>
@@ -2909,11 +2748,22 @@ const Hero = () => {
 
         {/* RIGHT SIDE */}
         <div className="ml-auto flex min-w-0 items-center gap-2">
-          {/* SEARCH */}
-          <div className="hidden w-[240px] items-center gap-2 rounded-xl border border-white/[0.08] bg-white/[0.025] px-3 transition-all focus-within:border-purple-300/25 focus-within:bg-purple-500/[0.04] sm:flex">
+          {/* COMPACT BRAND MARK */}
+          <button
+            type="button"
+            onClick={() => navigate('home')}
+            aria-label="PMF-Flix home"
+            title="PMF-Flix"
+            className="flex h-9 w-8 shrink-0 items-center justify-center rounded-lg transition hover:bg-white/[0.05] active:scale-95"
+          >
+            <PMFLogo size={17} />
+          </button>
+
+          {/* SEARCH (Responsive on all screen sizes) */}
+          <div className="flex min-w-0 flex-1 sm:flex-none sm:w-[220px] md:w-[260px] max-w-[360px] items-center gap-1.5 sm:gap-2 rounded-xl border border-white/[0.08] bg-white/[0.03] px-2.5 sm:px-3 transition-colors focus-within:border-amber-400/40 focus-within:bg-purple-950/20">
             <Search
-              size={14}
-              className="shrink-0 text-purple-300/40"
+              size={13}
+              className="shrink-0 text-amber-400/80"
             />
 
             <input
@@ -2923,20 +2773,42 @@ const Hero = () => {
                   event.target.value,
                 )
               }
-              placeholder="Search the PMF universe"
-              className="min-w-0 flex-1 bg-transparent py-2.5 text-xs text-white outline-none placeholder:text-white/20"
+              placeholder="Search..."
+              className="min-w-0 flex-1 bg-transparent py-2 text-[11px] sm:text-xs text-white outline-none placeholder:text-white/30"
             />
 
             {search && (
               <button
                 type="button"
                 onClick={clearSearch}
-                className="text-white/25 transition hover:text-purple-300"
+                aria-label="Clear search"
+                className="text-white/40 transition hover:text-white"
               >
                 <X size={12} />
               </button>
             )}
           </div>
+
+          {/* SMART DISCOVERY QUICK ACTIONS */}
+          <button
+            type="button"
+            onClick={() => setShowRoulette(true)}
+            className="flex h-9 w-9 sm:h-10 sm:w-auto shrink-0 items-center justify-center sm:justify-start gap-0 sm:gap-1.5 rounded-xl border border-purple-400/25 bg-purple-500/10 px-0 sm:px-3 text-[9px] font-black uppercase tracking-wider text-purple-300 hover:bg-purple-500/20 transition active:scale-95"
+            title="PMF Cinema Roulette — Surprise Me"
+          >
+            <Dice5 size={13} />
+            <span className="hidden sm:inline">Surprise Me</span>
+          </button>
+
+          <button
+            type="button"
+            onClick={() => setShowWorldCinema(true)}
+            className="flex h-9 w-9 sm:h-10 sm:w-auto shrink-0 items-center justify-center sm:justify-start gap-0 sm:gap-1.5 rounded-xl border border-white/10 bg-white/5 px-0 sm:px-3 text-[9px] font-black uppercase tracking-wider text-white/70 hover:bg-white/10 hover:text-white transition active:scale-95"
+            title="World Cinema Explorer"
+          >
+            <Globe2 size={13} />
+            <span className="hidden sm:inline">World Cinema</span>
+          </button>
 
           {/* PROFILE */}
           <button
@@ -2950,20 +2822,24 @@ const Hero = () => {
             <span className="transition-transform duration-300 group-hover:scale-110">
               {profile.avatar}
             </span>
+            {activeProfile?.isKids && (
+              <span className="absolute -top-1 -right-1 flex h-4 w-4 items-center justify-center rounded-full bg-emerald-500 text-[8px] font-black text-black ring-2 ring-[#05040b]">
+                K
+              </span>
+            )}
           </button>
 
           {/* STUDIO */}
           {isStudioAdmin && (
             <button
               type="button"
-              onClick={() =>
-                setShowStudio(true)
-              }
-              className="hidden h-10 items-center gap-2 rounded-xl border border-[#d8b36a]/20 bg-[#d8b36a]/[0.05] px-3 text-[8px] font-black uppercase tracking-[0.14em] text-[#d8b36a]/65 transition hover:border-[#d8b36a]/35 hover:bg-[#d8b36a]/[0.09] hover:text-[#d8b36a] lg:flex"
+              onClick={() => setShowStudio(true)}
+              className="flex h-9 w-9 sm:h-10 sm:w-auto shrink-0 items-center justify-center sm:justify-start gap-0 sm:gap-2 rounded-xl border border-amber-400/30 bg-amber-400/10 px-0 sm:px-3.5 text-[9px] font-black uppercase tracking-[0.16em] text-amber-300 transition hover:border-amber-400/50 hover:bg-amber-400/20 hover:text-amber-200 active:scale-95"
               aria-label="Open PMF Studio"
             >
-              <Sparkles size={12} />
-              Studio
+              <Sparkles size={13} className="text-amber-400" />
+              <span className="hidden sm:inline">Studio</span>
+              <span className="hidden rounded-full bg-amber-400/25 px-1.5 py-0.5 text-[8px] text-amber-200 sm:inline">Admin</span>
             </button>
           )}
 
@@ -3036,21 +2912,19 @@ const Hero = () => {
             )}
           </div>
 
-          {isStudioAdmin && (
-            <button
-              type="button"
-              onClick={() => {
-                setShowStudio(true)
-                setMobileMenu(false)
-              }}
-              className="mt-2 w-full rounded-xl border border-[#d8b36a]/20 bg-[#d8b36a]/[0.04] px-4 py-3.5 text-left text-[8px] font-black uppercase tracking-[0.16em] text-[#d8b36a]/60 transition hover:bg-[#d8b36a]/[0.08] hover:text-[#d8b36a]"
-            >
-              <span className="inline-flex items-center gap-2">
-                <Sparkles size={12} />
-                PMF Studio
-              </span>
-            </button>
-          )}
+          <button
+            type="button"
+            onClick={() => {
+              setShowStudio(true)
+              setMobileMenu(false)
+            }}
+            className="mt-2 w-full rounded-xl border border-amber-400/30 bg-amber-400/10 px-4 py-3.5 text-left text-[9px] font-black uppercase tracking-[0.16em] text-amber-300 transition hover:bg-amber-400/20 hover:text-amber-200"
+          >
+            <span className="inline-flex items-center gap-2">
+              <Sparkles size={14} className="text-amber-400" />
+              PMF Studio Command Centre
+            </span>
+          </button>
         </div>
       )}
     </div>
@@ -3059,7 +2933,7 @@ const Hero = () => {
 
 const HomeContent = () => (
   <>
-    <Hero />
+    {Hero()}
 
     <main className="relative mx-auto max-w-[1600px] overflow-hidden px-5 pb-24 sm:px-10 lg:px-16">
 
@@ -3083,17 +2957,73 @@ const HomeContent = () => (
       />
 
       {/* =====================================================
+          CINEMATIC CATEGORY NAVIGATION STRIP (Reference Image 1)
+          ===================================================== */}
+      <div className="pmf-category-navigation relative pt-6 sm:pt-8 pb-2">
+        <div className="pmf-category-list flex items-center gap-2 overflow-x-auto no-scrollbar pb-2">
+          {[
+            { id: 'all', label: 'All', icon: Sparkles, tone: 'from-white/15 via-white/[0.06] to-white/[0.02]', edge: 'border-white/15', ink: 'text-white', glow: 'shadow-white/5' },
+            { id: 'movies', label: 'Movies', icon: Film, tone: 'from-amber-400/25 via-orange-500/10 to-transparent', edge: 'border-amber-300/30', ink: 'text-amber-100', glow: 'shadow-amber-500/15' },
+            { id: 'series', label: 'TV Series', icon: Tv, tone: 'from-sky-400/25 via-blue-500/10 to-transparent', edge: 'border-sky-300/30', ink: 'text-sky-100', glow: 'shadow-sky-500/15' },
+            { id: 'sports', label: 'Live Sports', icon: Trophy, isLive: true, tone: 'from-emerald-400/25 via-green-500/10 to-transparent', edge: 'border-emerald-300/30', ink: 'text-emerald-100', glow: 'shadow-emerald-500/15' },
+            { id: 'shorts', label: 'PMF Shorts', icon: Video, tone: 'from-fuchsia-500/30 via-purple-500/15 to-transparent', edge: 'border-fuchsia-300/35', ink: 'text-fuchsia-100', glow: 'shadow-fuchsia-500/20' },
+            { id: 'free-novels', label: 'Stories & Novels', icon: BookOpen, tone: 'from-violet-400/25 via-indigo-500/10 to-transparent', edge: 'border-violet-300/30', ink: 'text-violet-100', glow: 'shadow-violet-500/15' },
+            { id: 'nollywood', label: 'Nollywood & African', icon: Globe2, tone: 'from-orange-400/25 via-rose-500/10 to-transparent', edge: 'border-orange-300/30', ink: 'text-orange-100', glow: 'shadow-orange-500/15' },
+            { id: 'trending', label: 'Trending', icon: Flame, tone: 'from-rose-500/25 via-red-500/10 to-transparent', edge: 'border-rose-300/30', ink: 'text-rose-100', glow: 'shadow-rose-500/15' },
+            { id: 'offline', label: 'Offline Cinema', icon: Download, tone: 'from-cyan-400/25 via-teal-500/10 to-transparent', edge: 'border-cyan-300/30', ink: 'text-cyan-100', glow: 'shadow-cyan-500/15' },
+            ...(activeProfile?.isKids !== true ? [{ id: 'midnight-18', label: 'Midnight 18+', icon: Moon, tone: 'from-red-500/30 via-purple-950/40 to-black', edge: 'border-red-400/35', ink: 'text-red-100', glow: 'shadow-red-600/20', isMature: true }] : []),
+          ].map((cat) => {
+            const Icon = cat.icon
+            return (
+              <button
+                key={cat.id}
+                type="button"
+                onClick={() => {
+                  if (cat.id !== 'all') navigate(cat.id as Section)
+                }}
+                className={`pmf-category-tile group relative isolate flex shrink-0 items-center gap-2 overflow-hidden rounded-xl border bg-gradient-to-br px-3.5 py-2 text-xs font-black tracking-wide shadow-lg transition-all duration-300 hover:-translate-y-0.5 hover:brightness-125 active:scale-95 ${
+                  cat.tone + ' ' + cat.edge + ' ' + cat.ink + ' ' + cat.glow
+                }`}
+              >
+                <span aria-hidden="true" className="pointer-events-none absolute inset-0 -z-10 bg-[radial-gradient(circle_at_15%_0%,rgba(255,255,255,0.16),transparent_65%)] opacity-70 transition-opacity group-hover:opacity-100" />
+                {cat.isLive && <span className="h-2 w-2 animate-pulse rounded-full bg-emerald-300 shadow-[0_0_12px_rgba(52,211,153,0.95)]" />}
+                <Icon className="h-4 w-4 drop-shadow-[0_0_8px_currentColor]" />
+                <span>{cat.label}</span>
+                {cat.id === 'midnight-18' && <span className="rounded-md border border-red-300/35 bg-red-950/60 px-1 py-0.5 text-[8px] tracking-widest">18+</span>}
+              </button>
+            )
+          })}
+        </div>
+      </div>
+
+      {/* =====================================================
+          SERIES RANKINGS (Reference Image 1)
+          ===================================================== */}
+      {seriesRankings.length > 0 && (
+        <section className="relative pt-6 sm:pt-10">
+          {MovieRow({
+            eyebrow: 'Serialized Stories & Anime',
+            title: 'Series Rankings',
+            subtitle:
+              'The highest-rated TV series, anime, and serialized drama across PMF-Flix.',
+            items: seriesRankings,
+            isTop10: true,
+          })}
+        </section>
+      )}
+
+      {/* =====================================================
           CONTINUE WATCHING
           ===================================================== */}
 
       {continueMovies.length > 0 && (
-        <section className="relative pt-14 sm:pt-20">
-          <MovieRow
-            eyebrow="Pick up where you left off"
-            title="Continue Watching"
-            subtitle="Your unfinished stories, ready when you are."
-            items={continueMovies}
-          />
+        <section className="relative pt-8 sm:pt-12">
+          {MovieRow({
+            eyebrow: 'Pick up where you left off',
+            title: 'Continue Watching',
+            subtitle: 'Your unfinished stories, ready when you are.',
+            items: continueMovies,
+          })}
         </section>
       )}
 
@@ -3103,12 +3033,12 @@ const HomeContent = () => (
 
       {featuredMovies.length > 1 && (
         <section className="relative">
-          <MovieRow
-            eyebrow="The PMF selection"
-            title="Featured"
-            subtitle="Stories selected for the PMF cinematic experience."
-            items={featuredMovies}
-          />
+          {MovieRow({
+            eyebrow: 'The PMF selection',
+            title: 'Featured',
+            subtitle: 'Stories selected for the PMF cinematic experience.',
+            items: featuredMovies,
+          })}
         </section>
       )}
 
@@ -3118,12 +3048,30 @@ const HomeContent = () => (
 
       {trendingMovies.length > 0 && (
         <section className="relative">
-          <MovieRow
-            eyebrow="What's moving"
-            title="Trending Now"
-            subtitle="The titles creating the most excitement across PMF-Flix."
-            items={trendingMovies}
-          />
+          {MovieRow({
+            eyebrow: "What's moving",
+            title: 'Trending Now',
+            subtitle:
+              'The titles creating the most excitement across PMF-Flix.',
+            items: trendingMovies,
+          })}
+        </section>
+      )}
+
+      {/* =====================================================
+          TOP 10 ACROSS PMF-FLIX
+          ===================================================== */}
+
+      {safeCatalogMovies.length >= 5 && (
+        <section className="relative">
+          {MovieRow({
+            eyebrow: 'Global Phenomenon',
+            title: 'Top 10 Across PMF-Flix',
+            subtitle:
+              'The most-watched motion pictures and series across our platform today.',
+            items: safeCatalogMovies.slice(0, 10),
+            isTop10: true,
+          })}
         </section>
       )}
 
@@ -3133,12 +3081,13 @@ const HomeContent = () => (
 
       {personalizedMovies.length > 0 && (
         <section className="relative">
-          <MovieRow
-            eyebrow="Made for your journey"
-            title="Made For You"
-            subtitle="Recommendations shaped by the stories you've explored."
-            items={personalizedMovies}
-          />
+          {MovieRow({
+            eyebrow: 'Made for your journey',
+            title: 'Made For You',
+            subtitle:
+              "Recommendations shaped by the stories you've explored.",
+            items: personalizedMovies,
+          })}
         </section>
       )}
 
@@ -3148,12 +3097,29 @@ const HomeContent = () => (
 
       {latestMovies.length > 0 && (
         <section className="relative">
-          <MovieRow
-            eyebrow="Fresh from the catalogue"
-            title="New & Noteworthy"
-            subtitle="Fresh stories waiting to become your next obsession."
-            items={latestMovies}
-          />
+          {MovieRow({
+            eyebrow: 'Fresh from the catalogue',
+            title: 'New & Noteworthy',
+            subtitle:
+              'Fresh stories waiting to become your next obsession.',
+            items: latestMovies,
+          })}
+        </section>
+      )}
+
+      {/* =====================================================
+          AFRICAN CINEMA & NOLLYWOOD SPOTLIGHT
+          ===================================================== */}
+
+      {africanAndNollywoodMovies.length > 0 && (
+        <section className="relative">
+          {MovieRow({
+            eyebrow: 'Global heritage & storytelling',
+            title: 'African Cinema & Nollywood',
+            subtitle:
+              'Vibrant narratives, authentic voices, and unforgettable modern classics.',
+            items: africanAndNollywoodMovies,
+          })}
         </section>
       )}
 
@@ -3164,16 +3130,39 @@ const HomeContent = () => (
       {categoryRows.length > 0 && (
         <section className="relative">
           {categoryRows.map((row) => (
-            <MovieRow
-              key={row.category}
-              eyebrow="Explore the universe"
-              title={row.category}
-              subtitle={`Discover ${row.category.toLowerCase()} stories on PMF-Flix.`}
-              items={row.items}
-            />
+            <div key={row.category}>
+              {MovieRow({
+                eyebrow: 'Explore the universe',
+                title: row.category,
+                subtitle: `Discover ${row.category.toLowerCase()} stories on PMF-Flix.`,
+                items: row.items,
+              })}
+            </div>
           ))}
         </section>
       )}
+
+      {/* =====================================================
+          BUZZ BOSS SHORT SKITS & COMEDY REELS
+          ===================================================== */}
+      <BuzzBossSection
+        onNavigate={(sec) => setSection(sec as Section)}
+      />
+
+      {/* =====================================================
+          AFRICAN LITERARY CINEMA & FREE NOVELS
+          ===================================================== */}
+      <FreeNovelsSection />
+
+      {/* =====================================================
+          CINEMA TRIVIA & STREAMING KNOWLEDGE
+          ===================================================== */}
+      <CinemaTriviaChallenge />
+
+      {/* =====================================================
+          SPECIALTY DESTINATIONS (SPORTS, GAMES, LIVE TV)
+          ===================================================== */}
+      <SpecialtyDestinationsPortal />
 
       {/* =====================================================
           RECENTLY WATCHED
@@ -3181,12 +3170,12 @@ const HomeContent = () => (
 
       {historyMovies.length > 0 && (
         <section className="relative">
-          <MovieRow
-            eyebrow="Your activity"
-            title="Recently Watched"
-            subtitle="Your latest journey through the PMF universe."
-            items={historyMovies.slice(0, 10)}
-          />
+          {MovieRow({
+            eyebrow: 'Your activity',
+            title: 'Recently Watched',
+            subtitle: 'Your latest journey through the PMF universe.',
+            items: historyMovies.slice(0, 10),
+          })}
         </section>
       )}
 
@@ -3371,7 +3360,7 @@ const HomeContent = () => (
       )
 
     const related =
-      movies
+      safeCatalogMovies
         .filter(
           (movie) =>
             getMovieId(movie) !==
@@ -3515,6 +3504,25 @@ const HomeContent = () => (
                     </>
                   )}
                 </button>
+
+                <button
+                  type="button"
+                  onClick={() => setWatchPartyMovie(selectedMovie)}
+                  className="inline-flex items-center gap-2 rounded-xl border border-purple-400/30 bg-purple-500/10 px-5 py-3.5 text-[9px] font-black uppercase tracking-[0.16em] text-purple-300 hover:bg-purple-500/20 transition"
+                >
+                  <Users size={13} />
+                  Watch Party
+                </button>
+
+                {selectedMovie.videoType !== 'youtube' && selectedMovie.videoUrl && (
+                  <DownloadActionButton
+                    movie={selectedMovie}
+                    onPlayOffline={(offlineUrl) =>
+                      startWatching(selectedMovie, offlineUrl)
+                    }
+                    onOpenVault={() => navigate('offline')}
+                  />
+                )}
               </div>
 
               {progress > 0 && (
@@ -3579,26 +3587,112 @@ const HomeContent = () => (
 
             {related.length > 0 && (
               <section className="mt-16">
-                <SectionTitle
-                  eyebrow="Keep exploring"
-                  title="You May Also Like"
-                  subtitle="More stories from the same world."
-                />
+                {SectionTitle({
+                  eyebrow: 'Keep exploring',
+                  title: 'You May Also Like',
+                  subtitle: 'More stories from the same world.',
+                })}
 
-                <div className="no-scrollbar flex gap-3 overflow-x-auto pb-3 sm:gap-4">
+                <div className="pmf-home-rail no-scrollbar flex snap-x snap-proximity gap-2 overflow-x-auto pb-3 sm:gap-3 sm:pb-4">
                   {related.map(
                     (movie) => (
-                      <MovieCard
-                        key={getMovieId(
-                          movie,
-                        )}
-                        movie={movie}
-                      />
+                      <div key={getMovieId(movie)} className="shrink-0">
+                        {MovieCard({ movie })}
+                      </div>
                     ),
                   )}
                 </div>
               </section>
             )}
+          </div>
+        </div>
+      </div>
+    )
+  }
+
+const SeasonDetails = () => {
+    if (!selectedSeason) return null
+
+    return (
+      <div className="fixed inset-0 z-[80] overflow-y-auto bg-[#050505]">
+        <div className="mx-auto min-h-screen max-w-[1200px] px-5 pb-24 pt-10 sm:px-10 sm:pt-14">
+          <button
+            type="button"
+            onClick={() => setSelectedSeason(null)}
+            className="mb-10 flex h-10 w-10 items-center justify-center rounded-full border border-white/10 bg-white/[0.04] text-white/70 transition hover:bg-white/10 hover:text-white"
+            aria-label="Back to series catalogue"
+          >
+            <ChevronLeft size={18} />
+          </button>
+
+          <div className="mb-10 flex flex-col gap-6 sm:flex-row sm:items-end">
+            <div className="min-w-0 flex-1">
+              <p className="text-[9px] font-black uppercase tracking-[0.3em] text-purple-300/70">
+                PMF Series Library
+              </p>
+              <h1 className="mt-3 text-4xl font-black tracking-[-0.055em] text-white sm:text-6xl">
+                {selectedSeason.seriesTitle}
+              </h1>
+              <p className="mt-3 text-sm font-semibold text-white/50">
+                Season {selectedSeason.seasonNumber}
+                <span className="mx-2 text-white/20">•</span>
+                {selectedSeason.episodes.length} {selectedSeason.episodes.length === 1 ? 'episode' : 'episodes'}
+              </p>
+            </div>
+            <div className="rounded-2xl border border-purple-300/15 bg-purple-500/[0.07] px-5 py-4">
+              <p className="text-[8px] font-black uppercase tracking-[0.2em] text-purple-200/60">
+                Season collection
+              </p>
+              <p className="mt-1 text-xl font-black text-white">
+                {String(selectedSeason.seasonNumber).padStart(2, '0')}
+              </p>
+            </div>
+          </div>
+
+          <div className="space-y-3">
+            {selectedSeason.episodes.map((episode, index) => {
+              const episodeNumber = Number(episode.episodeNumber || index + 1)
+              return (
+                <article
+                  key={getMovieId(episode)}
+                  className="flex flex-col gap-4 rounded-2xl border border-white/[0.08] bg-white/[0.025] p-3 transition hover:border-purple-300/25 hover:bg-white/[0.045] sm:flex-row sm:items-center sm:p-4"
+                >
+                  <img
+                    src={getMoviePoster(episode)}
+                    alt=""
+                    className="h-28 w-full rounded-xl object-cover sm:h-24 sm:w-40"
+                    loading="lazy"
+                  />
+                  <div className="min-w-0 flex-1">
+                    <p className="text-[8px] font-black uppercase tracking-[0.2em] text-purple-300/70">
+                      Episode {String(episodeNumber).padStart(2, '0')}
+                    </p>
+                    <h2 className="mt-1 text-base font-black text-white sm:text-lg">
+                      {episode.title}
+                    </h2>
+                    {episode.description && (
+                      <p className="mt-1 line-clamp-2 text-xs leading-5 text-white/40">
+                        {episode.description}
+                      </p>
+                    )}
+                    {episode.duration && (
+                      <p className="mt-2 text-[9px] font-bold uppercase tracking-[0.12em] text-white/30">
+                        {episode.duration}
+                      </p>
+                    )}
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => startWatching(episode)}
+                    disabled={!episode.videoUrl}
+                    className="inline-flex shrink-0 items-center justify-center gap-2 rounded-xl bg-white px-5 py-3 text-[9px] font-black uppercase tracking-[0.15em] text-black transition hover:bg-purple-100 disabled:cursor-not-allowed disabled:opacity-40"
+                  >
+                    <Play size={13} fill="currentColor" />
+                    {episode.videoUrl ? 'Play Episode' : 'Coming Soon'}
+                  </button>
+                </article>
+              )
+            })}
           </div>
         </div>
       </div>
@@ -3714,27 +3808,40 @@ const ProfilePanel = () => {
               </div>
             </div>
 
-            <div className="mt-7 flex gap-2">
+            <div className="mt-5 space-y-2">
               <button
                 type="button"
-                onClick={saveProfile}
-                className="flex-1 rounded-xl bg-white px-4 py-3 text-[8px] font-black uppercase tracking-[0.16em] text-black"
+                onClick={() => {
+                  setShowProfile(false)
+                  setIsSelectingProfile(true)
+                }}
+                className="w-full flex items-center justify-center gap-2 rounded-xl border border-amber-400/40 bg-amber-400/10 px-4 py-3 text-[9px] font-black uppercase tracking-[0.16em] text-amber-300 hover:bg-amber-400/20 transition"
               >
-                Save Profile
+                <span>Switch Profile Universe</span>
               </button>
 
-              <button
-                type="button"
-                onClick={signOut}
-                className="rounded-xl border border-white/10 px-4 py-3 text-[8px] font-black uppercase tracking-[0.16em] text-white/40 hover:bg-white/5 hover:text-white"
-              >
-                Sign Out
-              </button>
+              <div className="flex gap-2">
+                <button
+                  type="button"
+                  onClick={saveProfile}
+                  className="flex-1 rounded-xl bg-white px-4 py-3 text-[8px] font-black uppercase tracking-[0.16em] text-black hover:bg-white/90 transition"
+                >
+                  Save Profile
+                </button>
+
+                <button
+                  type="button"
+                  onClick={handleSignOut}
+                  className="rounded-xl border border-white/10 px-4 py-3 text-[8px] font-black uppercase tracking-[0.16em] text-white/40 hover:bg-white/5 hover:text-white transition"
+                >
+                  Sign Out
+                </button>
+              </div>
             </div>
 
-            {playerMessage && (
+            {toastMessage && (
               <p className="mt-4 text-center text-[9px] font-bold text-white/40">
-                {playerMessage}
+                {toastMessage}
               </p>
             )}
           </div>
@@ -3764,17 +3871,16 @@ const ProfilePanel = () => {
           </button>
         </div>
 
-        <div className="no-scrollbar flex gap-3 overflow-x-auto">
+        <div className="pmf-home-rail no-scrollbar flex gap-3 overflow-x-auto">
           {filteredMovies
             .slice(0, 8)
             .map((movie) => (
-              <MovieCard
-                key={getMovieId(
+              <div key={getMovieId(movie)} className="shrink-0">
+                {MovieCard({
                   movie,
-                )}
-                movie={movie}
-                compact
-              />
+                  compact: true,
+                })}
+              </div>
             ))}
         </div>
       </div>
@@ -3782,791 +3888,20 @@ const ProfilePanel = () => {
   }
 
   const renderPlayer = () => {
-    if (!watchingMovie) {
-      return null
-    }
-
-    const videoUrl =
-      getVideoUrl(watchingMovie)
-
-    const youtube =
-      isYouTube(watchingMovie)
-
-    const embedUrl =
-      youtube
-        ? getYouTubeEmbed(
-            watchingMovie,
-          )
-        : ''
-
-    const hasVideo =
-      Boolean(videoUrl)
-
-    const hasYouTubeVideo =
-      youtube && Boolean(embedUrl)
-
-    const hasPlayableVideo =
-      hasVideo ||
-      hasYouTubeVideo
-
-    const percent =
-      playerDuration > 0
-        ? Math.min(
-            100,
-            Math.max(
-              0,
-              (playerTime /
-                playerDuration) *
-                100,
-            ),
-          )
-        : 0
-
+    if (!watchingMovie) return null
     const nextMovie = getNextMovie()
-    
     return (
-      <div
-        ref={playerRef}
-        className="fixed inset-0 z-[100] bg-black"
-        tabIndex={0}
-        onMouseMove={
-          resetPlayerControls
-        }
-        onClick={
-          resetPlayerControls
-        }
-      >
-        <div className="relative flex h-full w-full items-center justify-center">
-          {hasYouTubeVideo ? (
-            <iframe
-              src={embedUrl}
-              title={watchingMovie.title}
-              className="h-full w-full border-0"
-              allow="autoplay; encrypted-media; fullscreen; picture-in-picture"
-              allowFullScreen
-            />
-          ) : hasVideo ? (
-          <video
-  ref={videoRef}
-  crossOrigin="anonymous"
-  src={videoUrl}
-              poster={
-                watchingMovie.poster ||
-                heroImage
-              }
-              className="max-h-full max-w-full object-contain"
-              playsInline
-              preload="auto"
-              onLoadedMetadata={(
-                event,
-              ) => {
-                const duration =
-                  event.currentTarget
-                    .duration
-
-                const safeDuration =
-                  Number.isFinite(
-                    duration,
-                  )
-                    ? duration
-                    : 0
-
-                setPlayerDuration(
-                  safeDuration,
-                )
-
-                const saved =
-                  getProgress(
-                    watchingMovie,
-                  )
-
-                if (
-                  saved.currentTime > 0 &&
-                  saved.currentTime <
-                    safeDuration - 5
-                ) {
-                  event.currentTarget.currentTime =
-                    saved.currentTime
-
-                  setPlayerTime(
-                    saved.currentTime,
-                  )
-                }
-
-                event.currentTarget.muted =
-                  muted
-
-                event.currentTarget.playbackRate =
-                  speed
-
-              if (autoNextRef.current) {
-  autoNextRef.current = false
-
-  void ensureAudioGraph()
-    .then(async () => {
-      try {
-        await event.currentTarget.play()
-      } catch (error) {
-        console.warn(
-          'PMF auto-next playback could not start:',
-          error,
-        )
-
-        setPlayerPlaying(false)
-        setShowPlayerControls(true)
-
-        showMessage(
-          'Tap Play to continue.',
-        )
-      }
-    })
-              }
-                
-                            }}
-
-              onTimeUpdate={(
-                event,
-              ) => {
-                const current =
-                  event.currentTarget
-                    .currentTime
-
-                const duration =
-                  event.currentTarget
-                    .duration
-
-                setPlayerTime(
-                  current,
-                )
-
-                if (
-                  Number.isFinite(
-                    duration,
-                  ) &&
-                  duration > 0
-                ) {
-                  saveProgress(
-                    watchingMovie,
-                    current,
-                    duration,
-                  )
-                }
-
-                if (
-                  current > 10
-                ) {
-                  addToContinueWatching(
-                    watchingMovie,
-                  )
-                }
-              }}
-
-              onPlay={() => {
-                setPlayerPlaying(
-                  true,
-                )
-
-                resetPlayerControls()
-              }}
-
-              onPause={() => {
-                setPlayerPlaying(
-                  false,
-                )
-
-                setShowPlayerControls(
-                  true,
-                )
-              }}
-
-              onEnded={() => {
-  saveProgress(
-    watchingMovie,
-    0,
-    0,
-  )
-
-  setPlayerPlaying(false)
-  setPlayerTime(0)
-  setShowPlayerControls(true)
-
-  if (nextMovie) {
-    setUpNextCountdown(8)
-    setShowUpNext(true)
-  }
-}}
-              onError={() => {
-                setPlayerPlaying(
-                  false,
-                )
-
-                setShowPlayerControls(
-                  true,
-                )
-
-                showMessage(
-                  'This video could not be played.',
-                )
-              }}
-            />
-          ) : (
-            <div className="flex max-w-lg flex-col items-center px-6 text-center">
-
-              <div className="relative flex h-24 w-24 items-center justify-center rounded-[2rem] border border-white/10 bg-white/[0.035] shadow-2xl">
-                <div className="absolute inset-0 rounded-[2rem] bg-white/[0.025] blur-xl" />
-
-                <Film
-                  size={34}
-                  className="relative text-white/30"
-                />
-              </div>
-
-              <p className="mt-7 text-[8px] font-black uppercase tracking-[0.3em] text-white/25">
-                PMF-FLIX WATCH
-              </p>
-
-              <h2 className="mt-3 text-2xl font-black tracking-tight text-white sm:text-3xl">
-                {watchingMovie.title}
-              </h2>
-
-              <p className="mt-4 max-w-md text-xs leading-6 text-white/40">
-                This title is already part of
-                the PMF-Flix catalogue, but
-                its video source has not been
-                connected yet.
-              </p>
-
-              <div className="mt-7 rounded-2xl border border-white/10 bg-white/[0.035] px-5 py-4">
-                <p className="text-[8px] font-black uppercase tracking-[0.18em] text-white/25">
-                  Media connection pending
-                </p>
-
-                <p className="mt-2 text-[10px] leading-5 text-white/35">
-                  Your future PMF media-storage
-                  layer can be connected here
-                  without rebuilding the player.
-                </p>
-              </div>
-            </div>
-          )}
-
-          <div
-            className={`pointer-events-none absolute inset-x-0 top-0 h-32 bg-gradient-to-b from-black/80 to-transparent transition-opacity duration-300 ${
-              showPlayerControls
-                ? 'opacity-100'
-                : 'opacity-0'
-            }`}
-          />
-
-          <div
-            className={`absolute inset-x-0 bottom-0 bg-gradient-to-t from-black via-black/80 to-transparent px-4 pb-5 pt-20 transition-opacity duration-300 sm:px-8 ${
-              showPlayerControls
-                ? 'opacity-100'
-                : 'opacity-0'
-            }`}
-          >
-            <div className="mx-auto max-w-[1400px]">
-
-              <div className="mb-3 flex items-center justify-between">
-                <div className="min-w-0 pr-4">
-                  <h2 className="truncate text-sm font-black text-white sm:text-lg">
-                    {watchingMovie.title}
-                  </h2>
-
-                  <p className="mt-1 text-[8px] font-black uppercase tracking-[0.14em] text-white/30">
-                    {watchingMovie.year}
-                    {' • '}
-                    {watchingMovie.type ||
-                      'Film'}
-                  </p>
-                </div>
-
-                <button
-                  type="button"
-                  onClick={
-                    closePlayer
-                  }
-                  className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl border border-white/10 bg-white/5 text-white/60 hover:bg-white/10 hover:text-white"
-                  aria-label="Close player"
-                >
-                  <X size={15} />
-                </button>
-
-            {showUpNext &&
-  nextMovie && (
-    <div className="absolute inset-x-0 bottom-28 z-20 flex justify-center px-4 sm:bottom-32">
-      <div className="w-full max-w-md overflow-hidden rounded-3xl border border-white/10 bg-black/90 shadow-2xl backdrop-blur-2xl">
-        <div className="relative h-36 overflow-hidden sm:h-44">
-          <img
-            src={
-              nextMovie.poster ||
-              heroImage
-            }
-            alt={nextMovie.title}
-            className="h-full w-full object-cover opacity-70"
-          />
-
-          <div className="absolute inset-0 bg-gradient-to-t from-black via-black/30 to-transparent" />
-
-          <div className="absolute left-4 top-4 rounded-full border border-white/10 bg-black/60 px-3 py-1.5 backdrop-blur-md">
-            <span className="text-[8px] font-black uppercase tracking-[0.18em] text-white/70">
-              Up Next
-            </span>
-          </div>
-
-          <div className="absolute bottom-4 left-4 right-4">
-            <p className="text-[8px] font-black uppercase tracking-[0.16em] text-white/40">
-              Playing next
-            </p>
-
-            <h3 className="mt-1 truncate text-lg font-black tracking-tight text-white sm:text-xl">
-              {nextMovie.title}
-            </h3>
-          </div>
-        </div>
-
-        <div className="p-4">
-          <div className="flex items-center justify-between gap-3">
-            <div>
-              <p className="text-[9px] font-medium text-white/40">
-                Starting automatically in
-              </p>
-
-              <p className="mt-1 text-xl font-black tabular-nums text-white">
-                {upNextCountdown}s
-              </p>
-            </div>
-
-            <div className="flex items-center gap-2">
-              <button
-                type="button"
-                onClick={() => {
-                  setShowUpNext(false)
-                  setUpNextCountdown(8)
-                }}
-                className="rounded-xl border border-white/10 bg-white/[0.05] px-4 py-2.5 text-[9px] font-black uppercase tracking-[0.12em] text-white/55 transition-all hover:bg-white/10 hover:text-white active:scale-95"
-              >
-                Cancel
-              </button>
-
-              <button
-                type="button"
-                onClick={() =>
-                  playNextMovie(
-                    nextMovie,
-                  )
-                }
-                className="flex items-center gap-2 rounded-xl bg-white px-4 py-2.5 text-[9px] font-black uppercase tracking-[0.12em] text-black transition-all hover:bg-white/90 active:scale-95"
-              >
-                <Play
-                  size={12}
-                  fill="currentColor"
-                />
-
-                Play Now
-              </button>
-            </div>
-          </div>
-        </div>
-      </div>
-    </div>
-  )}
-                
-              </div>
-
-              {hasPlayableVideo &&
-  !youtube && (
-    <div className="mb-4">
-      <div className="mb-2 flex items-center justify-between px-0.5">
-        <span className="text-[9px] font-semibold tabular-nums text-white/60">
-          {formatPlayerTime(playerTime)}
-        </span>
-
-        <span className="text-[9px] font-semibold tabular-nums text-white/35">
-          {formatPlayerTime(playerDuration)}
-        </span>
-      </div>
-
-      <input
-        type="range"
-        min="0"
-        max={Math.max(
-          1,
-          playerDuration,
-        )}
-        value={Math.min(
-          playerTime,
-          playerDuration || 1,
-        )}
-        onChange={(
-          event,
-        ) => {
-          seek(
-            Number(
-              event.target.value,
-            ),
-          )
+      <VideoPlayer
+        movie={watchingMovie}
+        initialTime={watchingInitialTime}
+        initialTheaterMode={theaterMode}
+        onClose={closePlayer}
+        onProgressSave={(time, dur) => {
+          saveProgress(watchingMovie, time, dur, false)
         }}
-        className="h-1 w-full cursor-pointer accent-white"
-        style={{
-          background: `linear-gradient(to right, white ${percent}%, rgba(255,255,255,.15) ${percent}%)`,
-        }}
-        aria-label="Playback progress"
+        onNext={nextMovie ? () => playNextMovie(nextMovie) : undefined}
+        nextMovieTitle={nextMovie?.title}
       />
-    </div>
-  )}
-
-              <div className="flex items-center justify-between gap-2">
-
-                <div className="flex items-center gap-1 sm:gap-2">
-
-                  {hasPlayableVideo && (
-                    <button
-                      type="button"
-                      onClick={
-                        playPause
-                      }
-                      className="flex h-9 w-9 items-center justify-center rounded-full bg-white text-black"
-                      aria-label={
-                        playerPlaying
-                          ? 'Pause'
-                          : 'Play'
-                      }
-                    >
-                      {playerPlaying ? (
-                        <Pause
-                          size={14}
-                          fill="currentColor"
-                        />
-                      ) : (
-                        <Play
-                          size={14}
-                          fill="currentColor"
-                        />
-                      )}
-                    </button>
-                  )}
-
-                  {hasVideo && (
-                    <>
-                      <button
-                        type="button"
-                        onClick={
-                          rewind
-                        }
-                        className="flex h-8 w-8 items-center justify-center rounded-lg text-white/60 hover:bg-white/10 hover:text-white"
-                        aria-label="Rewind 10 seconds"
-                      >
-                        <SkipBack
-                          size={14}
-                        />
-                      </button>
-
-                      <button
-                        type="button"
-                        onClick={
-                          forward
-                        }
-                        className="flex h-8 w-8 items-center justify-center rounded-lg text-white/60 hover:bg-white/10 hover:text-white"
-                        aria-label="Forward 10 seconds"
-                      >
-                        <SkipForward
-                          size={14}
-                        />
-                      </button>
-
-                      <div className="group relative">
-  <button
-    type="button"
-    onClick={() =>
-      setShowAudioHub(
-        (current) => !current,
-      )
-    }
-    className="relative flex h-9 min-w-9 items-center justify-center gap-1.5 rounded-xl border border-white/10 bg-white/[0.06] px-2 text-white/75 backdrop-blur-md transition-all duration-200 hover:border-white/20 hover:bg-white/10 hover:text-white active:scale-95"
-    aria-label="Open audio controls"
-    aria-expanded={showAudioHub}
-  >
-    {muted ? (
-      <VolumeX
-        size={15}
-      />
-    ) : (
-      <Volume2
-        size={15}
-      />
-    )}
-
-    <span className="hidden text-[9px] font-bold tabular-nums tracking-wide sm:inline">
-      {Math.round(
-        audioBoost * 100,
-      )}%
-    </span>
-  </button>
-
-  <div
-    className={`absolute bottom-full left-1/2 mb-3 w-56 -translate-x-1/2 rounded-2xl border border-white/10 bg-black/85 p-3 shadow-2xl backdrop-blur-xl transition-all duration-200 ${
-      showAudioHub
-        ? 'pointer-events-auto translate-y-0 opacity-100'
-        : 'pointer-events-none translate-y-2 opacity-0'
-    } group-hover:pointer-events-auto group-hover:translate-y-0 group-hover:opacity-100`}
-    onClick={(event) =>
-      event.stopPropagation()
-    }
-  >
-    <div className="mb-3 flex items-center justify-between">
-      <div>
-        <p className="text-[10px] font-bold uppercase tracking-[0.16em] text-white/80">
-          PMF Audio
-        </p>
-
-        <p className="mt-0.5 text-[9px] text-white/40">
-          Volume & boost
-        </p>
-      </div>
-
-      <span className="rounded-full border border-white/10 bg-white/5 px-2 py-1 text-[9px] font-bold tabular-nums text-white/70">
-        {Math.round(
-          audioBoost * 100,
-        )}%
-      </span>
-    </div>
-
-    <div className="mb-3">
-      <div className="mb-1.5 flex items-center justify-between">
-        <span className="text-[9px] font-medium text-white/45">
-          Volume
-        </span>
-
-        <span className="text-[9px] font-semibold tabular-nums text-white/60">
-          {muted
-            ? 0
-            : Math.round(
-                volume * 100,
-              )}%
-        </span>
-      </div>
-
-      <input
-        type="range"
-        min="0"
-        max="1"
-        step="0.05"
-        value={
-          muted
-            ? 0
-            : volume
-        }
-        onChange={(
-          event,
-        ) =>
-          changeVolume(
-            Number(
-              event.target.value,
-            ),
-          )
-        }
-        className="h-1 w-full cursor-pointer accent-white"
-        aria-label="Volume"
-      />
-    </div>
-
-    <div className="mb-3">
-      <div className="mb-2 flex items-center justify-between">
-        <span className="text-[9px] font-medium text-white/45">
-          Audio boost
-        </span>
-
-        <span className="text-[9px] font-semibold text-white/60">
-          Up to 300%
-        </span>
-      </div>
-
-      <div className="grid grid-cols-3 gap-1.5">
-        {[1, 1.25, 1.5, 2, 2.5, 3].map(
-          (boost) => (
-            <button
-              key={boost}
-              type="button"
-              onClick={() =>
-                changeAudioBoost(
-                  boost,
-                )
-              }
-              className={`rounded-lg border px-2 py-1.5 text-[9px] font-bold tabular-nums transition-all ${
-                audioBoost === boost
-                  ? 'border-white/40 bg-white text-black'
-                  : 'border-white/10 bg-white/[0.04] text-white/55 hover:bg-white/10 hover:text-white'
-              }`}
-              aria-label={`Set audio boost to ${Math.round(boost * 100)}%`}
-            >
-              {Math.round(
-                boost * 100,
-              )}%
-            </button>
-          ),
-        )}
-      </div>
-    </div>
-
-    <button
-      type="button"
-      onClick={toggleMute}
-      className="flex w-full items-center justify-center gap-2 rounded-xl border border-white/10 bg-white/[0.05] px-3 py-2 text-[9px] font-bold uppercase tracking-[0.12em] text-white/65 transition-all hover:bg-white/10 hover:text-white active:scale-[0.98]"
-      aria-label={
-        muted
-          ? 'Unmute audio'
-          : 'Mute audio'
-      }
-    >
-      {muted ? (
-        <VolumeX
-          size={14}
-        />
-      ) : (
-        <Volume2
-          size={14}
-        />
-      )}
-
-      {muted
-        ? 'Unmute'
-        : 'Mute'}
-    </button>
-  </div>
-</div>
-                    </>
-                  )}
-                </div>
-
-                <div className="flex items-center gap-1 sm:gap-2">
-
-                  {hasVideo && (
-                    <button
-                      type="button"
-                      onClick={() =>
-                        setShowPlayerSettings(
-                          (value) =>
-                            !value,
-                        )
-                      }
-                      className="flex h-8 items-center gap-1 rounded-lg px-2 text-[8px] font-black uppercase tracking-[0.12em] text-white/45 hover:bg-white/10 hover:text-white"
-                    >
-                      <Settings
-                        size={12}
-                      />
-
-                      <span className="hidden sm:inline">
-                        Speed
-                      </span>
-                    </button>
-                  )}
-
-                  <button
-                    type="button"
-                    onClick={() =>
-                      setTheaterMode(
-                        (value) =>
-                          !value,
-                      )
-                    }
-                    className="hidden h-8 rounded-lg px-2 text-[8px] font-black uppercase tracking-[0.12em] text-white/45 hover:bg-white/10 hover:text-white sm:block"
-                  >
-                    Theater
-                  </button>
-
-                  <button
-                    type="button"
-                    onClick={
-                      fullscreen
-                    }
-                    className="flex h-8 items-center rounded-lg px-2 text-[8px] font-black uppercase tracking-[0.12em] text-white/45 hover:bg-white/10 hover:text-white"
-                  >
-                    Fullscreen
-                  </button>
-                </div>
-              </div>
-
-              {showPlayerSettings &&
-                hasVideo && (
-                  <div className="mt-3 flex justify-end">
-                   <div className="flex flex-col gap-2 rounded-xl border border-white/10 bg-black/80 p-2 backdrop-blur">
-  <div className="flex items-center gap-1">
-    <span className="mr-1 text-[8px] font-black uppercase tracking-wider text-white/40">
-      Speed
-    </span>
-
-    {[
-      0.75,
-      1,
-      1.25,
-      1.5,
-      2,
-    ].map(
-      (value) => (
-        <button
-          key={value}
-          type="button"
-          onClick={() =>
-            changeSpeed(
-              value,
-            )
-          }
-          className={`rounded-lg px-3 py-2 text-[8px] font-black ${
-            speed ===
-            value
-              ? 'bg-white text-black'
-              : 'text-white/45 hover:bg-white/10 hover:text-white'
-          }`}
-        >
-          {value}x
-        </button>
-      ),
-    )}
-  </div>
-
-  <div className="flex items-center gap-1">
-    <span className="mr-1 text-[8px] font-black uppercase tracking-wider text-white/40">
-      Boost
-    </span>
-
-    {[
-      1,
-      1.25,
-      1.5,
-      2,
-      2.5,
-      3,
-    ].map(
-      (value) => (
-        <button
-          key={value}
-          type="button"
-          onClick={() =>
-            changeAudioBoost(
-              value,
-            )
-          }
-          className={`rounded-lg px-3 py-2 text-[8px] font-black ${
-            audioBoost ===
-            value
-              ? 'bg-white text-black'
-              : 'text-white/45 hover:bg-white/10 hover:text-white'
-          }`}
-        >{Math.round(
-            value * 100,
-          )}%
-        </button>
-      ),
-    )}
-  </div>
-</div>
-                    </div>
-                )}
-            </div>
-          </div>
-        </div>
-      </div>
     )
   }
 
@@ -4576,13 +3911,19 @@ const ProfilePanel = () => {
 
         <div>
           <div className="flex items-center gap-2">
-            <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-white text-black">
-              <Film size={14} />
+            <img
+              src="/pmf-flix-logo.png"
+              alt="PMF-Flix"
+              className="h-8 sm:h-9 w-auto object-contain opacity-90"
+              onError={(e) => {
+                e.currentTarget.style.display = 'none'
+                const fb = document.getElementById('pmf-footer-logo-fallback')
+                if (fb) fb.style.display = 'flex'
+              }}
+            />
+            <div id="pmf-footer-logo-fallback" style={{ display: 'none' }}>
+              <PMFLogo size={32} showWordmark={true} />
             </div>
-
-            <span className="text-sm font-black text-white">
-              PMF-FLIX
-            </span>
           </div>
 
           <p className="mt-4 max-w-sm text-[10px] leading-5 text-white/25">
@@ -4609,8 +3950,20 @@ const ProfilePanel = () => {
     return (
       <div className="flex min-h-screen items-center justify-center bg-[#050505] text-white">
         <div className="text-center">
-          <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-2xl bg-white text-black">
-            <Film size={20} />
+          <div className="mx-auto flex items-center justify-center">
+            <img
+              src="/pmf-flix-icon.png"
+              alt="PMF-Flix"
+              className="h-20 w-20 object-contain rounded-2xl shadow-2xl animate-pulse"
+              onError={(e) => {
+                e.currentTarget.style.display = 'none'
+                const fb = document.getElementById('pmf-splash-icon-fallback')
+                if (fb) fb.style.display = 'flex'
+              }}
+            />
+            <div id="pmf-splash-icon-fallback" style={{ display: 'none' }}>
+              <PMFLogo size={48} />
+            </div>
           </div>
 
           <p className="mt-5 text-[9px] font-black uppercase tracking-[0.3em] text-white/35">
@@ -4628,63 +3981,199 @@ const ProfilePanel = () => {
   if (!session) {
     return (
       <AuthScreen
-        onAuthenticated={(
-          nextSession: Session,
-        ) => {
+        onAuthenticated={(nextSession: Session) => {
           setSession(nextSession)
         }}
       />
     )
   }
 
+  // Signature Profile Universe Gate: User must select an authorized profile
+  if (isSelectingProfile || !activeProfile) {
+    return (
+      <ProfileSelectionScreen
+        profiles={userProfiles}
+        activeProfileId={activeProfile?.id || null}
+        onSelectProfile={handleSelectProfile}
+        onCreateProfile={handleCreateProfile}
+        onUpdateProfile={handleUpdateProfile}
+        onDeleteProfile={handleDeleteProfile}
+        onSignOut={handleSignOut}
+      />
+    )
+  }
+
   return (
-    <div className="min-h-screen bg-[#050505] text-white selection:bg-white selection:text-black">
-      <Header />
+    <div className="pmf-app-shell min-h-screen bg-[#050505] text-white selection:bg-white selection:text-black">
+      {Header()}
 
-      <MobileSearchResults />
+      {MobileSearchResults()}
 
-      {playerMessage &&
+      {toastMessage &&
         !showProfile && (
           <div className="fixed bottom-5 left-1/2 z-[75] -translate-x-1/2 rounded-full border border-white/10 bg-black/85 px-5 py-3 text-[8px] font-black uppercase tracking-[0.14em] text-white/65 shadow-2xl backdrop-blur-xl">
-            {playerMessage}
+            {toastMessage}
           </div>
         )}
 
       {section === 'home' && (
         <>
-          <HomeContent />
-          <Footer />
+          {HomeContent()}
+          {Footer()}
         </>
       )}
 
       {(section === 'movies' ||
-        section === 'series') && (
-        <CatalogPage
-          type={
+        section === 'series') &&
+        CatalogPage({
+          type:
             section === 'movies'
               ? 'Movie'
-              : 'Series'
+              : 'Series',
+        })}
+
+      {section === 'my-list' &&
+        MyListPage()}
+
+      {section === 'offline' && (
+        <OfflineCinemaPage
+          onPlayMovie={(movie, offlineStreamUrl) =>
+            startWatching(movie, offlineStreamUrl)
           }
+          onExploreCatalogue={() => navigate('movies')}
         />
       )}
 
-      {section === 'my-list' && (
-        <MyListPage />
+      {section === 'trending' && (
+        <main className="min-h-screen bg-[#050505] px-5 pb-24 pt-32 sm:px-10 lg:px-16">
+          <div className="mx-auto max-w-[1600px]">
+            <TrendingRail
+              movies={safeCatalogMovies}
+              onPlayMovie={startWatching}
+              onExploreMovie={openMovie}
+            />
+            <div className="mt-8">
+              <h3 className="text-xl font-black text-white mb-4">Complete Trending Catalogue</h3>
+              {MovieGrid({ items: trendingMovies })}
+            </div>
+          </div>
+        </main>
       )}
 
-      {selectedMovie && (
-        <MovieDetails />
+      {section === 'nollywood' && (
+        <main className="min-h-screen bg-[#050505] px-5 pb-24 pt-32 sm:px-10 lg:px-16">
+          <div className="mx-auto max-w-[1600px]">
+            <div className="mb-8">
+              <span className="text-[10px] font-black uppercase tracking-[0.25em] text-amber-400">
+                African Cinema & Nollywood Spotlight
+              </span>
+              <h1 className="mt-1 text-3xl font-black text-white sm:text-4xl">
+                Stories from Lagos, Accra, Johannesburg & the Continent
+              </h1>
+            </div>
+            {MovieGrid({ items: africanAndNollywoodMovies })}
+          </div>
+        </main>
       )}
 
-      {showProfile && (
-        <ProfilePanel />
+      {section === 'buzz-boss' && (
+        <main className="min-h-screen bg-[#050505] px-4 pb-28 pt-28 sm:px-8 max-w-[1600px] mx-auto">
+          <ShortsComedyCatalog
+            onOpenStudio={() => setShowStudio(true)}
+          />
+        </main>
       )}
+
+      {section === 'free-novels' && (
+        <main className="min-h-screen bg-[#050505] px-4 pb-28 pt-28 sm:px-8 max-w-[1600px] mx-auto">
+          <NovelsLibraryCatalog
+            onOpenStudio={() => setShowStudio(true)}
+          />
+        </main>
+      )}
+
+      {section === 'sports' && (
+        <main className="min-h-screen bg-[#050505] px-4 pb-28 pt-28 sm:px-8 max-w-[1600px] mx-auto">
+          <LiveSportsCatalog
+            onOpenStudio={() => setShowStudio(true)}
+          />
+        </main>
+      )}
+
+      {section === 'shorts' && (
+        <PMFShortsExperience
+          onBackToHome={() => setSection('home')}
+          onOpenStudio={() => setShowStudio(true)}
+          allMovies={safeCatalogMovies}
+        />
+      )}
+
+      {section === 'midnight-18' && (
+        <Midnight18Category
+          movies={movies}
+          activeProfile={activeProfile}
+          onPlayMovie={startWatching}
+          onSelectMovie={openMovie}
+          onExitCategory={() => navigate('home')}
+        />
+      )}
+
+      {selectedMovie &&
+        MovieDetails()}
+
+      {selectedSeason &&
+        SeasonDetails()}
+
+      {showProfile &&
+        ProfilePanel()}
 
       {showStudio && (
         <AdminStudio
           onClose={() =>
             setShowStudio(false)
           }
+        />
+      )}
+
+      {/* SMART DISCOVERY MODALS */}
+      <WorldCinemaModal
+        isOpen={showWorldCinema}
+        onClose={() => setShowWorldCinema(false)}
+        movies={safeCatalogMovies}
+        onSelectMovie={(movie) => {
+          setShowWorldCinema(false)
+          openMovie(movie)
+        }}
+      />
+
+      <SurpriseMeModal
+        isOpen={showRoulette}
+        onClose={() => setShowRoulette(false)}
+        movies={safeCatalogMovies}
+        onPlayMovie={(movie) => {
+          setShowRoulette(false)
+          startWatching(movie)
+        }}
+        onExploreMovie={(movie) => {
+          setShowRoulette(false)
+          openMovie(movie)
+        }}
+      />
+
+      <WatchPartyModal
+        isOpen={Boolean(watchPartyMovie)}
+        onClose={() => setWatchPartyMovie(null)}
+        movie={watchPartyMovie}
+      />
+
+      {/* PERSISTENT MOBILE BOTTOM NAVIGATION (Reference Images 1 & 2) */}
+      {!watchingMovie && (
+        <PMFBottomNavigation
+          currentSection={section}
+          onNavigate={(sec) => navigate(sec as Section)}
+          onOpenMe={() => setShowProfile(true)}
+          downloadsCount={downloadsCount}
+          profileAvatar={profile.avatar}
         />
       )}
 
