@@ -761,153 +761,994 @@ button:active {
  }
 
 
-/* =========================================================
-   PMF-FLIX MOBILE CINEMA LAYOUT — PRODUCTION BRANCH
-   Targets the actual App.tsx hero/card markup in this repo.
-   ========================================================= */
-@media (max-width: 640px) {
-  html, body, #root {
-    width: 100%;
-    max-width: 100%;
-    overflow-x: clip;
-  }
+@keyframes pmfPageIn { from { opacity: .55; transform: translateX(10px); } to { opacity: 1; transform: translateX(0); } }
 
-  /* Replace the near-full-screen desktop hero height on phones. */
-  .group\/hero {
-    min-height: 0 !important;
-    height: clamp(540px, 74svh, 660px) !important;
-    max-height: 660px !important;
-    isolation: isolate;
-  }
 
-  .group\/hero > .relative.mx-auto {
-    display: flex !important;
-    align-items: flex-end !important;
-    width: 100% !important;
-    height: 100% !important;
-    min-height: 0 !important;
-    padding: max(94px, env(safe-area-inset-top)) 18px 28px !important;
-  }
+/* Native-app interaction polish for Capacitor Android WebView. */
+html, body, #root { min-height: 100%; width: 100%; }
+#root { min-height: 100dvh; }
+html { background: #030208; overscroll-behavior-y: none; }
+body { margin: 0; overscroll-behavior-y: none; -webkit-tap-highlight-color: transparent; }
+button, a, [role="button"] { touch-action: manipulation; }
+@supports (height: 100dvh) { .pmf-app-shell { min-height: 100dvh; } }
 
-  .group\/hero > .relative.mx-auto > div {
+
+/* True edge-to-edge cinema stage when the player enters browser fullscreen. */
+.pmf-player-shell:fullscreen,
+.pmf-player-shell:-webkit-full-screen {
+  width: 100vw !important;
+  height: 100dvh !important;
+  max-width: none !important;
+  max-height: none !important;
+  padding: 0 !important;
+  margin: 0 !important;
+  background: #000 !important;
+}
+.pmf-player-shell:fullscreen video,
+.pmf-player-shell:-webkit-full-screen video {
+  width: 100vw !important;
+  height: 100dvh !important;
+  max-width: none !important;
+  max-height: none !important;
+}
+@media (orientation: landscape) and (max-height: 520px) {
+  .pmf-player-shell { padding: 0 !important; }
+  .pmf-player-shell video { max-width: none !important; }
+}
+
+
+/* PMF-Flix premium Android home — tuned for narrow phone screens. */
+@media (max-width: 480px) {
+  .pmf-topbar { height: 58px !important; gap: .45rem !important; padding-left: 12px !important; padding-right: 12px !important; }
+  .pmf-brand-logo { height: 30px !important; max-width: 108px; }
+  .pmf-app-shell > header .relative.border-b { background: rgba(4,3,10,.96) !important; backdrop-filter: blur(18px); }
+  .pmf-app-shell > header .relative.border-b > .pmf-topbar { min-width: 0; }
+  .pmf-app-shell > header input { font-size: 12px !important; }
+  .pmf-category-navigation { padding-top: 12px !important; padding-bottom: 4px !important; }
+  .pmf-category-list {
+    display: grid !important;
+    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+    gap: 8px !important;
+    overflow: visible !important;
+    padding: 4px 0 8px !important;
+  }
+  .pmf-category-tile {
     width: 100% !important;
     min-width: 0 !important;
+    min-height: 58px !important;
+    justify-content: flex-start !important;
+    padding: 12px 10px !important;
+    border-radius: 14px !important;
+    font-size: 11px !important;
+    line-height: 1.2 !important;
+    white-space: normal !important;
+    box-shadow: 0 8px 24px rgba(0,0,0,.2) !important;
   }
+  .pmf-category-tile svg { width: 20px !important; height: 20px !important; flex-shrink: 0 !important; }
+  .pmf-category-tile span { overflow-wrap: anywhere; }
+  .pmf-app-shell main { padding-left: 14px !important; padding-right: 14px !important; }
+  .pmf-home-rail { gap: 9px !important; }
+  .pmf-home-card { width: 116px !important; min-width: 116px !important; }
+  .pmf-home-card > div { border-radius: 14px !important; }
+  .pmf-home-card .aspect-\[2\/3\] { aspect-ratio: 2 / 3; }
+  .pmf-home-card article, .pmf-home-card button { -webkit-tap-highlight-color: transparent; }
+  .pmf-home-section { margin-top: 10px !important; }
+}
 
-  .group\/hero .grid {
-    display: block !important;
+
+/* Compact phone-first layout for PMF Studio and the home hero. */
+.pmf-admin-studio { width: 100%; max-width: 100vw; overflow-x: clip; }
+.pmf-admin-studio * { min-width: 0; }
+@media (max-width: 600px) {
+  .pmf-admin-studio > header > div {
+    align-items: flex-start !important;
+    flex-wrap: wrap !important;
+    gap: 10px !important;
+    padding: 10px 12px !important;
   }
-
-  .group\/hero .max-w-5xl {
+  .pmf-admin-studio > header > div > div:first-child {
+    flex: 1 1 100% !important;
+    gap: 8px !important;
+  }
+  .pmf-admin-studio > header > div > div:first-child > div { min-width: 0 !important; }
+  .pmf-admin-studio > header > div > div:first-child p {
     max-width: 100% !important;
+    font-size: 10px !important;
+    line-height: 1.3 !important;
   }
+  .pmf-admin-studio > header > div > div:last-child {
+    display: grid !important;
+    grid-template-columns: repeat(3, minmax(0, 1fr)) !important;
+    width: 100% !important;
+    gap: 7px !important;
+  }
+  .pmf-admin-studio > header > div > div:last-child > * {
+    min-width: 0 !important;
+    width: 100% !important;
+    min-height: 42px !important;
+    padding: 9px 7px !important;
+    font-size: 11px !important;
+    white-space: normal !important;
+  }
+  .pmf-admin-studio > main { padding: 16px 12px 28px !important; }
+  .pmf-admin-studio > main > div:first-child { margin-bottom: 16px !important; }
+  .pmf-admin-studio > main > div:first-child h1 {
+    font-size: clamp(1.45rem, 7vw, 2rem) !important;
+    line-height: 1.08 !important;
+    overflow-wrap: anywhere !important;
+  }
+  .pmf-admin-studio > main > div:first-child p { font-size: 12px !important; line-height: 1.45 !important; }
+  .pmf-admin-studio > main > div:nth-of-type(4) {
+    gap: 7px !important;
+    margin-bottom: 16px !important;
+    padding-bottom: 10px !important;
+  }
+  .pmf-admin-studio > main > div:nth-of-type(4) button {
+    min-height: 40px !important;
+    padding: 9px 10px !important;
+    font-size: 11px !important;
+  }
+  .pmf-admin-studio form,
+  .pmf-admin-studio [class*="grid gap-5 md:grid-cols-2"] {
+    grid-template-columns: minmax(0, 1fr) !important;
+  }
+  .pmf-admin-studio section { max-width: 100% !important; }
+  .pmf-admin-studio input,
+  .pmf-admin-studio select,
+  .pmf-admin-studio textarea { max-width: 100% !important; font-size: 16px !important; }
+  .pmf-admin-studio button { overflow-wrap: anywhere; }
+  .pmf-admin-studio img { max-width: 100%; }
+}
 
-  .group\/hero h1 {
-    max-width: 12ch !important;
-    font-size: clamp(2.35rem, 10vw, 3.8rem) !important;
+/* App-wide responsive baseline: phone-first across every PMF-Flix screen. */
+*, *::before, *::after { box-sizing: border-box; }
+html, body, #root { max-width: 100%; }
+body { overflow-x: hidden; }
+img, video, canvas, iframe, svg { max-width: 100%; }
+input, select, textarea, button { max-width: 100%; }
+@media (max-width: 600px) {
+  #root { width: 100%; overflow-x: clip; }
+  main, section, article, header, footer, nav, aside { min-width: 0; }
+  h1, h2, h3, p, label, a, button, span { min-width: 0; word-break: normal; overflow-wrap: break-word; }
+  /* Keep long admin/editor content and popups inside the visible phone viewport. */
+  [role="dialog"], [aria-modal="true"] {
+    max-width: calc(100vw - 20px) !important;
+    max-height: calc(100dvh - 24px) !important;
+    overflow-x: hidden;
+    overflow-y: auto;
+    overscroll-behavior: contain;
+  }
+  /* Collapse form field grids only; keep catalogue/card grids intact. */
+  form [class*="grid-cols-2"], form [class*="grid-cols-3"],
+  form [class*="grid-cols-4"], form [class*="grid-cols-5"] {
+    grid-template-columns: minmax(0, 1fr) !important;
+  }
+  /* Let toolbars and action groups wrap rather than pushing buttons off-screen. */
+  [class*="flex"][class*="items-center"][class*="gap-"] {
+    min-width: 0;
+  }
+  /* Maintain readable touch targets without forcing desktop-sized panels. */
+  button, [role="button"] { touch-action: manipulation; }
+  /* Preserve horizontal scrolling only where the app intentionally uses media rails. */
+  .pmf-home-rail, [data-horizontal-scroll="true"] {
+    max-width: 100%;
+    overscroll-behavior-x: contain;
+  }
+}
+@media (max-width: 380px) {
+  .pmf-app-shell main { padding-left: 10px !important; padding-right: 10px !important; }
+  .pmf-home-card { width: 104px !important; min-width: 104px !important; }
+  .pmf-topbar { padding-left: 9px !important; padding-right: 9px !important; }
+}
+
+
+/* Focused responsive refinements: auth, profiles, category rail, studio, and cinema player. */
+.pmf-auth-screen { min-height: 100dvh; }
+.pmf-profile-screen { min-height: 100dvh; }
+@media (max-width: 600px) {
+  /* Authentication should feel like a compact mobile sign-in, not a desktop landing page. */
+  .pmf-auth-screen { min-height: 100svh !important; }
+  .pmf-auth-screen > .relative.z-10 {
+    min-height: 100svh !important;
+    padding: max(18px, env(safe-area-inset-top)) 16px max(20px, env(safe-area-inset-bottom)) !important;
+  }
+  .pmf-auth-screen > .relative.z-10 > div { max-width: 420px !important; }
+  .pmf-auth-screen > .relative.z-10 > div > div:first-child { margin-bottom: 18px !important; }
+  .pmf-auth-screen h1 { font-size: clamp(1.65rem, 7vw, 2.15rem) !important; line-height: 1.08 !important; }
+  .pmf-auth-screen img[alt="Prince Mufasa Flix"] { height: 54px !important; }
+  .pmf-auth-screen [class*="rounded-[2rem]"] { padding: 18px !important; border-radius: 22px !important; }
+  .pmf-auth-screen form { gap: 12px !important; }
+  .pmf-auth-screen form input { min-height: 44px; font-size: 16px !important; }
+  .pmf-auth-screen p { overflow-wrap: normal; }
+
+  /* Profile picker: compact header, tighter spacing, and a responsive avatar grid. */
+  .pmf-profile-screen { justify-content: flex-start !important; padding: 16px 16px max(18px, env(safe-area-inset-bottom)) !important; }
+  .pmf-profile-screen > header { max-width: 100% !important; padding-top: 0 !important; }
+  .pmf-profile-screen > main { flex: 1 0 auto !important; padding: 28px 0 24px !important; }
+  .pmf-profile-screen > main > div:first-child { margin-bottom: 24px !important; }
+  .pmf-profile-screen h1 { font-size: clamp(1.65rem, 7vw, 2.2rem) !important; line-height: 1.08 !important; }
+  .pmf-profile-screen > main > div:nth-of-type(2) { gap: 18px !important; }
+  .pmf-profile-screen > main > div:nth-of-type(2) > * { flex: 0 1 104px !important; }
+  .pmf-profile-screen > main > div:nth-of-type(2) [class*="h-28"][class*="w-28"] { width: 96px !important; height: 96px !important; border-radius: 22px !important; }
+  .pmf-profile-screen footer { width: 100% !important; margin-top: auto; }
+
+  /* Category selector is a single horizontal swipe row, never a two-column tile wall. */
+  .pmf-category-navigation { padding-top: 8px !important; overflow: hidden; }
+  .pmf-category-list {
+    display: flex !important;
+    flex-wrap: nowrap !important;
+    width: 100% !important;
+    gap: 8px !important;
+    overflow-x: auto !important;
+    overflow-y: hidden !important;
+    padding: 4px 2px 10px !important;
+    scroll-snap-type: x proximity;
+    scrollbar-width: none;
+    -webkit-overflow-scrolling: touch;
+  }
+  .pmf-category-list::-webkit-scrollbar { display: none; }
+  .pmf-category-tile {
+    flex: 0 0 auto !important;
+    width: auto !important;
+    min-width: max-content !important;
+    min-height: 40px !important;
+    padding: 10px 14px !important;
+    border-radius: 999px !important;
+    white-space: nowrap !important;
+    overflow-wrap: normal !important;
+    scroll-snap-align: start;
+    box-shadow: none !important;
+  }
+  .pmf-category-tile span { white-space: nowrap !important; overflow-wrap: normal !important; }
+
+  /* Keep title and artwork readable in compact catalogue rails. */
+  .pmf-home-card { width: clamp(128px, 39vw, 158px) !important; min-width: clamp(128px, 39vw, 158px) !important; }
+  .pmf-home-card h3, .pmf-home-card p, .pmf-home-card span { overflow-wrap: normal !important; }
+  .pmf-home-card h3 { display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 2; overflow: hidden; line-height: 1.25 !important; }
+  .pmf-admin-studio header span, .pmf-admin-studio header p { overflow-wrap: normal !important; }
+  .pmf-admin-studio header .text-lg { font-size: 15px !important; }
+  .pmf-admin-studio header .text-xs { line-height: 1.25 !important; }
+}
+
+/* Player must preserve the full source frame in landscape and portrait. */
+.pmf-player-shell { width: 100%; width: 100dvw; height: 100%; height: 100dvh; max-width: 100%; }
+.pmf-player-shell video,
+.pmf-player-shell iframe { max-width: 100%; max-height: 100%; }
+.pmf-player-shell video { object-position: center center; }
+@media (max-width: 600px) {
+  .pmf-player-shell > div:first-of-type { padding: 8px 10px !important; gap: 8px !important; }
+  .pmf-player-shell > div:first-of-type > div:first-child { gap: 8px !important; }
+  .pmf-player-shell > div:first-of-type > div:last-child { gap: 5px !important; }
+  .pmf-player-shell > div:first-of-type button { flex-shrink: 0; }
+  .pmf-player-shell [class*="aspect-video"] { aspect-ratio: auto !important; }
+  .pmf-player-shell video { object-fit: contain !important; }
+}
+@media (orientation: landscape) and (max-height: 600px) {
+  .pmf-player-shell { padding: 0 !important; }
+  .pmf-player-shell > div:first-of-type { padding: 4px 10px !important; min-height: 42px; }
+  .pmf-player-shell > div:last-of-type { padding-bottom: 4px !important; }
+  .pmf-player-shell video,
+  .pmf-player-shell iframe { width: 100% !important; height: 100% !important; object-fit: contain !important; }
+}
+
+
+/* PMF-Flix cinematic category catalogue: vivid, distinct, and touch-friendly. */
+.pmf-category-navigation {
+  position: relative;
+  isolation: isolate;
+}
+.pmf-category-list {
+  gap: 10px !important;
+  padding: 8px 2px 13px !important;
+}
+.pmf-category-tile {
+  position: relative !important;
+  isolation: isolate;
+  display: inline-flex !important;
+  align-items: center !important;
+  gap: 9px !important;
+  min-height: 48px !important;
+  padding: 11px 15px !important;
+  border: 1px solid rgba(255,255,255,.13) !important;
+  border-radius: 15px !important;
+  color: #fff !important;
+  font-weight: 700 !important;
+  letter-spacing: .01em;
+  background: linear-gradient(135deg, #24213a, #11101d) !important;
+  box-shadow: inset 0 1px 0 rgba(255,255,255,.10), 0 7px 18px rgba(0,0,0,.24) !important;
+  transition: transform .18s ease, border-color .18s ease, filter .18s ease !important;
+}
+.pmf-category-tile::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  border-radius: inherit;
+  opacity: .92;
+  background: linear-gradient(120deg, var(--pmf-category-glow, rgba(139,92,246,.3)), transparent 76%);
+}
+.pmf-category-tile svg {
+  width: 21px !important;
+  height: 21px !important;
+  color: var(--pmf-category-accent, #c4b5fd) !important;
+  filter: drop-shadow(0 0 7px var(--pmf-category-glow, rgba(139,92,246,.45)));
+}
+.pmf-category-tile:nth-child(6n + 1) { --pmf-category-accent:#fbbf24; --pmf-category-glow:rgba(245,158,11,.34); border-color:rgba(245,158,11,.34) !important; }
+.pmf-category-tile:nth-child(6n + 2) { --pmf-category-accent:#67e8f9; --pmf-category-glow:rgba(6,182,212,.30); border-color:rgba(6,182,212,.32) !important; }
+.pmf-category-tile:nth-child(6n + 3) { --pmf-category-accent:#fb7185; --pmf-category-glow:rgba(244,63,94,.30); border-color:rgba(244,63,94,.32) !important; }
+.pmf-category-tile:nth-child(6n + 4) { --pmf-category-accent:#86efac; --pmf-category-glow:rgba(34,197,94,.28); border-color:rgba(34,197,94,.30) !important; }
+.pmf-category-tile:nth-child(6n + 5) { --pmf-category-accent:#c4b5fd; --pmf-category-glow:rgba(139,92,246,.34); border-color:rgba(139,92,246,.35) !important; }
+.pmf-category-tile:nth-child(6n) { --pmf-category-accent:#fdba74; --pmf-category-glow:rgba(249,115,22,.30); border-color:rgba(249,115,22,.32) !important; }
+.pmf-category-tile[aria-pressed="true"],
+.pmf-category-tile[aria-current="page"],
+.pmf-category-tile[data-active="true"] {
+  border-color:var(--pmf-category-accent, #fbbf24) !important;
+  box-shadow:inset 0 0 0 1px var(--pmf-category-accent, #fbbf24), 0 0 22px var(--pmf-category-glow, rgba(139,92,246,.3)) !important;
+  filter:brightness(1.12);
+}
+.pmf-category-tile:active { transform:scale(.97); }
+@media (hover:hover) {
+  .pmf-category-tile:hover { transform:translateY(-2px); filter:brightness(1.12); }
+}
+@media (max-width:600px) {
+  .pmf-category-list { gap:9px !important; padding-top:9px !important; padding-bottom:14px !important; }
+  .pmf-category-tile {
+    min-height:46px !important;
+    padding:10px 13px !important;
+    border-radius:14px !important;
+    font-size:12px !important;
+  }
+}
+
+
+/* Compact cinematic Admin Studio (AS) wordmark and comfortable mobile header. */
+.pmf-studio-wordmark { white-space: nowrap; line-height: 1; }
+.pmf-studio-as {
+  position: relative;
+  isolation: isolate;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 37px;
+  height: 29px;
+  padding: 0 8px;
+  overflow: hidden;
+  border: 1px solid rgba(251,191,36,.7);
+  border-radius: 9px;
+  color: #fff4c2;
+  background: linear-gradient(135deg, rgba(245,158,11,.32), rgba(124,58,237,.24) 58%, rgba(5,5,12,.95));
+  box-shadow: inset 0 1px 0 rgba(255,255,255,.2), 0 0 18px rgba(245,158,11,.12);
+  font-size: 13px;
+  font-weight: 950;
+  letter-spacing: .12em;
+  text-shadow: 0 0 12px rgba(251,191,36,.55);
+}
+.pmf-studio-as-glow {
+  position: absolute;
+  inset: -45% -70%;
+  z-index: -1;
+  background: linear-gradient(105deg, transparent 35%, rgba(255,255,255,.24) 48%, transparent 60%);
+  transform: translateX(-65%);
+  animation: pmf-as-sheen 5s ease-in-out infinite;
+  pointer-events: none;
+}
+@keyframes pmf-as-sheen {
+  0%, 65%, 100% { transform: translateX(-65%); }
+  82% { transform: translateX(65%); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .pmf-studio-as-glow { animation: none; }
+}
+@media (max-width: 600px) {
+  .pmf-admin-studio > header > div { gap: 8px !important; padding: 10px 11px !important; }
+  .pmf-admin-studio > header > div > div:first-child { flex: 1 1 auto !important; width: auto !important; gap: 7px !important; }
+  .pmf-admin-studio > header > div > div:first-child > div { gap: 7px !important; }
+  .pmf-admin-studio .pmf-studio-wordmark { font-size: 14px !important; letter-spacing: .05em !important; }
+  .pmf-admin-studio .pmf-studio-as { min-width: 34px; height: 27px; border-radius: 8px; }
+  .pmf-admin-studio header p { display: none; }
+  .pmf-admin-studio > header > div > div:last-child { flex: 0 0 auto !important; width: auto !important; display: flex !important; gap: 5px !important; }
+  .pmf-admin-studio > header > div > div:last-child > * { width: auto !important; min-height: 38px !important; padding: 8px !important; }
+}
+
+/* True viewport-filling video stage with a compact, wrapping touch toolbar. */
+.pmf-player-shell {
+  inset: 0 !important;
+  width: 100vw !important;
+  width: 100dvw !important;
+  height: 100vh !important;
+  height: 100dvh !important;
+  max-width: none !important;
+  max-height: none !important;
+  padding: 0 !important;
+  overflow: hidden !important;
+  overscroll-behavior: none;
+}
+.pmf-player-shell > div:nth-of-type(2) {
+  min-height: 0;
+}
+.pmf-player-shell video {
+  object-fit: contain;
+  object-position: center center;
+}
+@media (max-width: 600px) {
+  .pmf-player-shell > div:first-of-type {
+    flex: 0 0 auto;
+    min-height: 38px !important;
+    padding: 5px 8px !important;
+    gap: 6px !important;
+  }
+  .pmf-player-shell > div:first-of-type button {
+    min-width: 32px !important;
+    min-height: 32px !important;
+    padding: 6px !important;
+  }
+  .pmf-player-shell > div:last-of-type {
+    flex: 0 0 auto;
+    padding: 8px 9px max(8px, env(safe-area-inset-bottom)) !important;
+  }
+  .pmf-player-shell > div:last-of-type > div:first-child {
+    margin-bottom: 5px !important;
+    gap: 7px !important;
+  }
+  .pmf-player-shell > div:last-of-type > div:first-child > span {
+    width: 38px !important;
+    font-size: 10px !important;
+  }
+  .pmf-player-shell > div:last-of-type > div:last-child {
+    display: flex !important;
+    flex-wrap: wrap !important;
+    justify-content: space-between !important;
+    align-items: center !important;
+    gap: 7px !important;
+  }
+  .pmf-player-shell > div:last-of-type > div:last-child > div:first-child {
+    gap: 5px !important;
+    flex: 0 1 auto;
+  }
+  .pmf-player-shell > div:last-of-type > div:last-child > div:last-child {
+    display: flex !important;
+    flex-wrap: wrap !important;
+    justify-content: flex-end !important;
+    gap: 5px !important;
+    flex: 1 1 100%;
+  }
+  .pmf-player-shell > div:last-of-type > div:last-child button {
+    min-width: 32px !important;
+    min-height: 32px !important;
+    height: 32px !important;
+    padding: 0 8px !important;
+    border-radius: 10px !important;
+    font-size: 9px !important;
+  }
+  .pmf-player-shell > div:last-of-type > div:last-child > div:last-child button span {
+    display: inline !important;
+    font-size: 9px !important;
+    letter-spacing: .04em;
+  }
+  .pmf-player-shell > div:last-of-type > div:last-child > div:first-child > button:first-child {
+    width: 38px !important;
+    height: 38px !important;
+    min-width: 38px !important;
+    min-height: 38px !important;
+  }
+}
+@media (orientation: landscape) and (max-height: 600px) {
+  .pmf-player-shell { position: fixed !important; inset: 0 !important; }
+  .pmf-player-shell > div:first-of-type { min-height: 30px !important; padding: 2px 8px !important; }
+  .pmf-player-shell > div:first-of-type button { min-height: 28px !important; min-width: 28px !important; }
+  .pmf-player-shell > div:nth-of-type(2) { flex: 1 1 auto !important; min-height: 0 !important; }
+  .pmf-player-shell > div:nth-of-type(2) video,
+  .pmf-player-shell > div:nth-of-type(2) iframe { width: 100% !important; height: 100% !important; object-fit: contain !important; }
+  .pmf-player-shell > div:last-of-type { padding: 4px 8px max(4px, env(safe-area-inset-bottom)) !important; }
+  .pmf-player-shell > div:last-of-type > div:first-child { margin-bottom: 2px !important; }
+  .pmf-player-shell > div:last-of-type > div:last-child { flex-wrap: nowrap !important; gap: 5px !important; }
+  .pmf-player-shell > div:last-of-type > div:last-child > div:last-child { flex: 0 1 auto; flex-wrap: nowrap !important; }
+  .pmf-player-shell > div:last-of-type > div:last-child button { min-width: 28px !important; height: 28px !important; min-height: 28px !important; padding: 0 6px !important; }
+}
+
+
+/* PMF Cinema: lock the player to the actual device viewport */
+.pmf-player-shell {
+  position: fixed !important; inset: 0 !important; width: 100vw !important;
+  height: 100vh !important; height: 100dvh !important; max-width: none !important;
+  max-height: none !important; margin: 0 !important; padding: 0 !important;
+  overflow: hidden !important; background: #000 !important; isolation: isolate;
+}
+.pmf-player-shell:fullscreen { width: 100vw !important; height: 100vh !important; height: 100dvh !important; inset: 0 !important; }
+.pmf-player-shell .pmf-video-stage {
+  flex: 1 1 0% !important; min-width: 0 !important; min-height: 0 !important;
+  width: 100% !important; max-width: none !important; max-height: none !important;
+  touch-action: pan-x pan-y;
+}
+.pmf-player-shell video { display: block; width: 100% !important; height: 100% !important; max-width: 100% !important; max-height: 100% !important; }
+.pmf-gesture-hud { animation: pmf-gesture-in 120ms ease-out; }
+@keyframes pmf-gesture-in { from { opacity: 0; transform: translateY(-50%) scale(.94); } to { opacity: 1; transform: translateY(-50%) scale(1); } }
+@media (max-width: 640px) {
+  .pmf-player-shell > div:first-child { padding: max(6px, env(safe-area-inset-top, 0px)) 8px 4px !important; gap: 4px !important; }
+  .pmf-player-shell > div:last-child { padding: 8px 8px max(8px, env(safe-area-inset-bottom, 0px)) !important; gap: 6px !important; }
+  .pmf-player-shell .pmf-video-stage video { object-position: center center !important; }
+}
+@media (orientation: landscape) and (max-height: 500px) {
+  .pmf-player-shell > div:first-child { min-height: 0 !important; padding: 4px 8px !important; }
+  .pmf-player-shell > div:last-child { padding: 4px 8px !important; }
+  .pmf-player-shell .pmf-video-stage { min-height: 0 !important; }
+}
+
+
+/* =========================================================
+   PMF-FLIX RESPONSIVE CINEMA SYSTEM
+   Single source of truth for phone/tablet layout.
+   Desktop hierarchy, composed for the actual device viewport.
+   ========================================================= */
+:root {
+  --pmf-page-gutter: clamp(14px, 2.4vw, 34px);
+  --pmf-content-max: 1600px;
+  --pmf-card-radius: 16px;
+}
+html, body, #root {
+  width: 100%;
+  min-width: 320px;
+  max-width: 100%;
+}
+html {
+  min-height: 100%;
+  background: #030208;
+  overscroll-behavior-y: none;
+}
+body {
+  min-height: 100vh;
+  margin: 0;
+  overflow-x: clip;
+  -webkit-tap-highlight-color: transparent;
+  overscroll-behavior-y: none;
+}
+#root { min-height: 100dvh; overflow-x: clip; }
+*, *::before, *::after { box-sizing: border-box; }
+img, video, iframe, canvas { max-width: 100%; }
+button, a, [role="button"] { touch-action: manipulation; }
+.pmf-app-shell {
+  width: 100%;
+  min-height: 100dvh;
+  max-width: 100%;
+  overflow-x: clip;
+  isolation: isolate;
+}
+.pmf-app-shell > header { width: 100%; }
+.pmf-app-shell main {
+  width: 100%;
+  max-width: var(--pmf-content-max);
+  margin-inline: auto;
+  min-width: 0;
+}
+.pmf-app-shell main > * { min-width: 0; }
+.pmf-auth-screen, .pmf-profile-screen {
+  width: 100%;
+  min-height: 100svh;
+  min-height: 100dvh;
+  overflow-x: clip;
+}
+.pmf-auth-screen > .relative.z-10,
+.pmf-profile-screen > main {
+  width: 100%;
+  min-width: 0;
+}
+.pmf-admin-studio, .pmf-admin-studio main {
+  width: 100%;
+  max-width: 100%;
+  overflow-x: clip;
+}
+[role="dialog"], [aria-modal="true"] {
+  overscroll-behavior: contain;
+}
+
+/* Header: retain the desktop toolbar hierarchy without shrinking controls. */
+@media (max-width: 640px) {
+  :root { --pmf-page-gutter: 16px; }
+  .pmf-topbar {
+    height: 58px !important;
+    min-width: 0;
+    gap: 7px !important;
+    padding-inline: 12px !important;
+  }
+  .pmf-brand-logo {
+    height: 30px !important;
+    max-width: 108px;
+  }
+  .pmf-app-shell > header .relative.border-b {
+    background: rgba(4,3,10,.96) !important;
+    backdrop-filter: blur(18px);
+    -webkit-backdrop-filter: blur(18px);
+  }
+  .pmf-app-shell > header input { font-size: 16px !important; }
+  .pmf-app-shell main {
+    padding-left: var(--pmf-page-gutter);
+    padding-right: var(--pmf-page-gutter);
+  }
+  /* Main hero: one balanced cinematic frame, not a vertically stretched poster. */
+  .pmf-home-hero {
+    min-height: 0 !important;
+    height: clamp(460px, 64svh, 560px) !important;
+    max-height: 560px !important;
+    isolation: isolate;
+    background: #030208 !important;
+  }
+  .pmf-home-hero > .absolute.inset-0.overflow-hidden {
+    background: #030208 !important;
+  }
+  .pmf-home-hero > .absolute.inset-0.overflow-hidden img {
+    display: block;
+    width: 100% !important;
+    height: 100% !important;
+    max-width: none !important;
+    object-fit: cover !important;
+    object-position: 64% center !important;
+    opacity: .92 !important;
+    transform: none !important;
+  }
+  .pmf-home-hero > .absolute.inset-0.overflow-hidden > .bg-gradient-to-r {
+    background-image: linear-gradient(
+      90deg,
+      rgba(3,2,8,.86) 0%,
+      rgba(3,2,8,.60) 36%,
+      rgba(3,2,8,.12) 100%
+    ) !important;
+  }
+  .pmf-home-hero > .absolute.inset-0.overflow-hidden > .bg-gradient-to-t {
+    background-image: linear-gradient(
+      0deg,
+      #030208 0%,
+      rgba(3,2,8,.78) 18%,
+      rgba(3,2,8,.12) 62%,
+      transparent 100%
+    ) !important;
+  }
+  .pmf-home-hero > .relative.mx-auto {
+    display: flex !important;
+    align-items: flex-end !important;
+    width: 100%;
+    height: 100% !important;
+    min-height: 0 !important;
+    padding: 88px 22px 25px !important;
+  }
+  .pmf-home-hero > .relative.mx-auto > div {
+    width: 100% !important;
+    min-width: 0;
+  }
+  .pmf-home-hero .grid { display: block !important; }
+  .pmf-home-hero .mb-7 {
+    margin-bottom: 12px !important;
+    gap: 10px !important;
+  }
+  .pmf-home-hero .mb-7 > div:first-child {
+    width: 34px !important;
+    height: 34px !important;
+    border-radius: 12px !important;
+  }
+  .pmf-home-hero .mb-7 span {
+    font-size: 8px !important;
+    letter-spacing: .24em !important;
+  }
+  .pmf-home-hero .mb-7 p {
+    font-size: 7px !important;
+    letter-spacing: .16em !important;
+  }
+  .pmf-home-hero h1 {
+    max-width: 100% !important;
+    font-size: clamp(2.15rem, 8.8vw, 3.15rem) !important;
     line-height: .96 !important;
-    letter-spacing: -.065em !important;
-    text-wrap: balance;
+    letter-spacing: -.06em !important;
+    display: -webkit-box !important;
+    -webkit-box-orient: vertical !important;
+    -webkit-line-clamp: 2 !important;
+    overflow: hidden !important;
+    overflow-wrap: normal !important;
+    word-break: normal !important;
+    text-wrap: balance !important;
+  }
+  .pmf-home-hero .mt-7 {
+    margin-top: 11px !important;
+    gap: 8px !important;
+  }
+  .pmf-home-hero .mt-7 > span {
+    font-size: 8px !important;
+    letter-spacing: .12em !important;
+  }
+  .pmf-home-hero .mt-6 { margin-top: 10px !important; }
+  .pmf-home-hero p.mt-4 {
+    max-width: 31rem !important;
+    font-size: 12px !important;
+    line-height: 1.45 !important;
+    display: -webkit-box !important;
+    -webkit-box-orient: vertical !important;
+    -webkit-line-clamp: 2 !important;
+    overflow: hidden !important;
+  }
+  .pmf-home-hero .mt-9 {
+    display: flex !important;
+    flex-wrap: wrap !important;
+    margin-top: 15px !important;
+    gap: 9px !important;
+  }
+  .pmf-home-hero .mt-9 button {
+    min-width: 0 !important;
+    min-height: 43px !important;
+    padding: 9px 13px !important;
+    gap: 8px !important;
+    border-radius: 13px !important;
+    font-size: 9px !important;
+    letter-spacing: .12em !important;
+    white-space: nowrap !important;
+  }
+  .pmf-home-hero .mt-9 button span.h-8 {
+    width: 25px !important;
+    height: 25px !important;
+  }
+  .pmf-home-hero .mt-8.flex.items-center.gap-3 {
+    display: flex !important;
+    margin-top: 13px !important;
+    gap: 9px !important;
+  }
+  .pmf-home-hero .mt-8.flex.items-center.gap-3 button {
+    width: 24px !important;
+    height: 24px !important;
+  }
+  .pmf-home-hero .mt-10.flex.items-center.gap-3 { display: none !important; }
+
+  /* Home rails keep poster dimensions consistent and horizontally navigable. */
+  .pmf-home-section { margin-block: 17px 21px !important; }
+  .pmf-home-rail, [data-row-scroller] {
+    max-width: 100%;
+    gap: 10px !important;
+    overscroll-behavior-x: contain;
+    -webkit-overflow-scrolling: touch;
+    scroll-snap-type: x proximity;
+  }
+  .pmf-home-card--standard {
+    width: clamp(142px, 42vw, 168px) !important;
+    min-width: clamp(142px, 42vw, 168px) !important;
+    flex: 0 0 auto !important;
+  }
+  .pmf-home-card--compact {
+    width: clamp(116px, 33vw, 136px) !important;
+    min-width: clamp(116px, 33vw, 136px) !important;
+    flex: 0 0 auto !important;
+  }
+  .pmf-home-card h3, .pmf-home-card p, .pmf-home-card span {
+    overflow-wrap: normal !important;
+    word-break: normal !important;
+  }
+  .pmf-home-card h3 {
+    display: -webkit-box;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 2;
+    overflow: hidden;
+    line-height: 1.25 !important;
+  }
+  /* Catalogue grids: two deliberate columns with readable cards. */
+  .pmf-app-shell main [class*="grid-cols-2"] {
+    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+    gap: 10px !important;
+  }
+  .pmf-app-shell main article {
+    min-width: 0;
+    border-radius: var(--pmf-card-radius);
+  }
+  .pmf-app-shell main article h3 {
+    font-size: 12px;
+    line-height: 1.25;
     overflow-wrap: normal;
   }
-
-  .group\/hero .mt-7 {
-    margin-top: 13px !important;
-    gap: 8px 10px !important;
+  .pmf-app-shell main article p {
+    font-size: 10px;
+    line-height: 1.4;
   }
+  .pmf-app-shell main input,
+  .pmf-app-shell main select,
+  .pmf-app-shell main textarea {
+    min-width: 0;
+    max-width: 100%;
+    font-size: 16px;
+  }
+  .pmf-app-shell main button { min-width: 0; max-width: 100%; }
+  .pmf-app-shell main [class*="flex"][class*="gap-"] { min-width: 0; }
 
-  .group\/hero p.mt-6 {
-    max-width: 34rem !important;
-    margin-top: 12px !important;
-    font-size: 13px !important;
-    line-height: 1.48 !important;
+  /* Keep the persistent navigation proportionate and legible. */
+  nav[aria-label="Mobile Navigation"] > div {
+    height: 64px;
+    max-width: 520px;
+    padding-inline: 8px;
+  }
+  nav[aria-label="Mobile Navigation"] button > span {
+    font-size: 9px;
+    letter-spacing: .08em;
+    white-space: nowrap;
+    overflow-wrap: normal;
+  }
+  nav[aria-label="Mobile Navigation"] button svg { flex: 0 0 auto; }
+
+  /* Discovery dialogs fit the visible screen and scroll internally. */
+  .pmf-surprise-overlay {
+    align-items: center;
+    padding: max(12px, env(safe-area-inset-top)) 12px max(12px, env(safe-area-inset-bottom));
+  }
+  .pmf-surprise-panel {
+    width: 100%;
+    max-width: 560px;
+    max-height: calc(100dvh - 24px);
+    overflow-y: auto;
+    border-radius: 20px;
+  }
+  .pmf-surprise-art { min-height: clamp(190px, 30svh, 260px); }
+
+  /* Sign-in: centred, comfortable, no desktop-width overflow. */
+  .pmf-auth-screen { min-height: 100svh !important; }
+  .pmf-auth-screen > .relative.z-10 {
+    min-height: 100svh !important;
+    padding: max(18px, env(safe-area-inset-top)) 16px max(20px, env(safe-area-inset-bottom)) !important;
+  }
+  .pmf-auth-screen > .relative.z-10 > div { max-width: 420px !important; }
+  .pmf-auth-screen > .relative.z-10 > div > div:first-child { margin-bottom: 18px !important; }
+  .pmf-auth-screen h1 { font-size: clamp(1.65rem, 7vw, 2.15rem) !important; line-height: 1.08 !important; }
+  .pmf-auth-screen img[alt="Prince Mufasa Flix"] { height: 54px !important; }
+  .pmf-auth-screen [class*="rounded-[2rem]"] { padding: 18px !important; border-radius: 22px !important; }
+  .pmf-auth-screen form { gap: 12px !important; }
+  .pmf-auth-screen form input { min-height: 44px; font-size: 16px !important; }
+
+  /* Profile picker: compact, centred avatar grid. */
+  .pmf-profile-screen {
+    justify-content: flex-start !important;
+    padding: max(16px, env(safe-area-inset-top)) 16px max(18px, env(safe-area-inset-bottom)) !important;
+  }
+  .pmf-profile-screen > header { max-width: 100% !important; padding-top: 0 !important; }
+  .pmf-profile-screen > main { flex: 1 0 auto !important; padding: 28px 0 24px !important; }
+  .pmf-profile-screen > main > div:first-child { margin-bottom: 24px !important; }
+  .pmf-profile-screen h1 { font-size: clamp(1.65rem, 7vw, 2.2rem) !important; line-height: 1.08 !important; }
+  .pmf-profile-screen > main > div:nth-of-type(2) { gap: 18px !important; }
+  .pmf-profile-screen > main > div:nth-of-type(2) > * { flex: 0 1 104px !important; }
+  .pmf-profile-screen > main > div:nth-of-type(2) [class*="h-28"][class*="w-28"] {
+    width: 96px !important; height: 96px !important; border-radius: 22px !important;
+  }
+  .pmf-profile-screen footer { width: 100% !important; margin-top: auto; }
+}
+@media (max-width: 380px) {
+  :root { --pmf-page-gutter: 12px; }
+  .pmf-topbar { padding-inline: 9px !important; gap: 5px !important; }
+  .pmf-home-hero { height: clamp(430px, 62svh, 520px) !important; }
+  .pmf-home-hero > .relative.mx-auto { padding-inline: 16px !important; padding-bottom: 20px !important; }
+  .pmf-home-hero h1 { font-size: clamp(1.9rem, 8.2vw, 2.4rem) !important; }
+  .pmf-home-card--standard { width: 142px !important; min-width: 142px !important; }
+  .pmf-home-card--compact { width: 116px !important; min-width: 116px !important; }
+}
+@media (min-width: 641px) and (max-width: 1023px) {
+  :root { --pmf-page-gutter: 22px; }
+  .pmf-app-shell main { padding-inline: var(--pmf-page-gutter); }
+}
+
+/* Midnight 18+: balanced adult-category artwork, copy and controls. */
+@media (max-width: 640px) {
+  .midnight18-hero {
+    display: flex !important;
+    flex-direction: column !important;
+    align-items: stretch !important;
+    justify-content: space-between !important;
+    gap: 10px !important;
+    width: 100% !important;
+    min-height: 0 !important;
+    height: clamp(238px, 68vw, 285px) !important;
+    padding: 15px !important;
+    margin-bottom: 22px !important;
+    border-radius: 19px !important;
+    background-position: 57% center !important;
+    background-size: cover !important;
+  }
+  .midnight18-hero-layout {
+    display: grid !important;
+    grid-template-columns: minmax(0, 1fr) minmax(0, .95fr) !important;
+    align-items: center !important;
+    gap: 10px !important;
+    width: 100% !important;
+    min-width: 0 !important;
+    flex: 1 1 auto !important;
+  }
+  .midnight18-hero-copy {
+    width: 100% !important;
+    min-width: 0 !important;
+    max-width: none !important;
+    gap: 7px !important;
+  }
+  .midnight18-hero-copy > div:first-child { flex-wrap: wrap !important; gap: 5px !important; }
+  .midnight18-hero-copy > div:first-child > span {
+    white-space: nowrap !important;
+    letter-spacing: .12em !important;
+    font-size: 7px !important;
+    padding: 4px 6px !important;
+  }
+  .midnight18-hero-copy h1 {
+    max-width: 100% !important;
+    font-size: clamp(19px, 5.8vw, 27px) !important;
+    line-height: 1.02 !important;
+    letter-spacing: -.045em !important;
+    overflow-wrap: normal !important;
+    word-break: normal !important;
+    text-wrap: balance !important;
+  }
+  .midnight18-hero-copy p {
+    max-width: 100% !important;
+    font-size: 9px !important;
+    line-height: 1.35 !important;
     display: -webkit-box !important;
     -webkit-box-orient: vertical !important;
     -webkit-line-clamp: 3 !important;
     overflow: hidden !important;
   }
-
-  .group\/hero .mt-9 {
-    margin-top: 17px !important;
-    gap: 9px !important;
-  }
-
-  .group\/hero .mt-9 button {
-    min-height: 46px !important;
-    padding: 9px 13px !important;
-    border-radius: 13px !important;
-    font-size: 8px !important;
-    letter-spacing: .12em !important;
-  }
-
-  /* Reduce the oversized desktop spacing while keeping posters readable. */
-  main.relative.mx-auto {
-    padding-left: 16px !important;
-    padding-right: 16px !important;
-  }
-
-  .group\/card {
-    width: clamp(132px, 39vw, 154px) !important;
-    min-width: clamp(132px, 39vw, 154px) !important;
-    flex: 0 0 auto !important;
-  }
-
-  .group\/card > div {
-    border-radius: 15px !important;
-  }
-
-  .group\/section {
-    margin-bottom: 18px !important;
-  }
-
-  main .grid.grid-cols-2 {
-    gap: 10px !important;
-  }
-
-  main .grid.grid-cols-2 > * {
+  .midnight18-hero-actions {
+    width: 100% !important;
     min-width: 0 !important;
+    display: flex !important;
+    flex-direction: column !important;
+    align-items: stretch !important;
+    justify-content: center !important;
+    gap: 7px !important;
   }
-
-  main input, main select, main textarea {
-    min-width: 0;
-    max-width: 100%;
-    font-size: 16px;
+  .midnight18-hero-actions button {
+    width: 100% !important;
+    min-width: 0 !important;
+    min-height: 34px !important;
+    justify-content: center !important;
+    padding: 7px 8px !important;
+    border-radius: 10px !important;
+    font-size: 8px !important;
+    line-height: 1.2 !important;
+    white-space: normal !important;
+    text-align: center !important;
   }
+  .midnight18-hero-actions button span { overflow-wrap: normal !important; word-break: normal !important; }
+  .midnight18-hero-advisory {
+    display: flex !important;
+    align-items: center !important;
+    gap: 7px !important;
+    width: 100% !important;
+    min-width: 0 !important;
+    margin: 0 !important;
+    padding: 7px 9px !important;
+    border-color: rgba(255,255,255,.16) !important;
+    border-radius: 10px !important;
+    background: rgba(3,2,8,.76) !important;
+  }
+  .midnight18-hero-advisory svg { width: 13px !important; height: 13px !important; margin: 0 !important; }
+  .midnight18-hero-advisory p { min-width: 0 !important; font-size: 8px !important; line-height: 1.3 !important; color: rgba(255,255,255,.78) !important; }
+}
+@media (max-width: 360px) {
+  .midnight18-hero { height: 248px !important; padding: 12px !important; }
+  .midnight18-hero-layout { grid-template-columns: minmax(0, .95fr) minmax(0, 1fr) !important; gap: 7px !important; }
+  .midnight18-hero-copy h1 { font-size: 19px !important; }
+  .midnight18-hero-copy p { font-size: 8px !important; }
+  .midnight18-hero-actions button { font-size: 7px !important; }
 }
 
-@media (max-width: 380px) {
-  .group\/hero {
-    height: clamp(520px, 72svh, 590px) !important;
-  }
-
-  .group\/hero > .relative.mx-auto {
-    padding-left: 15px !important;
-    padding-right: 15px !important;
-    padding-bottom: 22px !important;
-  }
-
-  .group\/hero h1 {
-    font-size: clamp(2.15rem, 9.5vw, 2.8rem) !important;
-  }
-
-  .group\/card {
-    width: 132px !important;
-    min-width: 132px !important;
-  }
+/* Keep full-screen player behaviour isolated from normal page sizing. */
+.pmf-player-shell:fullscreen,
+.pmf-player-shell:-webkit-full-screen {
+  position: fixed !important;
+  inset: 0 !important;
+  width: 100vw !important;
+  height: 100dvh !important;
+  max-width: none !important;
+  max-height: none !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  overflow: hidden !important;
+  background: #000 !important;
 }
-
+.pmf-player-shell:fullscreen video,
+.pmf-player-shell:-webkit-full-screen video {
+  width: 100vw !important;
+  height: 100dvh !important;
+  max-width: none !important;
+  max-height: none !important;
+}
 @media (prefers-reduced-motion: reduce) {
-  .group\/hero *, .group\/card * {
+  .pmf-app-shell *, .pmf-auth-screen *, .pmf-profile-screen * {
     scroll-behavior: auto !important;
-    transition-duration: .01ms !important;
-  }
-}
-
-
-/* Keep portrait feature artwork fully visible on narrow screens. */
-@media (max-width: 640px) {
-  .pmf-hero-artwork {
-    object-position: center top !important;
-    opacity: 0.62 !important;
   }
 }
