@@ -1,0 +1,28 @@
+{
+  "name": "PMF-Flix | Prince Mufasa Flix",
+  "short_name": "PMF-Flix",
+  "description": "Prince Mufasa Flix — Premium cinematic entertainment streaming platform featuring African cinema, Nollywood, global releases, and PMF Originals.",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#030208",
+  "theme_color": "#030208",
+  "icons": [
+    {
+      "src": "/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/pmf-flix-icon.png",
+      "sizes": "1024x1024",
+      "type": "image/png"
+    }
+  ]
+}

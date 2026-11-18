@@ -63,6 +63,7 @@ const DEFAULT_CONTENT_TYPES = [
 
 const DEFAULT_GENRES = [
   'All Genres',
+  'African & Nollywood',
   'Action',
   'Adventure',
   'Comedy',
